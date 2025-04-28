@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript to HAAS G-code Converter - Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 15px;
+        }
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        h3 {
+            margin-top: 25px;
+            color: #2980b9;
+        }
+        h4 {
+            margin-top: 20px;
+            color: #16a085;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .note {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+        }
+        .warning {
+            background-color: #fff8e1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .method-signature {
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .param-name {
+            font-weight: bold;
+            color: #d32f2f;
+        }
+        .param-type {
+            font-style: italic;
+            color: #7b1fa2;
+        }
+        .return-type {
+            font-weight: bold;
+            color: #388e3c;
+        }
+        .example {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .toc {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .toc ul {
+            padding-left: 20px;
+        }
+        .toc li {
+            margin-bottom: 5px;
+        }
+        .toc a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JavaScript to HAAS G-code Converter Documentation</h1>
+        
+        <div class="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+                <li><a href="#introduction">1. Introduction</a></li>
+                <li><a href="#getting-started">2. Getting Started</a></li>
+                <li><a href="#tool-library">3. Tool Library</a></li>
+                <li><a href="#gcode-generator">4. G-code Generator</a></li>
+                <li><a href="#program-structure">5. Program Structure</a></li>
+                <li><a href="#movement-commands">6. Movement Commands</a></li>
+                <li><a href="#machining-operations">7. Machining Operations</a></li>
+                <li><a href="#advanced-features">8. Advanced Features</a></li>
+                <li><a href="#examples">9. Examples</a></li>
+            </ul>
+        </div>
+
+        <section id="introduction">
+            <h2>1. Introduction</h2>
+            <p>The JavaScript to HAAS G-code Converter is a powerful tool that allows you to generate CNC machining programs using JavaScript syntax. The library provides:</p>
+            <ul>
+                <li>Automatic speed and feed calculations based on tool and material</li>
+                <li>Comprehensive tool library management</li>
+                <li>Support for all common machining operations</li>
+                <li>HAAS-specific G-code generation</li>
+                <li>Safety features and proper program structure</li>
+            </ul>
+            
+            <div class="note">
+                <p><strong>Note:</strong> This documentation covers version 1.0 of the JS to G-code converter. All coordinates are in inches (G20) by default.</p>
+            </div>
+        </section>
+
+        <section id="getting-started">
+            <h2>2. Getting Started</h2>
+            <p>To use the converter, include the JavaScript library in your HTML file:</p>
+            <pre>&lt;script src="haas-gcode-library.js"&gt;&lt;/script&gt;</pre>
+            
+            <p>Basic usage pattern:</p>
+            <pre>// Create a new generator instance
+const haas = new HaasGCodeGenerator(programNumber, programName);
+
+// Set up program
+haas.programStart();
+
+// Add tools to library
+toolLibrary.addTool(1, 'end_mill', 'carbide', 0.5, 4);
+
+// Perform machining operations
+haas.toolChange(1);
+haas.startPosition(1.0, 1.0);
+haas.plungeIntoPart(-0.1, 'end_mill');
+haas.linearMove(2.0, 2.0, -0.1);
+
+// End program
+const gcode = haas.programEnd();</pre>
+        </section>
+
+        <section id="tool-library">
+            <h2>3. Tool Library</h2>
+            <p>The tool library manages tool definitions and provides automatic description generation.</p>
+            
+            <h3>Methods</h3>
+            
+            <div class="method-signature">
+                <code>addTool(toolNumber, toolType, toolMaterial, diameter, teeth, [additionalParams])</code>
+            </div>
+            <p>Adds a tool to the library with automatic speed/feed calculations.</p>
+            <p><strong>Parameters:</strong></p>
+            <ul>
+                <li><span class="param-name">toolNumber</span> (<span class="param-type">Number</span>): Tool number (1-20)</li>
+                <li><span class="param-name">toolType</span> (<span class="param-type">String</span>): Tool type ('end_mill', 'face_mill', 'drill', 'tap', 'thread_mill')</li>
+                <li><span class="param-name">toolMaterial</span> (<span class="param-type">String</span>): 'hss' or 'carbide'</li>
+                <li><span class="param-name">diameter</span> (<span class="param-type">Number</span>): Tool diameter in inches</li>
+                <li><span class="param-name">teeth</span> (<span class="param-type">Number</span>): Number of flutes/teeth</li>
+                <li><span class="param-name">additionalParams</span> (<span class="param-type">Object</span>, optional): Tool-specific parameters</li>
+            </ul>
+            
+            <div class="example">
+                <p><strong>Example:</strong></p>
+                <pre>// Add a 0.5" carbide end mill with 4 flutes
+toolLibrary.addTool(1, 'end_mill', 'carbide', 0.5, 4);
+
+// Add a tap with 20 TPI
+toolLibrary.addTool(2, 'tap', 'hss', 0.25, 1, { pitch: 1/20 });</pre>
+            </div>
+            
+            <div class="method-signature">
+                <code>getTool(toolNumber)</code>
+            </div>
+            <p>Retrieves a tool definition from the library.</p>
+            <p><strong>Returns:</strong> <span class="return-type">Object</span> - Tool definition object</p>
+            
+            <h3>Supported Tool Types</h3>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Required Additional Params</th>
+                </tr>
+                <tr>
+                    <td>end_mill</td>
+                    <td>Standard end mill</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>face_mill</td>
+                    <td>Face milling cutter</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>drill</td>
+                    <td>Drill bit</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>tap</td>
+                    <td>Tapping tool</td>
+                    <td>pitch (1/TPI)</td>
+                </tr>
+                <tr>
+                    <td>thread_mill</td>
+                    <td>Thread milling tool</td>
+                    <td>threadDirection ('right' or 'left')</td>
+                </tr>
+            </table>
+        </section>
+
+        <section id="gcode-generator">
+            <h2>4. G-code Generator</h2>
+            <p>The <code>HaasGCodeGenerator</code> class is the main interface for generating G-code programs.</p>
+            
+            <h3>Constructor</h3>
+            <div class="method-signature">
+                <code>new HaasGCodeGenerator([programNumber], [programName])</code>
+            </div>
+            <p>Creates a new G-code generator instance.</p>
+            <p><strong>Parameters:</strong></p>
+            <ul>
+                <li><span class="param-name">programNumber</span> (<span class="param-type">String</span>, optional): Program number (default: '0020')</li>
+                <li><span class="param-name">programName</span> (<span class="param-type">String</span>, optional): Program description (default: 'Project Number')</li>
+            </ul>
+            
+            <h3>Configuration Properties</h3>
+            <table>
+                <tr>
+                    <th>Property</th>
+                    <th>Type</th>
+                    <th>Default</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>safeZ</td>
+                    <td>Number</td>
+                    <td>2.0</td>
+                    <td>Safe Z height for tool changes</td>
+                </tr>
+                <tr>
+                    <td>rapidPlane</td>
+                    <td>Number</td>
+                    <td>0.1</td>
+                    <td>Rapid plane above part</td>
+                </tr>
+                <tr>
+                    <td>toolOffset</td>
+                    <td>Number</td>
+                    <td>1</td>
+                    <td>Tool length offset number</td>
+                </tr>
+                <tr>
+                    <td>workOffset</td>
+                    <td>String</td>
+                    <td>'G54'</td>
+                    <td>Active work offset</td>
+                </tr>
+                <tr>
+                    <td>coolantMode</td>
+                    <td>String</td>
+                    <td>'M8'</td>
+                    <td>Active coolant mode</td>
+                </tr>
+                <tr>
+                    <td>spindleOverride</td>
+                    <td>Number</td>
+                    <td>100</td>
+                    <td>Spindle speed override percentage</td>
+                </tr>
+                <tr>
+                    <td>decimalPlaces</td>
+                    <td>Number</td>
+                    <td>4</td>
+                    <td>Number of decimal places in output</td>
+                </tr>
+            </table>
+        </section>
+
+        <section id="program-structure">
+            <h2>5. Program Structure</h2>
+            <p>Methods for managing the overall program structure.</p>
+            
+            <div class="method-signature">
+                <code>programStart()</code>
+            </div>
+            <p>Initializes the program with safety lines and header.</p>
+            <div class="example">
+                <p><strong>Example Output:</strong></p>
+                <pre>%
+O0020 (SAMPLE PROGRAM)
+G17 G40 G80 G54 G20
+G28 G91 G0 X0 Y0 Z0</pre>
+            </div>
+            
+            <div class="method-signature">
+                <code>programEnd()</code>
+            </div>
+            <p>Ends the program with safety moves and returns the generated G-code.</p>
+            <p><strong>Returns:</strong> <span class="return-type">String</span> - Complete G-code program</p>
+            <div class="example">
+                <p><strong>Example Output:</strong></p>
+                <pre>G40 G80
+G0 Z2.0 M9
+G28 G91 G0 X0 Y0 Z0 M5
+M30
+%</pre>
+            </div>
+            
+            <div class="method-signature">
+                <code>toolChange(toolNumber)</code>
+            </div>
+            <p>Performs a tool change with automatic tool description.</p>
+            
+            <div class="method-signature">
+                <code>startPosition(x, y)</code>
+            </div>
+            <p>Moves to start position with automatic spindle speed calculation.</p>
+            
+            <div class="method-signature">
+                <code>plungeIntoPart(z, operationType)</code>
+            </div>
+            <p>Plunges tool into material with automatic feed rate calculation.</p>
+        </section>
+
+        <section id="movement-commands">
+            <h2>6. Movement Commands</h2>
+            <p>Basic and advanced movement commands.</p>
+            
+            <div class="method-signature">
+                <code>rapidMove(x, y, z)</code>
+            </div>
+            <p>G00 rapid movement to position.</p>
+            
+            <div class="method-signature">
+                <code>linearMove(x, y, z, [feedRate])</code>
+            </div>
+            <p>G01 linear move at specified feed rate.</p>
+            
+            <div class="method-signature">
+                <code>helicalMove(endX, endY, endZ, radius, angleDegrees, [clockwise=true])</code>
+            </div>
+            <p>G02/G03 helical interpolation with validated I/J calculations.</p>
+            <div class="warning">
+                <p><strong>Warning:</strong> Throws errors for invalid geometry.</p>
+            </div>
+            
+            <div class="example">
+                <p><strong>Example:</strong></p>
+                <pre>// 90° clockwise helix from (0,0,0) to (1,1,-0.5)
+haas.helicalMove(0, 0, 0,   // Start position
+                 1, 1, -0.5, // End position
+                 1.0,        // Radius
+                 90,         // Sweep angle
+                 true);      // Clockwise</pre>
+            </div>
+        </section>
+
+        <section id="machining-operations">
+            <h2>7. Machining Operations</h2>
+            <p>High-level machining operations with automatic speed/feed calculations.</p>
+            
+            <h3>Drilling and Tapping</h3>
+            <div class="method-signature">
+                <code>drillHole(x, y, startZ, depth, [peckDepth=0], [dwell=0])</code>
+            </div>
+            <p>Drills hole with optional pecking (G81/G83).</p>
+            
+            <div class="method-signature">
+                <code>tapHole(x, y, startZ, depth, pitch, [peckDepth=0])</code>
+            </div>
+            <p>Taps hole with specified pitch (G84).</p>
+            
+            <h3>Milling Operations</h3>
+            <div class="method-signature">
+                <code>faceMill(startX, startY, width, length, depth, stepDown)</code>
+            </div>
+            <p>Faces rectangular area.</p>
+            
+            <div class="method-signature">
+                <code>contourMill(contourPoints, depth, stepDown)</code>
+            </div>
+            <p>Mills contour defined by array of points.</p>
+            
+            <div class="method-signature">
+                <code>pocketMill(startX, startY, width, length, depth, stepDown)</code>
+            </div>
+            <p>Mills rectangular pocket.</p>
+            
+            <div class="method-signature">
+                <code>helicalMill(x, y, startZ, endZ, diameter, pitch, [clockwise=true])</code>
+            </div>
+            <p>Helical milling operation.</p>
+            
+            <div class="method-signature">
+                <code>millThread(x, y, startZ, pitch, length, diameter, [internal=true], [direction='right'])</code>
+            </div>
+            <p>Thread milling operation.</p>
+        </section>
+
+        <section id="advanced-features">
+            <h2>8. Advanced Features</h2>
+            
+            <h3>Work Offsets</h3>
+            <div class="method-signature">
+                <code>setWorkOffset(offset)</code>
+            </div>
+            <p>Sets work offset (G54-G59).</p>
+            
+            <div class="method-signature">
+                <code>resetWorkOffset()</code>
+            </div>
+            <p>Resets to default work offset (G54).</p>
+            
+            <h3>Coolant Control</h3>
+            <div class="method-signature">
+                <code>setCoolant(mode)</code>
+            </div>
+            <p>Controls coolant mode ('flood', 'mist', or 'off').</p>
+            
+            <h3>Spindle Control</h3>
+            <div class="method-signature">
+                <code>orientSpindle(angle)</code>
+            </div>
+            <p>Orients spindle to specific angle (M19).</p>
+            
+            <div class="method-signature">
+                <code>setSpindleOverride(percent)</code>
+            </div>
+            <p>Sets spindle speed override percentage.</p>
+        </section>
+
+        <section id="examples">
+            <h2>9. Examples</h2>
+            
+            <h3>Basic Face Milling and Drilling</h3>
+            <pre>function generateGCode() {
+    const haas = new HaasGCodeGenerator('0020', 'Sample Part');
+    
+    // Add tools
+    toolLibrary.addTool(1, 'face_mill', 'carbide', 1.0, 6);
+    toolLibrary.addTool(2, 'drill', 'hss', 0.25, 2);
+    
+    // Program setup
+    haas.programStart();
+    
+    // Tool 1 - Face mill
+    haas.toolChange(1);
+    haas.startPosition(1.0, 1.0);
+    haas.faceMill(0, 0, 5.0, 3.0, -0.1, 0.05);
+    
+    // Tool 2 - Drill
+    haas.toolChange(2);
+    haas.plungeIntoPart(0.1, 'drill');
+    
+    // Drill holes
+    const holes = [
+        {x: 0.5, y: 0.5},
+        {x: 4.5, y: 0.5},
+        {x: 4.5, y: 2.5},
+        {x: 0.5, y: 2.5}
+    ];
+    
+    holes.forEach(hole => {
+        haas.drillHole(hole.x, hole.y, 0.1, -0.6, 0.1, 0.5);
+    });
+    
+    return haas.programEnd();
+}</pre>
+            
+            <h3>Thread Milling Example</h3>
+            <pre>function generateThreadMilling() {
+    const haas = new HaasGCodeGenerator('0021', 'Thread Milling');
+    
+    // Add thread mill
+    toolLibrary.addTool(3, 'thread_mill', 'carbide', 0.25, 1, {
+        threadDirection: 'right'
+    });
+    
+    // Program setup
+    haas.programStart();
+    
+    // Thread milling
+    haas.toolChange(3);
+    haas.startPosition(2.0, 2.0);
+    haas.millThread(2.0, 2.0, 0, 0.0625, 0.5, 0.375);
+    
+    return haas.programEnd();
+}</pre>
+        </section>
+    </div>
+</body>
+</html>

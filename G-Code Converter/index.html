@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript to HAAS G-code Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .editor-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            background: #2c3e50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px 5px 0 0;
+            font-weight: bold;
+        }
+        textarea, pre {
+            flex: 1;
+            min-height: 400px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre;
+            overflow: auto;
+            background: #f8f8f8;
+            margin: 0;
+        }
+        textarea {
+            background: #fefefe;
+            resize: none;
+        }
+        pre {
+            background: #f0f0f0;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .download-btn {
+            background: #e67e22;
+        }
+        .download-btn:hover {
+            background: #d35400;
+        }
+        .copy-btn {
+            background: #9b59b6;
+        }
+        .copy-btn:hover {
+            background: #8e44ad;
+        }
+        .docs-btn {
+            background: #34495e;
+        }
+        .docs-btn:hover {
+            background: #2c3e50;
+        }
+        .error {
+            color: #e74c3c;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #e74c3c;
+            border-radius: 5px;
+            background: #fadbd8;
+            display: none;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 900px;
+            border-radius: 5px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .param-controls {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .param-row {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .param-row label {
+            width: 150px;
+            font-weight: bold;
+        }
+        .param-row select, .param-row input {
+            padding: 5px;
+            width: 200px;
+        }
+        .tool-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .tool-table th, .tool-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .tool-table th {
+            background-color: #2c3e50;
+            color: white;
+        }
+        .tool-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .add-tool-btn {
+            background: #27ae60;
+            margin-top: 10px;
+        }
+        .add-tool-btn:hover {
+            background: #219653;
+        }
+        .advanced-params {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+    <script src="haas-gcode-library.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>JavaScript to HAAS G-code Converter</h1>
+        
+        <div class="param-controls">
+            <div class="param-row">
+                <label for="material-select">Material:</label>
+                <select id="material-select">
+                    <option value="aluminum">Aluminum</option>
+                    <option value="brass">Brass</option>
+                    <option value="bronze">Bronze</option>
+                    <option value="cast_iron">Cast Iron</option>
+                    <option value="free_machining_steel">Free Machining Steel</option>
+                    <option value="low_carbon_steel">Low Carbon Steel</option>
+                    <option value="alloy_steel">Alloy Steel</option>
+                    <option value="stainless_steel">Stainless Steel</option>
+                    <option value="tool_steel">Tool Steel</option>
+                    <option value="copper">Copper</option>
+                </select>
+            </div>
+            
+            <div class="param-row">
+                <label for="work-offset">Work Offset:</label>
+                <select id="work-offset">
+                    <option value="G54">G54</option>
+                    <option value="G55">G55</option>
+                    <option value="G56">G56</option>
+                    <option value="G57">G57</option>
+                    <option value="G58">G58</option>
+                    <option value="G59">G59</option>
+                </select>
+            </div>
+            
+            <div class="param-row">
+                <label for="coolant-mode">Coolant Mode:</label>
+                <select id="coolant-mode">
+                    <option value="M8">Flood (M8)</option>
+                    <option value="M7">Mist (M7)</option>
+                    <option value="M9">Off (M9)</option>
+                </select>
+            </div>
+            
+            <h3>Tool Library</h3>
+            <table class="tool-table" id="tool-table">
+                <thead>
+                    <tr>
+                        <th>Tool #</th>
+                        <th>Type</th>
+                        <th>Material</th>
+                        <th>Diameter</th>
+                        <th>Teeth</th>
+                        <th>Tool Material</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody id="tool-table-body">
+                    <!-- Tools will be added here -->
+                </tbody>
+            </table>
+            <button id="add-tool-btn" class="add-tool-btn">Add Tool</button>
+        </div>
+        
+        <div class="error" id="error-message"></div>
+        
+        <div class="controls">
+            <button id="convert-btn">Convert to G-code</button>
+            <button id="copy-btn" class="copy-btn">Copy G-code</button>
+            <button id="download-btn" class="download-btn">Download G-code</button>
+            <a href="haas-gcode-documentation.html" class="docs-btn" style="text-decoration: none; color: white; display: inline-block; padding: 10px 20px;">View Syntax Documentation</a>
+        </div>
+        
+        <div class="editor-container">
+            <div class="editor-panel">
+                <div class="panel-header">JavaScript Machining Code</div>
+                <textarea id="js-code" spellcheck="false">// Define your part parameters
+const partWidth = 4.0;
+const partLength = 6.0;
+const holeDiameter = 0.5;
+
+function generateGCode() {
+    const haas = new HaasGCodeGenerator('0020', 'Sample Part');
+    
+    // Program setup
+    haas.programStart();
+    
+    // Tool 1 - Face mill
+    haas.toolChange(1);
+    haas.startPosition(1.0, 1.0);
+    haas.plungeIntoPart(-0.1, 'face_mill');
+    
+    // Face milling operation
+    haas.faceMill(0, 0, partWidth, partLength, -0.1, 0.05);
+    
+    // Tool 2 - Drill
+    haas.toolChange(2);
+    haas.plungeIntoPart(0.1, 'drill');
+    
+    // Drill holes
+    const holes = [
+        {x: 0.5, y: 0.5},
+        {x: partWidth-0.5, y: 0.5},
+        {x: partWidth-0.5, y: partLength-0.5},
+        {x: 0.5, y: partLength-0.5}
+    ];
+    
+    holes.forEach(hole => {
+        haas.drillHole(hole.x, hole.y, 0.1, -0.6, 0.1, 0.5);
+    });
+    
+    return haas.programEnd();
+}</textarea>
+            </div>
+            
+            <div class="editor-panel">
+                <div class="panel-header">Generated G-code</div>
+                <pre id="g-code-output">(G-code will appear here)</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Tool Modal -->
+    <div id="tool-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Tool</h2>
+            
+            <div class="param-row">
+                <label for="tool-number">Tool Number:</label>
+                <select id="tool-number">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="13">13</option>
+                    <option value="14">14</option>
+                    <option value="15">15</option>
+                    <option value="16">16</option>
+                    <option value="17">17</option>
+                    <option value="18">18</option>
+                    <option value="19">19</option>
+                    <option value="20">20</option>
+                </select>
+            </div>
+            
+            <div class="param-row">
+                <label for="tool-type">Tool Type:</label>
+                <select id="tool-type">
+                    <option value="end_mill">End Mill</option>
+                    <option value="face_mill">Face Mill</option>
+                    <option value="drill">Drill</option>
+                    <option value="tap">Tap</option>
+                    <option value="thread_mill">Thread Mill</option>
+                </select>
+            </div>
+            
+            <div class="param-row">
+                <label for="tool-material">Tool Material:</label>
+                <select id="tool-material">
+                    <option value="hss">High Speed Steel (HSS)</option>
+                    <option value="carbide">Carbide</option>
+                </select>
+            </div>
+            
+            <div class="param-row">
+                <label for="tool-diameter">Diameter (inches):</label>
+                <input type="number" id="tool-diameter" value="0.5" step="0.01" min="0.01">
+            </div>
+            
+            <div class="param-row">
+                <label for="tool-teeth">Number of Teeth:</label>
+                <input type="number" id="tool-teeth" value="4" min="1">
+            </div>
+            
+            <div class="advanced-params" id="tap-params" style="display:none;">
+                <div class="param-row">
+                    <label for="tap-pitch">Tap Pitch (TPI):</label>
+                    <input type="number" id="tap-pitch" value="20" min="1">
+                </div>
+            </div>
+            
+            <div class="advanced-params" id="thread-mill-params" style="display:none;">
+                <div class="param-row">
+                    <label for="thread-mill-direction">Thread Direction:</label>
+                    <select id="thread-mill-direction">
+                        <option value="right">Right Hand</option>
+                        <option value="left">Left Hand</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button id="save-tool-btn" class="add-tool-btn">Save Tool</button>
+        </div>
+    </div>
+
+    <script>
+        // UI Event Handlers
+        document.getElementById('convert-btn').addEventListener('click', function() {
+            const jsCode = document.getElementById('js-code').value;
+            const errorElement = document.getElementById('error-message');
+            
+            try {
+                const func = new Function(`
+                    ${HaasGCodeGenerator.toString()}
+                    ${jsCode}
+                    return generateGCode();
+                `);
+                
+                const gcode = func();
+                document.getElementById('g-code-output').textContent = gcode;
+                errorElement.style.display = 'none';
+            } catch (e) {
+                errorElement.textContent = `Error: ${e.message}`;
+                errorElement.style.display = 'block';
+                console.error(e);
+            }
+        });
+
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            const gcode = document.getElementById('g-code-output').textContent;
+            if (!gcode || gcode === '(G-code will appear here)') {
+                alert('Please generate G-code first');
+                return;
+            }
+            
+            navigator.clipboard.writeText(gcode).then(() => {
+                const originalText = this.textContent;
+                this.textContent = 'Copied!';
+                setTimeout(() => {
+                    this.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy G-code to clipboard');
+            });
+        });
+
+        document.getElementById('download-btn').addEventListener('click', function() {
+            const gcode = document.getElementById('g-code-output').textContent;
+            if (!gcode || gcode === '(G-code will appear here)') {
+                alert('Please generate G-code first');
+                return;
+            }
+            
+            const blob = new Blob([gcode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `program_${new Date().toISOString().slice(0,10)}.nc`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Tool management
+        const toolModal = document.getElementById('tool-modal');
+        const addToolBtn = document.getElementById('add-tool-btn');
+        const saveToolBtn = document.getElementById('save-tool-btn');
+        const closeToolModal = document.querySelector('#tool-modal .close');
+        const toolTypeSelect = document.getElementById('tool-type');
+
+        // Show/hide advanced parameters based on tool type
+        toolTypeSelect.addEventListener('change', function() {
+            document.getElementById('tap-params').style.display = 
+                this.value === 'tap' ? 'block' : 'none';
+            document.getElementById('thread-mill-params').style.display = 
+                this.value === 'thread_mill' ? 'block' : 'none';
+        });
+
+        addToolBtn.addEventListener('click', function() {
+            toolModal.style.display = 'block';
+        });
+
+        closeToolModal.addEventListener('click', function() {
+            toolModal.style.display = 'none';
+        });
+
+        saveToolBtn.addEventListener('click', function() {
+            const toolNumber = document.getElementById('tool-number').value;
+            const toolType = document.getElementById('tool-type').value;
+            const toolMaterial = document.getElementById('tool-material').value;
+            const toolDiameter = parseFloat(document.getElementById('tool-diameter').value);
+            const toolTeeth = parseInt(document.getElementById('tool-teeth').value);
+            
+            // Additional parameters for special tools
+            const additionalParams = {};
+            if (toolType === 'tap') {
+                additionalParams.pitch = 1 / parseFloat(document.getElementById('tap-pitch').value);
+            } else if (toolType === 'thread_mill') {
+                additionalParams.threadDirection = document.getElementById('thread-mill-direction').value;
+            }
+            
+            toolLibrary.addTool(toolNumber, toolType, toolMaterial, toolDiameter, toolTeeth, additionalParams);
+            toolModal.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
