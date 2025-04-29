@@ -399,7 +399,7 @@ class HaasGCodeGenerator {
             this.addLine(`G1 Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate.toFixed(this.decimalPlaces)}`);
         } else {
             this.addLine(`(WARNING: No tool data for T${this.currentTool})`);
-            this.addLine(`G1 Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate}`);
+            this.addLine(`G1 Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate/2}`);
         }
     }
 
