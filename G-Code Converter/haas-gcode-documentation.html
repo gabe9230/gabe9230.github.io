@@ -393,21 +393,20 @@ M30
             <p>G01 linear move at specified feed rate.</p>
             
             <div class="method-signature">
-                <code>helicalMove(endX, endY, endZ, radius, angleDegrees, [clockwise=true])</code>
+                <code>helicalMove(endX, endY, endZ, [clockwise=true])</code>
             </div>
-            <p>G02/G03 helical interpolation with validated I/J calculations.</p>
+            <p>G02/G03 helical interpolation</p>
             <div class="warning">
                 <p><strong>Warning:</strong> Throws errors for invalid geometry.</p>
             </div>
             
             <div class="example">
                 <p><strong>Example:</strong></p>
-                <pre>// 90° clockwise helix from (0,0,0) to (1,1,-0.5)
-haas.helicalMove(0, 0, 0,   // Start position
-                 1, 1, -0.5, // End position
-                 1.0,        // Radius
-                 90,         // Sweep angle
-                 true);      // Clockwise</pre>
+                <pre>//clockwise helix to (1,1,-0.5)
+haas.helicalMove(
+                1, 1, -0.5, // End position
+                true      // Clockwise
+                );</pre>
             </div>
         </section>
 

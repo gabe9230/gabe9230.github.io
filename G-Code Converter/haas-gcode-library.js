@@ -276,6 +276,8 @@ class HaasGCodeGenerator {
         this.addLine(`(${text})`);
     }
 
+    midpoint = ([x1, y1], [x2, y2]) => [(x1 + x2) / 2, (y1 + y2) / 2];
+
     // Program structure
     programStart() {
         this.addLine('%');
@@ -334,13 +336,12 @@ class HaasGCodeGenerator {
     }
 
     // Corrected helical movement with position tracking
-    helicalMove(endX, endY, endZ, radius, angleDegrees, clockwise = true) {
+    helicalMove(endX, endY, endZ, clockwise = true) {
         const direction = clockwise ? 'G02' : 'G03';
-        const angleRad = angleDegrees * Math.PI / 180;
         
         // Calculate center point relative to current position
-        const centerX = this.currentX + radius * Math.cos(angleRad);
-        const centerY = this.currentY + radius * Math.sin(angleRad);
+        const centerX = this.midpoint([this.currentX,this.currentY],[endX,endY])[0];
+        const centerY = this.midpoint([this.currentX,this.currentY],[endX,endY])[1];
         
         // Calculate I and J (relative to current position)
         const i = centerX - this.currentX;
