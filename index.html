@@ -5,14 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Portfolio</title>
     <style>
-        /* Monochrome styling */
+        /* Base styling */
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            color: #333;
-            background-color: #f9f9f9;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        /* Canvas background - full screen with dark overlay */
+        #c {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(rgba(0,0,0,0.9), rgba(0,0,0,0.95));
+            transition: filter 0.3s ease-out;
+        }
+        
+        /* Content styling with transparency */
+        .content {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
         }
         
         .container {
@@ -22,12 +41,13 @@
         }
         
         header {
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             position: fixed;
             width: 100%;
             top: 0;
             z-index: 1000;
+            backdrop-filter: blur(5px);
         }
         
         nav {
@@ -40,13 +60,15 @@
         .logo {
             font-size: 24px;
             font-weight: 700;
-            color: #000;
+            color: #fff;
             text-decoration: none;
         }
         
         .nav-links {
             display: flex;
             list-style: none;
+            margin: 0;
+            padding: 0;
         }
         
         .nav-links li {
@@ -55,13 +77,13 @@
         
         .nav-links a {
             text-decoration: none;
-            color: #333;
+            color: #fff;
             font-weight: 500;
             transition: color 0.3s;
         }
         
         .nav-links a:hover {
-            color: #666;
+            color: #ff6b6b;
         }
         
         .hero {
@@ -69,41 +91,58 @@
             display: flex;
             align-items: center;
             text-align: center;
-            background-color: #fff;
-            margin-top: 60px;
+            padding-top: 60px;
+            position: relative;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
         }
         
         .hero-content h1 {
             font-size: 48px;
             margin-bottom: 20px;
             font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
         
         .hero-content p {
             font-size: 20px;
             max-width: 700px;
             margin: 0 auto 30px;
-            color: #666;
+            color: rgba(255,255,255,0.8);
         }
         
         .btn {
             display: inline-block;
             padding: 12px 30px;
-            background-color: #000;
+            background-color: #ff6b6b;
             color: #fff;
             text-decoration: none;
             border-radius: 4px;
             font-weight: 500;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
         }
         
         .btn:hover {
-            background-color: #333;
+            background-color: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         
         section {
             padding: 100px 0;
-            background-color: #fff;
+            position: relative;
+        }
+        
+        .section-content {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: var(--section-blur);
+            padding: 40px;
+            border-radius: 8px;
         }
         
         .section-title {
@@ -114,11 +153,11 @@
         }
         
         footer {
-            background-color: #000;
+            background-color: rgba(0, 0, 0, 0.8);
             color: #fff;
             text-align: center;
             padding: 30px 0;
-            margin-top: 60px;
+            backdrop-filter: blur(8px);
         }
         
         /* Project cards */
@@ -129,24 +168,28 @@
         }
         
         .project-card {
-            border: 1px solid #eee;
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px;
             overflow: hidden;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: all 0.3s;
+            background-color: rgba(30, 30, 30, 0.6);
+            backdrop-filter: var(--card-blur);
         }
         
         .project-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.2);
         }
         
         .project-img {
             height: 200px;
-            background-color: #eee;
+            background-color: rgba(0,0,0,0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #999;
+            color: rgba(255,255,255,0.5);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         
         .project-info {
@@ -156,10 +199,11 @@
         .project-info h3 {
             margin-top: 0;
             margin-bottom: 10px;
+            color: #fff;
         }
         
         .project-info p {
-            color: #666;
+            color: rgba(255,255,255,0.7);
             margin-bottom: 15px;
         }
         
@@ -173,6 +217,7 @@
             margin-bottom: 20px;
             font-size: 18px;
             line-height: 1.8;
+            color: rgba(255,255,255,0.8);
         }
         
         /* Contact page styles */
@@ -189,129 +234,459 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
+            color: #fff;
         }
         
         .form-group input,
         .form-group textarea {
             width: 100%;
             padding: 12px;
-            border: 1px solid #ddd;
+            background-color: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
             border-radius: 4px;
             font-family: inherit;
+            color: #fff;
         }
         
         .form-group textarea {
             height: 150px;
         }
-        
-        /* Utility classes */
-        .text-center {
-            text-align: center;
-        }
-        
-        .mt-0 {
-            margin-top: 0;
-        }
-        
-        .mb-0 {
-            margin-bottom: 0;
-        }
     </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <nav>
-                <a href="#" class="logo">PORTFOLIO</a>
-                <ul class="nav-links">
-                    <li><a href="#projects">Projects</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#contact">Contact</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-
-    <main>
-        <section class="hero">
+    <canvas id="c"></canvas>
+    
+    <div class="content">
+        <header>
             <div class="container">
-                <div class="hero-content">
-                    <h1>Hello, I'm Gabriel Halloran</h1>
-                    <p>A passionate engineer creating elegant solutions to complex problems</p>
-                    <a href="#projects" class="btn">View My Work</a>
-                </div>
+                <nav>
+                    <a href="#" class="logo">Gabriel H</a>
+                    <ul class="nav-links">
+                        <li><a href="#projects">Projects</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </nav>
             </div>
-        </section>
+        </header>
 
-        <section id="projects">
-            <div class="container">
-                <h2 class="section-title">My Projects</h2>
-                <div class="projects-grid">
-                    <!-- Project 1 -->
-                    <div class="project-card">
-                        <div class="project-img">Project Image</div>
-                        <div class="project-info">
-                            <h3>JS-Gcode Converter</h3>
-                            <p>While learning CNC machining, I always lamented how backwards Gcode felt compared to other languages like JavaScript.</p>
-                            <p>In an attempt to mitigate this, I decided to create this converter to allow me (and potentially you) to be able to write Gcode more easily.</p>
-                            <a href="G-Code Converter/index.html" class="btn">View Project</a>
+        <main>
+            <section class="hero">
+                <div class="container">
+                    <div class="hero-content">
+                        <h1>Hello, I'm Gabriel Halloran</h1>
+                        <p>A passionate engineer creating elegant solutions to complex problems</p>
+                        <a href="#projects" class="btn">View My Work</a>
+                    </div>
+                </div>
+            </section>
+
+            <section id="projects">
+                <div class="container">
+                    <div class="section-content" style="--section-blur: 3px; --card-blur: 2px;">
+                        <h2 class="section-title">My Projects</h2>
+                        <div class="projects-grid">
+                            <!-- Project 1 -->
+                            <div class="project-card">
+                                <div class="project-info">
+                                    <h3>JS-Gcode Converter</h3>
+                                    <p>While learning CNC machining, I always lamented how backwards Gcode felt compared to other languages like JavaScript.</p>
+                                    <p>In an attempt to mitigate this, I decided to create this converter to allow me (and potentially you) to be able to write Gcode more easily.</p>
+                                    <a href="G-Code Converter/index.html" class="btn">View Project</a>
+                                </div>
+                            </div>
+                            
+                            <!-- Project 2 -->
+                            <div class="project-card">
+                                <div class="project-info">
+                                    <h3>Project 2</h3>
+                                    <p>TBA</p>
+                                    <a href="#" class="btn">View Project</a>
+                                </div>
+                            </div>
+                            
+                            <!-- Project 3 -->
+                            <div class="project-card">
+                                <div class="project-info">
+                                    <h3>Project 3</h3>
+                                    <p>TBA</p>
+                                    <a href="#" class="btn">View Project</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            <section id="about">
+                <div class="container">
+                    <div class="section-content" style="--section-blur: 5px; --card-blur: 4px;">
+                        <h2 class="section-title">About Me</h2>
+                        <div class="about-content">
+                            <p>Hi, I'm Gabriel, and I'm passionate about bringing ideas to life through thoughtful design, problem-solving, and hands-on execution. I thrive at the intersection of creativity and technical precision, and I'm always looking for new ways to push boundaries while keeping practicality at the core of everything I build. Whether I'm working on a complex project or a simple concept, I enjoy digging deep, learning fast, and delivering results that are both innovative and reliable.</p>
+                            <p>My background spans engineering, machining, and software design, I take pride in being self-taught in many areas while constantly expanding my skill set. I believe that real growth comes from curiosity, persistence, and a willingness to take on challenges outside of my comfort zone. Over the years, I've worked on a program that converts JS to Gcode, a 3d Printed glider, and multiple games and simulations. Each one sharpening my eye for detail and my ability to adapt under pressure.</p>
+                            <p>Outside of work, I'm someone who's always learning—whether it's mastering a new tool, studying languages, or exploring new ideas in science, technology, and design. I value meaningful collaboration, clear communication, and a mindset focused on building things that last. If you're interested in working together or just want to connect, feel free to reach out!</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="contact">
+                <div class="container">
+                    <div class="section-content" style="--section-blur: 8px;">
+                        <h2 class="section-title">Get In Touch</h2>
+                        <div class="contact-form">
+                            <form>
+                                <div class="form-group">
+                                    <label for="ContactInfo">
+                                        <p>Email: gabriel@halloran.net</p>
+                                        <p>Phone: 323-747-6097</p>
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="container">
+                <p>&copy; 2025 Gabriel Halloran. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const NBALLS = 5000;
+        const CENTER_COLOR = [0.8, 0.3, 0.3];  // Brighter red for center
+        const FAR_COLOR = [1.0, 0.8, 0.8];     // Soft pink for far
+        const MAX_SPEED = 5.0;
+        const ATTRACTION_STRENGTH = 0.0025;
+        const DAMPING = 1;
+        const CELL_SIZE = 12;
+        const INITIAL_RADIUS = 1;
+        const MERGE_THRESHOLD_SPEED = 3.25;
+
+        let gl, program, posBuffer, colorBuffer, radiusBuffer;
+        let nCols, nRows, buckets;
+        let ballPositions = new Float32Array(NBALLS * 2);
+        let ballColors = new Float32Array(NBALLS * 3);
+        let ballRadii = new Float32Array(NBALLS);
+        const active = new Uint8Array(NBALLS);
+        const physicsState = {
+            x: new Float32Array(NBALLS),
+            y: new Float32Array(NBALLS),
+            vx: new Float32Array(NBALLS),
+            vy: new Float32Array(NBALLS),
+            r: new Float32Array(NBALLS)
+        };
+
+        // Scroll variables
+        let lastScrollPosition = 0;
+        let targetBlur = 0;
+        let currentBlur = 0;
+        const maxBlur = 8; // Maximum blur amount at bottom of page
+
+        function initGL() {
+            const canvas = document.getElementById('c');
+            gl = canvas.getContext('webgl', { antialias: false }) || 
+                 canvas.getContext('experimental-webgl', { antialias: false });
+            if (!gl) {
+                alert('WebGL unavailable!');
+                return;
+            }
+            gl.clearColor(0, 0, 0, 1);
+            
+            const vertShader = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vertShader, `
+                attribute vec2 position;
+                attribute vec3 color;
+                attribute float radius;
+                varying vec3 vColor;
+                void main() {
+                    vColor = color;
+                    gl_PointSize = radius * 2.0;
+                    gl_Position = vec4(position, 0.0, 1.0);
+                }
+            `);
+            gl.compileShader(vertShader);
+
+            const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fragShader, `
+                precision mediump float;
+                varying vec3 vColor;
+                void main() {
+                    vec2 coord = gl_PointCoord - vec2(0.5);
+                    if(length(coord) > 0.5) discard;
+                    gl_FragColor = vec4(vColor, 1.0);
+                }
+            `);
+            gl.compileShader(fragShader);
+
+            program = gl.createProgram();
+            gl.attachShader(program, vertShader);
+            gl.attachShader(program, fragShader);
+            gl.linkProgram(program);
+            gl.useProgram(program);
+
+            posBuffer = gl.createBuffer();
+            colorBuffer = gl.createBuffer();
+            radiusBuffer = gl.createBuffer();
+            
+            const posLoc = gl.getAttribLocation(program, 'position');
+            gl.enableVertexAttribArray(posLoc);
+            const colorLoc = gl.getAttribLocation(program, 'color');
+            gl.enableVertexAttribArray(colorLoc);
+            const radiusLoc = gl.getAttribLocation(program, 'radius');
+            gl.enableVertexAttribArray(radiusLoc);
+        }
+
+        function rebuildGrid() {
+            nCols = Math.ceil(window.innerWidth / CELL_SIZE);
+            nRows = Math.ceil(window.innerHeight / CELL_SIZE);
+            buckets = Array(nCols * nRows).fill().map(() => []);
+        }
+
+        function bIdx(ix, iy) { return ix + iy * nCols; }
+
+        function resolveCollision(i, j) {
+            if (!active[i] || !active[j] || i === j) return;
+            
+            const dx = physicsState.x[j] - physicsState.x[i];
+            const dy = physicsState.y[j] - physicsState.y[i];
+            const distSq = dx*dx + dy*dy;
+            const minDist = physicsState.r[i] + physicsState.r[j];
+            
+            if (distSq >= minDist*minDist) return;
+
+            const dist = Math.sqrt(distSq);
+            const dvx = physicsState.vx[i] - physicsState.vx[j];
+            const dvy = physicsState.vy[i] - physicsState.vy[j];
+            const relSpeed = Math.hypot(dvx, dvy);
+            
+            if (relSpeed >= MERGE_THRESHOLD_SPEED) {
+                const m1 = physicsState.r[i]**2;
+                const m2 = physicsState.r[j]**2;
+                const absorber = m1 > m2 ? i : j;
+                const absorbed = absorber === i ? j : i;
+
+                active[absorbed] = 0;
+                physicsState.r[absorber] = Math.sqrt(m1 + m2)/1.15;
+                physicsState.vx[absorber] = (physicsState.vx[i]*m1 + physicsState.vx[j]*m2)/(m1+m2);
+                physicsState.vy[absorber] = (physicsState.vy[i]*m1 + physicsState.vy[j]*m2)/(m1+m2);
+                return;
+            }
+
+            const nx = dx/dist;
+            const ny = dy/dist;
+            const vRel = dvx*nx + dvy*ny;
+            
+            if (vRel >= 0) return;
+
+            const m1 = physicsState.r[i]**2;
+            const m2 = physicsState.r[j]**2;
+            const impulse = (-2 * vRel) / (1/m1 + 1/m2);
+            
+            physicsState.vx[i] += (impulse * nx) / m1;
+            physicsState.vy[i] += (impulse * ny) / m1;
+            physicsState.vx[j] -= (impulse * nx) / m2;
+            physicsState.vy[j] -= (impulse * ny) / m2;
+
+            const overlap = minDist - dist;
+            if (overlap > 0) {
+                const totalMass = m1 + m2;
+                physicsState.x[i] -= nx * overlap * m2 / totalMass;
+                physicsState.y[i] -= ny * overlap * m2 / totalMass;
+                physicsState.x[j] += nx * overlap * m1 / totalMass;
+                physicsState.y[j] += ny * overlap * m1 / totalMass;
+            }
+        }
+
+        function resize() {
+            const canvas = document.getElementById('c');
+            const w = canvas.width = window.innerWidth;
+            const h = canvas.height = window.innerHeight;
+            gl.viewport(0, 0, w, h);
+            rebuildGrid();
+
+            const centerX = w/2;
+            const centerY = h/2;
+
+            active.fill(1);
+            for(let i = 0; i < NBALLS; i++) {
+                physicsState.r[i] = INITIAL_RADIUS;
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 100 + Math.random() * Math.min(w, h) * 0.3;
+                
+                physicsState.x[i] = centerX + Math.cos(angle) * radius;
+                physicsState.y[i] = centerY + Math.sin(angle) * radius;
+
+                const baseSpeed = Math.sqrt(ATTRACTION_STRENGTH * radius);
+                const direction = Math.random() > 0.5 ? 1 : -1;
+                
+                physicsState.vx[i] = Math.cos(angle + Math.PI/2 * direction) * baseSpeed;
+                physicsState.vy[i] = Math.sin(angle + Math.PI/2 * direction) * baseSpeed;
+            }
+            updateColors();
+        }
+
+        function updateColors() {
+            for(let i = 0; i < NBALLS; i++) {
+                if (!active[i]) continue;
+                const speed = Math.hypot(physicsState.vx[i], physicsState.vy[i]);
+                const t = Math.min(speed / MAX_SPEED, 1.0);
+                
+                ballColors[i*3] = CENTER_COLOR[0] * (1 - t) + FAR_COLOR[0] * t;
+                ballColors[i*3+1] = CENTER_COLOR[1] * (1 - t) + FAR_COLOR[1] * t;
+                ballColors[i*3+2] = CENTER_COLOR[2] * (1 - t) + FAR_COLOR[2] * t;
+            }
+        }
+
+        function physics() {
+            const centerX = window.innerWidth/2;
+            const centerY = window.innerHeight/2;
+
+            rebuildGrid();
+
+            for(let i = 0; i < NBALLS; i++) {
+                if (!active[i]) continue;
+                const cx = (physicsState.x[i]/CELL_SIZE) | 0;
+                const cy = (physicsState.y[i]/CELL_SIZE) | 0;
+                if (cx >= 0 && cy >= 0 && cx < nCols && cy < nRows) {
+                    buckets[bIdx(cx, cy)].push(i);
+                }
+            }
+
+            for(let i = 0; i < NBALLS; i++) {
+                if (!active[i]) continue;
+                
+                const dx = centerX - physicsState.x[i];
+                const dy = centerY - physicsState.y[i];
+                const force = ATTRACTION_STRENGTH * 100 / ((dx*dx + dy*dy)/10 + 100);
+                
+                physicsState.vx[i] += dx * force;
+                physicsState.vy[i] += dy * force;
+                physicsState.x[i] += physicsState.vx[i];
+                physicsState.y[i] += physicsState.vy[i];
+
+                const margin = window.innerWidth * 0.1;
+                physicsState.x[i] = Math.clamp(physicsState.x[i], -margin, window.innerWidth + margin);
+                physicsState.y[i] = Math.clamp(physicsState.y[i], -margin, window.innerHeight + margin);
+            }
+
+            for(let cx = 0; cx < nCols; cx++) {
+                for(let cy = 0; cy < nRows; cy++) {
+                    const cell = buckets[bIdx(cx, cy)];
+                    const len = cell.length;
                     
-                    <!-- Project 2 -->
-                    <div class="project-card">
-                        <div class="project-img">Project Image</div>
-                        <div class="project-info">
-                            <h3>Project 2</h3>
-                            <p>TBA</p>
-                            <a href="#" class="btn">View Project</a>
-                        </div>
-                    </div>
+                    for(let a = 0; a < len; a++) {
+                        const i = cell[a];
+                        for(let b = a+1; b < len; b++) {
+                            resolveCollision(i, cell[b]);
+                        }
+                    }
                     
-                    <!-- Project 3 -->
-                    <div class="project-card">
-                        <div class="project-img">Project Image</div>
-                        <div class="project-info">
-                            <h3>Project 3</h3>
-                            <p>TBA</p>
-                            <a href="#" class="btn">View Project</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+                    const neighbors = [
+                        [cx+1, cy], [cx, cy+1],
+                        [cx-1, cy], [cx, cy-1]
+                    ];
+                    
+                    for(const [nx, ny] of neighbors) {
+                        if (nx >= 0 && ny >= 0 && nx < nCols && ny < nRows) {
+                            const nCell = buckets[bIdx(nx, ny)];
+                            for(const i of cell) {
+                                for(const j of nCell) {
+                                    resolveCollision(i, j);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-        <section id="about" style="background-color: #f9f9f9;">
-            <div class="container">
-                <h2 class="section-title">About Me</h2>
-                <div class="about-content">
-                    <p>Hi, I'm Gabriel, and I'm passionate about bringing ideas to life through thoughtful design, problem-solving, and hands-on execution. I thrive at the intersection of creativity and technical precision, and I'm always looking for new ways to push boundaries while keeping practicality at the core of everything I build. Whether I'm working on a complex project or a simple concept, I enjoy digging deep, learning fast, and delivering results that are both innovative and reliable.</p>
-                    <p>My background spans engineering, machining, and software design, I take pride in being self-taught in many areas while constantly expanding my skill set. I believe that real growth comes from curiosity, persistence, and a willingness to take on challenges outside of my comfort zone. Over the years, I've worked on a program that converts JS to Gcode, a 3d Printed glider, and multiple games and simulations. Each one sharpening my eye for detail and my ability to adapt under pressure.</p>
-                    <p>Outside of work, I'm someone who's always learning—whether it's mastering a new tool, studying languages, or exploring new ideas in science, technology, and design. I value meaningful collaboration, clear communication, and a mindset focused on building things that last. If you're interested in working together or just want to connect, feel free to reach out!</p>
-                </div>
-            </div>
-        </section>
+        function render() {
+            const activePositions = new Float32Array(NBALLS * 2);
+            const activeColors = new Float32Array(NBALLS * 3);
+            const activeRadii = new Float32Array(NBALLS);
+            let count = 0;
 
-        <section id="contact">
-            <div class="container">
-                <h2 class="section-title">Get In Touch</h2>
-                <div class="contact-form">
-                    <form>
-                        <div class="form-group">
-                            <label for="ContactInfo">
-                                <p>Email: gabriel@halloran.net</p>
-                                <p>Phone: 323-747-6097</p>
-                            </label>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </section>
-    </main>
+            for(let i = 0; i < NBALLS; i++) {
+                if (!active[i]) continue;
+                
+                activePositions[count*2] = (physicsState.x[i]/window.innerWidth)*2 - 1;
+                activePositions[count*2+1] = 1 - (physicsState.y[i]/window.innerHeight)*2;
+                
+                activeColors[count*3] = ballColors[i*3];
+                activeColors[count*3+1] = ballColors[i*3+1];
+                activeColors[count*3+2] = ballColors[i*3+2];
+                
+                activeRadii[count] = physicsState.r[i];
+                count++;
+            }
 
-    <footer>
-        <div class="container">
-        </div>
-    </footer>
+            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, activePositions.subarray(0, count*2), gl.STREAM_DRAW);
+            gl.vertexAttribPointer(gl.getAttribLocation(program, 'position'), 2, gl.FLOAT, false, 0, 0);
+            
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, activeColors.subarray(0, count*3), gl.STREAM_DRAW);
+            gl.vertexAttribPointer(gl.getAttribLocation(program, 'color'), 3, gl.FLOAT, false, 0, 0);
+            
+            gl.bindBuffer(gl.ARRAY_BUFFER, radiusBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, activeRadii.subarray(0, count), gl.STREAM_DRAW);
+            gl.vertexAttribPointer(gl.getAttribLocation(program, 'radius'), 1, gl.FLOAT, false, 0, 0);
+
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.POINTS, 0, count);
+        }
+
+        function updateBlur() {
+            const scrollPosition = window.scrollY;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            
+            // Calculate scroll progress (0 at top, 1 at bottom)
+            const scrollProgress = Math.min(scrollPosition / (documentHeight - windowHeight), 1);
+            
+            // Ease the progress for smoother transition
+            const easedProgress = easeInOutCubic(scrollProgress);
+            
+            // Calculate target blur based on scroll progress
+            targetBlur = easedProgress * maxBlur;
+            
+            // Smooth the blur transition
+            currentBlur += (targetBlur - currentBlur) * 0.1;
+            
+            // Apply the blur to the canvas
+            document.getElementById('c').style.filter = `blur(${currentBlur}px)`;
+            
+            // Also adjust the opacity slightly for depth
+            document.getElementById('c').style.opacity = 1 - (easedProgress * 0.2);
+        }
+
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        function animate() {
+            physics();
+            updateColors();
+            render();
+            updateBlur();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('load', () => {
+            initGL();
+            resize();
+            animate();
+        });
+        window.addEventListener('resize', resize);
+        window.addEventListener('scroll', updateBlur);
+
+        Math.clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    </script>
 </body>
 </html>
