@@ -284,6 +284,7 @@ class HaasGCodeGenerator {
         this.addLine(`O${this.programNumber}_ (${this.programName})`);
         this.addLine('G17 G40 G80 G54 G20');
         this.addLine('G28 G91 G0 X0 Y0 Z0');
+        this.addLine('G90');
         // Reset position tracking
         this.currentX = 0;
         this.currentY = 0;
