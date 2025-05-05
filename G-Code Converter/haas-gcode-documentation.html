@@ -147,7 +147,12 @@
                 <li><a href="#gcode-generator">4. G-code Generator</a></li>
                 <li><a href="#program-structure">5. Program Structure</a></li>
                 <li><a href="#movement-commands">6. Movement Commands</a></li>
-                <li><a href="#machining-operations">7. Machining Operations</a></li>
+                <li><a href="#machining-operations">7. Machining Operations</a>
+                    <ul>
+                        <li><a href="#polygonal-face-milling">Polygonal Face Milling</a></li>
+                        <li><a href="#position-tracking">Position Tracking</a></li>
+                    </ul>
+                </li>
                 <li><a href="#advanced-features">8. Advanced Features</a></li>
                 <li><a href="#examples">9. Examples</a></li>
             </ul>
@@ -165,7 +170,7 @@
             </ul>
             
             <div class="note">
-                <p><strong>Note:</strong> This documentation covers version 1.0 of the JS to G-code converter. All coordinates are in inches (G20) by default.</p>
+                <p><strong>Note:</strong> This documentation covers version 1.1 of the JS to G-code converter. All coordinates are in inches (G20) by default.</p>
             </div>
         </section>
 
@@ -178,17 +183,21 @@
             <pre>// Create a new generator instance
 const haas = new HaasGCodeGenerator(programNumber, programName);
 
-// Set up program
-haas.programStart();
-
 // Add tools to library
 toolLibrary.addTool(1, 'end_mill', 'carbide', 0.5, 4);
+toolLibrary.addTool(2, 'polygonal_face_mill', 'carbide', 1.0, 6, {sides: 6});
+
+// Set up program
+haas.programStart();
 
 // Perform machining operations
 haas.toolChange(1);
 haas.startPosition(1.0, 1.0);
 haas.plungeIntoPart(-0.1, 'end_mill');
 haas.linearMove(2.0, 2.0, -0.1);
+
+// Get current position
+const currentPos = haas.getPosition();
 
 // End program
 const gcode = haas.programEnd();</pre>
@@ -207,7 +216,7 @@ const gcode = haas.programEnd();</pre>
             <p><strong>Parameters:</strong></p>
             <ul>
                 <li><span class="param-name">toolNumber</span> (<span class="param-type">Number</span>): Tool number (1-20)</li>
-                <li><span class="param-name">toolType</span> (<span class="param-type">String</span>): Tool type ('end_mill', 'face_mill', 'drill', 'tap', 'thread_mill')</li>
+                <li><span class="param-name">toolType</span> (<span class="param-type">String</span>): Tool type ('end_mill', 'face_mill', 'polygonal_face_mill', 'drill', 'tap', 'thread_mill')</li>
                 <li><span class="param-name">toolMaterial</span> (<span class="param-type">String</span>): 'hss' or 'carbide'</li>
                 <li><span class="param-name">diameter</span> (<span class="param-type">Number</span>): Tool diameter in inches</li>
                 <li><span class="param-name">teeth</span> (<span class="param-type">Number</span>): Number of flutes/teeth</li>
@@ -219,8 +228,11 @@ const gcode = haas.programEnd();</pre>
                 <pre>// Add a 0.5" carbide end mill with 4 flutes
 toolLibrary.addTool(1, 'end_mill', 'carbide', 0.5, 4);
 
+// Add a polygonal face mill with 6 sides
+toolLibrary.addTool(2, 'polygonal_face_mill', 'carbide', 1.0, 6, {sides: 6});
+
 // Add a tap with 20 TPI
-toolLibrary.addTool(2, 'tap', 'hss', 0.25, 1, { pitch: 1/20 });</pre>
+toolLibrary.addTool(3, 'tap', 'hss', 0.25, 1, { pitch: 1/20 });</pre>
             </div>
             
             <div class="method-signature">
@@ -245,6 +257,11 @@ toolLibrary.addTool(2, 'tap', 'hss', 0.25, 1, { pitch: 1/20 });</pre>
                     <td>face_mill</td>
                     <td>Face milling cutter</td>
                     <td>None</td>
+                </tr>
+                <tr>
+                    <td>polygonal_face_mill</td>
+                    <td>Polygonal face milling cutter</td>
+                    <td>sides (number of polygon sides)</td>
                 </tr>
                 <tr>
                     <td>drill</td>
@@ -408,6 +425,12 @@ haas.helicalMove(
                 true      // Clockwise
                 );</pre>
             </div>
+
+            <div class="method-signature">
+                <code>getPosition()</code>
+            </div>
+            <p>Returns the current tool position in machine coordinates.</p>
+            <p><strong>Returns:</strong> <span class="return-type">Object</span> - {x, y, z} coordinates</p>
         </section>
 
         <section id="machining-operations">
@@ -450,6 +473,66 @@ haas.helicalMove(
                 <code>millThread(x, y, startZ, pitch, length, diameter, [internal=true], [direction='right'])</code>
             </div>
             <p>Thread milling operation.</p>
+
+            <section id="polygonal-face-milling">
+                <h3>Polygonal Face Milling</h3>
+                <p>Mills the area inside a defined polygon boundary with spiral toolpaths.</p>
+                
+                <div class="method-signature">
+                    <code>polygonalFaceMill(boundaryPoints, depth, stepDown, [overlap=0.2])</code>
+                </div>
+                <p>Mills the area inside a polygon defined by boundary points.</p>
+                <p><strong>Parameters:</strong></p>
+                <ul>
+                    <li><span class="param-name">boundaryPoints</span> (<span class="param-type">Array</span>): Array of {x, y} points defining the boundary (must be closed)</li>
+                    <li><span class="param-name">depth</span> (<span class="param-type">Number</span>): Total depth to mill (negative value)</li>
+                    <li><span class="param-name">stepDown</span> (<span class="param-type">Number</span>): Depth per pass (negative value)</li>
+                    <li><span class="param-name">overlap</span> (<span class="param-type">Number</span>, optional): Tool overlap percentage (0-1, default 0.2)</li>
+                </ul>
+                
+                <div class="example">
+                    <p><strong>Example:</strong></p>
+                    <pre>// Define hexagon boundary
+const hexagon = [
+    {x: 0, y: 2},
+    {x: 1.732, y: 1},
+    {x: 1.732, y: -1},
+    {x: 0, y: -2},
+    {x: -1.732, y: -1},
+    {x: -1.732, y: 1},
+    {x: 0, y: 2} // Close the shape
+];
+
+// Mill hexagon area
+haas.polygonalFaceMill(hexagon, -0.25, 0.05, 0.3);</pre>
+                </div>
+                
+                <div class="note">
+                    <p><strong>Note:</strong> The boundary must be a closed shape (first and last points should match). The toolpath will automatically stay within the boundary.</p>
+                </div>
+            </section>
+
+            <section id="position-tracking">
+                <h3>Position Tracking</h3>
+                <p>The generator automatically tracks tool position during all movements.</p>
+                
+                <div class="method-signature">
+                    <code>getPosition()</code>
+                </div>
+                <p>Returns the current tool position in machine coordinates.</p>
+                <p><strong>Returns:</strong> <span class="return-type">Object</span> - {x, y, z} coordinates</p>
+                
+                <div class="example">
+                    <p><strong>Example:</strong></p>
+                    <pre>haas.rapidMove(2.0, 3.0, 1.0);
+const pos = haas.getPosition();
+console.log(pos); // {x: 2.0, y: 3.0, z: 1.0}</pre>
+                </div>
+                
+                <div class="note">
+                    <p><strong>Note:</strong> Position is automatically updated after every movement command. The coordinates reflect the machine position, not the work offset position.</p>
+                </div>
+            </section>
         </section>
 
         <section id="advanced-features">
@@ -522,6 +605,41 @@ haas.helicalMove(
     return haas.programEnd();
 }</pre>
             
+            <h3>Polygonal Face Milling Example</h3>
+            <pre>function generateComplexFaceMilling() {
+    const haas = new HaasGCodeGenerator('0022', 'Complex Face Milling');
+    
+    // Add polygonal face mill
+    toolLibrary.addTool(4, 'polygonal_face_mill', 'carbide', 0.75, 6, {sides: 6});
+    
+    // Define complex boundary
+    const boundary = [
+        {x: 0, y: 0},
+        {x: 4, y: 0},
+        {x: 4, y: 2},
+        {x: 3, y: 3},
+        {x: 1, y: 3},
+        {x: 0, y: 2},
+        {x: 0, y: 0} // Close the shape
+    ];
+    
+    // Program setup
+    haas.programStart();
+    
+    // Face milling operation
+    haas.toolChange(4);
+    haas.startPosition(2.0, 1.5);
+    
+    // Mill the complex shape
+    haas.polygonalFaceMill(boundary, -0.2, 0.05);
+    
+    // Log final position
+    const finalPos = haas.getPosition();
+    console.log('Tool ended at:', finalPos);
+    
+    return haas.programEnd();
+}</pre>
+
             <h3>Thread Milling Example</h3>
             <pre>function generateThreadMilling() {
     const haas = new HaasGCodeGenerator('0021', 'Thread Milling');
