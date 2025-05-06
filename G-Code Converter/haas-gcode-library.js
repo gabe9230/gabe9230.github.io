@@ -346,129 +346,99 @@ class HaasGCodeGenerator {
 
     polygonalFaceMill(boundaryPoints, depth, stepDown, overlap = 0.2) {
         const tool = toolLibrary.getTool(this.currentTool.toString());
-        if (tool) {
-            this.comment(`Polygonal facing with ${tool.description}`);
-        } else {
-            this.comment(`Polygonal facing`);
-        }
-
-        // Validate boundary points
-        if (!boundaryPoints || boundaryPoints.length < 3) {
-            console.error("Invalid boundary points - need at least 3 points to define a milling area");
+        this.comment(`Polygonal facing${tool ? ` with ${tool.description}` : ''}`);
+    
+        // Validate boundary
+        if (!Array.isArray(boundaryPoints) || boundaryPoints.length < 3) {
+            console.error("Invalid boundary points - need at least 3 points");
             return;
         }
-
-        // Close the boundary if not already closed
-        if (boundaryPoints[0].x !== boundaryPoints[boundaryPoints.length-1].x || 
-            boundaryPoints[0].y !== boundaryPoints[boundaryPoints.length-1].y) {
-            boundaryPoints.push({...boundaryPoints[0]});
+    
+        // Close boundary if not already closed
+        const first = boundaryPoints[0];
+        const last = boundaryPoints[boundaryPoints.length - 1];
+        const tol = 1e-6;
+        if (Math.abs(first.x - last.x) > tol || Math.abs(first.y - last.y) > tol) {
+            boundaryPoints.push({ ...first });
         }
-
+    
         const toolRadius = tool ? tool.diameter / 2 : 0.25;
-        const passes = Math.ceil(Math.abs(depth) / Math.abs(stepDown));
         const stepOver = (tool ? tool.diameter : 0.5) * (1 - overlap);
-
-        // Calculate the bounding box of the area
+        const passes = Math.ceil(Math.abs(depth) / Math.abs(stepDown));
+        const zDir = depth < 0 ? -1 : 1;
+    
         const bounds = this.calculateBounds(boundaryPoints);
         const centerX = (bounds.minX + bounds.maxX) / 2;
         const centerY = (bounds.minY + bounds.maxY) / 2;
-        const maxRadius = Math.max(
-            Math.sqrt(Math.pow(bounds.maxX - centerX, 2) + Math.pow(bounds.maxY - centerY, 2)),
-            Math.sqrt(Math.pow(bounds.minX - centerX, 2) + Math.pow(bounds.minY - centerY, 2))
-        );
-
+        const maxRadius = Math.hypot(bounds.maxX - centerX, bounds.maxY - centerY);
+    
         for (let pass = 1; pass <= passes; pass++) {
-            const currentDepth = Math.min(pass * stepDown, depth);
+            const currentDepth = zDir * Math.min(pass * Math.abs(stepDown), Math.abs(depth));
             this.comment(`Pass ${pass} at depth ${currentDepth.toFixed(this.decimalPlaces)}`);
-
-            // Start at center
+    
             this.rapidMove(centerX, centerY, this.rapidPlane);
             this.linearMove(centerX, centerY, currentDepth);
-
-            // Spiral out with offset passes
+    
             for (let radius = stepOver; radius <= maxRadius + stepOver; radius += stepOver) {
-                // Generate points along the boundary offset by current radius
                 const offsetPoints = this.offsetPolygon(boundaryPoints, -radius);
-                
-                if (offsetPoints.length > 0) {
-                    // Move to first point
-                    this.linearMove(offsetPoints[0].x, offsetPoints[0].y, currentDepth);
-                    
-                    // Mill along offset boundary
-                    for (let i = 1; i < offsetPoints.length; i++) {
-                        this.linearMove(offsetPoints[i].x, offsetPoints[i].y, currentDepth);
-                    }
+                if (offsetPoints.length < 2) continue;
+    
+                this.linearMove(offsetPoints[0].x, offsetPoints[0].y, currentDepth);
+                for (let i = 1; i < offsetPoints.length; i++) {
+                    this.linearMove(offsetPoints[i].x, offsetPoints[i].y, currentDepth);
                 }
             }
-
+    
             this.rapidMove(centerX, centerY, this.rapidPlane);
         }
     }
-
-    // Helper function to calculate bounding box of points
+    
+    // Bounding box
     calculateBounds(points) {
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        
-        for (const point of points) {
-            minX = Math.min(minX, point.x);
-            maxX = Math.max(maxX, point.x);
-            minY = Math.min(minY, point.y);
-            maxY = Math.max(maxY, point.y);
+        for (const { x, y } of points) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
         }
-        
         return { minX, maxX, minY, maxY };
     }
-
-    // Helper function to offset a polygon inward
+    
+    // Inward polygon offset using bisectors (approximate method)
     offsetPolygon(points, offset) {
-        if (points.length < 3) return [];
-        
-        const offsetPoints = [];
         const n = points.length;
-        
+        if (n < 3) return [];
+    
+        const result = [];
         for (let i = 0; i < n - 1; i++) {
-            const prev = points[(i - 1 + n) % (n - 1)];
+            const prev = points[(i - 1 + n - 1) % (n - 1)];
             const curr = points[i];
             const next = points[(i + 1) % (n - 1)];
-            
-            // Calculate edge vectors
-            const e1x = prev.x - curr.x;
-            const e1y = prev.y - curr.y;
-            const e2x = next.x - curr.x;
-            const e2y = next.y - curr.y;
-            
-            // Normalize edge vectors
-            const len1 = Math.sqrt(e1x * e1x + e1y * e1y);
-            const len2 = Math.sqrt(e2x * e2x + e2y * e2y);
-            
+    
+            const e1x = curr.x - prev.x, e1y = curr.y - prev.y;
+            const e2x = next.x - curr.x, e2y = next.y - curr.y;
+    
+            const len1 = Math.hypot(e1x, e1y);
+            const len2 = Math.hypot(e2x, e2y);
             if (len1 === 0 || len2 === 0) continue;
-            
-            const n1x = -e1y / len1;
-            const n1y = e1x / len1;
-            const n2x = -e2y / len2;
-            const n2y = e2x / len2;
-            
-            // Calculate bisector
-            const bisectorX = n1x + n2x;
-            const bisectorY = n1y + n2y;
-            const bisectorLen = Math.sqrt(bisectorX * bisectorX + bisectorY * bisectorY);
-            
-            if (bisectorLen === 0) continue;
-            
-            // Calculate offset point
-            const angle = Math.atan2(bisectorY, bisectorX);
-            const offsetX = curr.x + offset * Math.cos(angle);
-            const offsetY = curr.y + offset * Math.sin(angle);
-            
-            offsetPoints.push({ x: offsetX, y: offsetY });
+    
+            const n1x = -e1y / len1, n1y = e1x / len1;
+            const n2x = -e2y / len2, n2y = e2x / len2;
+    
+            const bisectorX = n1x + n2x, bisectorY = n1y + n2y;
+            const bisLen = Math.hypot(bisectorX, bisectorY);
+            if (bisLen === 0) continue;
+    
+            const scale = offset / bisLen;
+            result.push({
+                x: curr.x + bisectorX * scale,
+                y: curr.y + bisectorY * scale
+            });
         }
-        
-        // Close the polygon
-        if (offsetPoints.length > 0) {
-            offsetPoints.push({...offsetPoints[0]});
-        }
-        
-        return offsetPoints;
+    
+        if (result.length > 1) result.push({ ...result[0] }); // Close polygon
+        return result;
     }
 
 
