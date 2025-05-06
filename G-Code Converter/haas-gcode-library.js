@@ -329,19 +329,44 @@ class HaasGCodeGenerator {
     }
 
     // Movement commands
-    rapidMove(x, y, z) {
-        this.addLine(`G0 X${x.toFixed(this.decimalPlaces)} Y${y.toFixed(this.decimalPlaces)} Z${z.toFixed(this.decimalPlaces)}`);
-        this.currentX = x;
-        this.currentY = y;
-        this.currentZ = z;
+    rapidMove(x = null, y = null, z = null) {
+        let line = 'G0';
+    
+        if (x !== null && x !== undefined) {
+            line += ` X${x.toFixed(this.decimalPlaces)}`;
+            this.currentX = x;
+        }
+        if (y !== null && y !== undefined) {
+            line += ` Y${y.toFixed(this.decimalPlaces)}`;
+            this.currentY = y;
+        }
+        if (z !== null && z !== undefined) {
+            line += ` Z${z.toFixed(this.decimalPlaces)}`;
+            this.currentZ = z;
+        }
+    
+        this.addLine(line);
     }
-
-    linearMove(x, y, z, feedRate = null) {
+    
+    linearMove(x = null, y = null, z = null, feedRate = null) {
         if (feedRate !== null) this.currentFeedRate = feedRate;
-        this.addLine(`G1 X${x.toFixed(this.decimalPlaces)} Y${y.toFixed(this.decimalPlaces)} Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate}`);
-        this.currentX = x;
-        this.currentY = y;
-        this.currentZ = z;
+        let line = `G1`;
+    
+        if (x !== null && x !== undefined) {
+            line += ` X${x.toFixed(this.decimalPlaces)}`;
+            this.currentX = x;
+        }
+        if (y !== null && y !== undefined) {
+            line += ` Y${y.toFixed(this.decimalPlaces)}`;
+            this.currentY = y;
+        }
+        if (z !== null && z !== undefined) {
+            line += ` Z${z.toFixed(this.decimalPlaces)}`;
+            this.currentZ = z;
+        }
+    
+        line += ` F${this.currentFeedRate}`;
+        this.addLine(line);
     }
 
     polygonalFaceMill(boundaryPoints, depth, stepDown, overlap = 0.2) {
