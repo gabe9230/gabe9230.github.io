@@ -146,7 +146,14 @@ class HaasGCodeGenerator {
         }
     
         const materialSelect = document.getElementById('material-select');
-        const material = materialSelect ? materialSelect.value.toLowerCase() : 'aluminum';
+        let material = 'aluminum';
+        if (materialSelect && materialSelect.value) {
+            material = materialSelect.value.toLowerCase();
+            if (!['aluminum','brass','tool_steel','stainless_steel','cast_iron','delrin','abs','nylon','peek'].includes(material)) {
+                alert("Invalid or unsupported material selected.");
+                material = 'aluminum';
+            }
+        }
         const machining = this.getMachiningData(material, tool.type);
         const sfm = machining?.sfm || 100;
         const rpm = (sfm * 3.82) / tool.diameter;
@@ -161,12 +168,19 @@ class HaasGCodeGenerator {
         }
     
         const materialSelect = document.getElementById('material-select');
-        const material = materialSelect ? materialSelect.value.toLowerCase() : 'aluminum';
+        let material = 'aluminum';
+        if (materialSelect && materialSelect.value) {
+            material = materialSelect.value.toLowerCase();
+            if (!['aluminum','brass','tool_steel','stainless_steel','cast_iron','delrin','abs','nylon','peek'].includes(material)) {
+                alert("Invalid or unsupported material selected.");
+                material = 'aluminum';
+            }
+        }
         const machining = this.getMachiningData(material, tool.type);
         const chipload = machining?.chipload || 0.001;
         const rpm = this.calculateRPM(tool);
     
-        return Math.round(chipload * tool.teeth * rpm * 100) / 100;
+        return Number((chipload * tool.teeth * rpm).toFixed(3));
     }    
   
     // Core formatting methods
@@ -456,7 +470,7 @@ class HaasGCodeGenerator {
             this.addLine(`G1 Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate.toFixed(this.decimalPlaces)}`);
         } else {
             this.addLine(`(WARNING: No tool data for T${this.currentTool})`);
-            this.addLine(`G1 Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate/2}`);
+            this.addLine(`G1 Z${z.toFixed(this.decimalPlaces)} F${(this.currentFeedRate/2).toFixed(this.decimalPlaces)}`);
         }
     }
 

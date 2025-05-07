@@ -34,6 +34,20 @@
     .modal-content { background: white; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 600px; border-radius: 5px; position: relative; }
     .close { position: absolute; top: 10px; right: 20px; font-size: 28px; cursor: pointer; color: #aaa; }
     .close:hover { color: black; }
+    @media (max-width: 768px) {
+        .editor-container {
+            flex-direction: column;
+        }
+        .param-row {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .param-row label,
+        .param-row select,
+        .param-row input {
+            width: 100%;
+        }
+    }
   </style>
 </head>
 <body>
@@ -131,6 +145,7 @@ function generateGCode() {
     <div class="modal-content">
       <span class="close">&times;</span>
       <h2>Add New Tool</h2>
+      <div id="tool-error" style="display:none; color: #e74c3c; margin-bottom: 10px; font-weight: bold;"></div>
       <div class="param-row"><label for="tool-number">Tool Number:</label><input type="number" id="tool-number" min="1" max="99" step="1" value="1"></div>
       <div class="param-row"><label for="tool-type">Tool Type:</label><select id="tool-type"><option value="end_mill">End Mill</option><option value="face_mill">Face Mill</option><option value="drill">Drill</option><option value="tap">Tap</option><option value="thread_mill">Thread Mill</option></select></div>
       <div class="param-row"><label for="tool-material">Tool Material:</label><select id="tool-material"><option value="hss">HSS</option><option value="carbide">Carbide</option></select></div>
@@ -178,18 +193,47 @@ function generateGCode() {
       document.getElementById('thread-mill-params').style.display = toolTypeSelect.value === 'thread_mill' ? 'block' : 'none';
     });
     addToolBtn.onclick = () => toolModal.style.display = 'block';
-    closeToolModal.onclick = () => toolModal.style.display = 'none';
+    closeToolModal.onclick = () => {
+        toolModal.style.display = 'none';
+        clearToolError();
+    };
     saveToolBtn.onclick = () => {
-      const toolNumber = document.getElementById('tool-number').value;
-      const toolType = toolTypeSelect.value;
-      const toolMaterial = document.getElementById('tool-material').value;
-      const toolDiameter = parseFloat(document.getElementById('tool-diameter').value);
-      const toolTeeth = parseInt(document.getElementById('tool-teeth').value);
-      const additionalParams = {};
-      if (toolType === 'tap') additionalParams.pitch = 1 / parseFloat(document.getElementById('tap-pitch').value);
-      if (toolType === 'thread_mill') additionalParams.threadDirection = document.getElementById('thread-mill-direction').value;
-      toolLibrary.addTool(toolNumber, toolType, toolMaterial, toolDiameter, toolTeeth, additionalParams);
-      toolModal.style.display = 'none';
+        function isValidNumber(value) {
+            return !isNaN(value) && isFinite(value) && value > 0;
+        }
+
+        function showToolError(message) {
+            const errorBox = document.getElementById('tool-error');
+            errorBox.textContent = message;
+            errorBox.style.display = 'block';
+        }
+
+        function clearToolError() {
+            const errorBox = document.getElementById('tool-error');
+            errorBox.style.display = 'none';
+        }
+        function validateToolInputs(diameter, teeth) {
+            clearToolError();
+            if (!isFinite(diameter) || diameter <= 0) {
+                showToolError("Enter a valid, positive tool diameter.");
+                return false;
+            }
+            if (!Number.isInteger(teeth) || teeth < 1) {
+                showToolError("Enter a valid whole number for number of teeth.");
+                return false;
+            }
+            return true;
+        }
+        const toolNumber = document.getElementById('tool-number').value;
+        const toolType = toolTypeSelect.value;
+        const toolMaterial = document.getElementById('tool-material').value;
+        const toolDiameter = parseFloat(document.getElementById('tool-diameter').value);
+        const toolTeeth = parseInt(document.getElementById('tool-teeth').value);
+        const additionalParams = {};
+        if (toolType === 'tap') additionalParams.pitch = 1 / parseFloat(document.getElementById('tap-pitch').value);
+        if (toolType === 'thread_mill') additionalParams.threadDirection = document.getElementById('thread-mill-direction').value;
+        toolLibrary.addTool(toolNumber, toolType, toolMaterial, toolDiameter, toolTeeth, additionalParams);
+        toolModal.style.display = 'none';
     };
   </script>
 </body>
