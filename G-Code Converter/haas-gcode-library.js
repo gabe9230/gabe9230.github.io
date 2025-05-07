@@ -96,176 +96,105 @@ class HaasGCodeGenerator {
 
     getMachiningData() {
         return {
-            aluminum: {
-                hss: {
-                    end_mill: { speed: 200, feed_per_tooth: 0.005 },
-                    face_mill: { speed: 200, feed_per_tooth: 0.005 },
-                    drill: { speed: 125, feed_per_rev: 0.010 },
-                    tap: { speed: 50, feed_per_rev: 1.0 }, // Feed per rev = pitch for tapping
-                    thread_mill: { speed: 150, feed_per_tooth: 0.002 }
+            end_mills: {
+                aluminum: {
+                    hss: {
+                        "0.125": { speed: 150, feed_per_tooth: 0.002 },
+                        "0.25":  { speed: 150, feed_per_tooth: 0.002 },
+                        "0.375": { speed: 150, feed_per_tooth: 0.003 },
+                        "0.5":   { speed: 150, feed_per_tooth: 0.005 },
+                        "0.75":  { speed: 150, feed_per_tooth: 0.006 },
+                        "1.0":   { speed: 150, feed_per_tooth: 0.007 }
+                    },
+                    carbide: {
+                        "0.125": { speed: 300, feed_per_tooth: 0.002 },
+                        "0.25":  { speed: 300, feed_per_tooth: 0.002 },
+                        "0.375": { speed: 300, feed_per_tooth: 0.003 },
+                        "0.5":   { speed: 300, feed_per_tooth: 0.005 },
+                        "0.75":  { speed: 300, feed_per_tooth: 0.006 },
+                        "1.0":   { speed: 300, feed_per_tooth: 0.007 }
+                    }
                 },
-                carbide: {
-                    end_mill: { speed: 800, feed_per_tooth: 0.005 },
-                    face_mill: { speed: 800, feed_per_tooth: 0.005 },
-                    drill: { speed: 250, feed_per_rev: 0.010 },
-                    tap: { speed: 100, feed_per_rev: 1.0 },
-                    thread_mill: { speed: 600, feed_per_tooth: 0.002 }
-                }
-            },
-            brass: {
-                hss: {
-                    end_mill: { speed: 125, feed_per_tooth: 0.003 },
-                    face_mill: { speed: 125, feed_per_tooth: 0.003 },
-                    drill: { speed: 100, feed_per_rev: 0.008 }
+                low_carbon_steel: {
+                    hss: {
+                        "0.125": { speed: 90, feed_per_tooth: 0.0005 },
+                        "0.25":  { speed: 90, feed_per_tooth: 0.001 },
+                        "0.375": { speed: 90, feed_per_tooth: 0.002 },
+                        "0.5":   { speed: 90, feed_per_tooth: 0.003 },
+                        "0.75":  { speed: 90, feed_per_tooth: 0.004 },
+                        "1.0":   { speed: 90, feed_per_tooth: 0.005 }
+                    },
+                    carbide: {
+                        "0.125": { speed: 180, feed_per_tooth: 0.0005 },
+                        "0.25":  { speed: 180, feed_per_tooth: 0.001 },
+                        "0.375": { speed: 180, feed_per_tooth: 0.002 },
+                        "0.5":   { speed: 180, feed_per_tooth: 0.003 },
+                        "0.75":  { speed: 180, feed_per_tooth: 0.004 },
+                        "1.0":   { speed: 180, feed_per_tooth: 0.005 }
+                    }
                 },
-                carbide: {
-                    end_mill: { speed: 500, feed_per_tooth: 0.003 },
-                    face_mill: { speed: 500, feed_per_tooth: 0.003 },
-                    drill: { speed: 200, feed_per_rev: 0.008 }
-                }
-            },
-            bronze: {
-                hss: {
-                    end_mill: { speed: 100, feed_per_tooth: 0.002 },
-                    face_mill: { speed: 100, feed_per_tooth: 0.002 },
-                    drill: { speed: 80, feed_per_rev: 0.006 }
-                },
-                carbide: {
-                    end_mill: { speed: 400, feed_per_tooth: 0.002 },
-                    face_mill: { speed: 400, feed_per_tooth: 0.002 },
-                    drill: { speed: 160, feed_per_rev: 0.006 }
-                }
-            },
-            cast_iron: {
-                hss: {
-                    end_mill: { speed: 75, feed_per_tooth: 0.002 },
-                    face_mill: { speed: 75, feed_per_tooth: 0.002 },
-                    drill: { speed: 60, feed_per_rev: 0.004 }
-                },
-                carbide: {
-                    end_mill: { speed: 300, feed_per_tooth: 0.002 },
-                    face_mill: { speed: 300, feed_per_tooth: 0.002 },
-                    drill: { speed: 120, feed_per_rev: 0.004 }
-                }
-            },
-            free_machining_steel: {
-                hss: {
-                    end_mill: { speed: 120, feed_per_tooth: 0.003 },
-                    face_mill: { speed: 120, feed_per_tooth: 0.003 },
-                    drill: { speed: 100, feed_per_rev: 0.006 }
-                },
-                carbide: {
-                    end_mill: { speed: 500, feed_per_tooth: 0.003 },
-                    face_mill: { speed: 500, feed_per_tooth: 0.003 },
-                    drill: { speed: 200, feed_per_rev: 0.006 }
-                }
-            },
-            low_carbon_steel: {
-                hss: {
-                    end_mill: { speed: 90, feed_per_tooth: 0.003 },
-                    face_mill: { speed: 90, feed_per_tooth: 0.003 },
-                    drill: { speed: 80, feed_per_rev: 0.005 }
-                },
-                carbide: {
-                    end_mill: { speed: 350, feed_per_tooth: 0.003 },
-                    face_mill: { speed: 350, feed_per_tooth: 0.003 },
-                    drill: { speed: 160, feed_per_rev: 0.005 }
-                }
-            },
-            alloy_steel: {
-                hss: {
-                    end_mill: { speed: 60, feed_per_tooth: 0.002 },
-                    face_mill: { speed: 60, feed_per_tooth: 0.002 },
-                    drill: { speed: 60, feed_per_rev: 0.003 }
-                },
-                carbide: {
-                    end_mill: { speed: 250, feed_per_tooth: 0.002 },
-                    face_mill: { speed: 250, feed_per_tooth: 0.002 },
-                    drill: { speed: 120, feed_per_rev: 0.003 }
-                }
-            },
-            stainless_steel: {
-                hss: {
-                    end_mill: { speed: 60, feed_per_tooth: 0.001 },
-                    face_mill: { speed: 60, feed_per_tooth: 0.001 },
-                    drill: { speed: 60, feed_per_rev: 0.002 }
-                },
-                carbide: {
-                    end_mill: { speed: 250, feed_per_tooth: 0.001 },
-                    face_mill: { speed: 250, feed_per_tooth: 0.001 },
-                    drill: { speed: 120, feed_per_rev: 0.002 }
-                }
-            },
-            tool_steel: {
-                hss: {
-                    end_mill: { speed: 50, feed_per_tooth: 0.001 },
-                    face_mill: { speed: 50, feed_per_tooth: 0.001 },
-                    drill: { speed: 50, feed_per_rev: 0.002 }
-                },
-                carbide: {
-                    end_mill: { speed: 200, feed_per_tooth: 0.001 },
-                    face_mill: { speed: 200, feed_per_tooth: 0.001 },
-                    drill: { speed: 100, feed_per_rev: 0.002 }
-                }
-            },
-            copper: {
-                hss: {
-                    end_mill: { speed: 100, feed_per_tooth: 0.003 },
-                    face_mill: { speed: 100, feed_per_tooth: 0.003 },
-                    drill: { speed: 100, feed_per_rev: 0.006 }
-                },
-                carbide: {
-                    end_mill: { speed: 400, feed_per_tooth: 0.003 },
-                    face_mill: { speed: 400, feed_per_tooth: 0.003 },
-                    drill: { speed: 200, feed_per_rev: 0.006 }
+                stainless_steel: {
+                    hss: {
+                        "0.125": { speed: 60, feed_per_tooth: 0.0005 },
+                        "0.25":  { speed: 60, feed_per_tooth: 0.001 },
+                        "0.375": { speed: 60, feed_per_tooth: 0.002 },
+                        "0.5":   { speed: 60, feed_per_tooth: 0.002 },
+                        "0.75":  { speed: 60, feed_per_tooth: 0.003 },
+                        "1.0":   { speed: 60, feed_per_tooth: 0.004 }
+                    },
+                    carbide: {
+                        "0.125": { speed: 120, feed_per_tooth: 0.0005 },
+                        "0.25":  { speed: 120, feed_per_tooth: 0.001 },
+                        "0.375": { speed: 120, feed_per_tooth: 0.002 },
+                        "0.5":   { speed: 120, feed_per_tooth: 0.002 },
+                        "0.75":  { speed: 120, feed_per_tooth: 0.003 },
+                        "1.0":   { speed: 120, feed_per_tooth: 0.004 }
+                    }
                 }
             }
         };
     }
     
+    
     calculateRPM(tool, operationType) {
         const materialSelect = document.getElementById('material-select');
         const material = materialSelect ? materialSelect.value : 'aluminum';
         const materialKey = material.replace(/-/g, '_');
-        
-        if (!this.machiningData[materialKey] || !this.machiningData[materialKey][tool.material] || !this.machiningData[materialKey][tool.material][operationType]) {
-            console.error('Missing machining data for:', materialKey, tool.material, operationType);
-            return 1000; // Default safe value
+        const toolType = operationType === 'end_mill' ? 'end_mills' : 'end_mills'; // future-proof for other tools
+        const diaKey = tool.diameter.toFixed(3); // match "0.125" style
+    
+        const data = (
+            this.machiningData[toolType]?.[materialKey]?.[tool.material]?.[diaKey]
+        );
+    
+        if (!data || !data.speed) {
+            console.error('Missing speed data for:', toolType, materialKey, tool.material, diaKey);
+            return 1000;
         }
-        
-        const data = this.machiningData[materialKey][tool.material][operationType];
-        const cuttingSpeed = data.speed;
-        // RPM = (4 × Cutting Speed) / Cutter Diameter
-        return Math.round((4 * cuttingSpeed) / tool.diameter * (this.spindleOverride / 100));
+    
+        return Math.round((4 * data.speed) / tool.diameter * (this.spindleOverride / 100));
     }
     
-    // Calculate feed rate based on operation type
     calculateFeedRate(tool, operationType) {
         const materialSelect = document.getElementById('material-select');
         const material = materialSelect ? materialSelect.value : 'aluminum';
         const materialKey = material.replace(/-/g, '_');
-        
-        if (!this.machiningData[materialKey] || !this.machiningData[materialKey][tool.material] || !this.machiningData[materialKey][tool.material][operationType]) {
-            console.error('Missing machining data for:', materialKey, tool.material, operationType);
-            return 10; // Default safe value
+        const toolType = operationType === 'end_mill' ? 'end_mills' : 'end_mills'; // update later for drills/reamers
+        const diaKey = tool.diameter.toFixed(3); // ensure "0.125" format
+    
+        const data = (
+            this.machiningData[toolType]?.[materialKey]?.[tool.material]?.[diaKey]
+        );
+    
+        if (!data || !data.feed_per_tooth) {
+            console.error('Missing feed data for:', toolType, materialKey, tool.material, diaKey);
+            return 10;
         }
-        
-        const data = this.machiningData[materialKey][tool.material][operationType];
-        
-        if (operationType === 'drill' || operationType === 'tap') {
-            // For drilling and tapping, feed is per revolution
-            const rpm = this.calculateRPM(tool, operationType);
-            return data.feed_per_rev * rpm;
-        } else if (operationType === 'thread_mill') {
-            // For thread milling, feed is per tooth but needs special handling
-            const rpm = this.calculateRPM(tool, operationType);
-            return data.feed_per_tooth * tool.teeth * rpm;
-        } else {
-            // For milling, feed is per tooth
-            const rpm = this.calculateRPM(tool, operationType);
-            return data.feed_per_tooth * tool.teeth * rpm;
-        }
+    
+        const rpm = this.calculateRPM(tool, operationType);
+        return data.feed_per_tooth * tool.teeth * rpm;
     }
+    
     
     // Core formatting methods
     addLine(line = '') {
@@ -329,141 +258,146 @@ class HaasGCodeGenerator {
     }
 
     // Movement commands
-    rapidMove(x = null, y = null, z = null) {
-        let line = 'G0';
-    
-        if (x !== null && x !== undefined) {
-            line += ` X${x.toFixed(this.decimalPlaces)}`;
-            this.currentX = x;
-        }
-        if (y !== null && y !== undefined) {
-            line += ` Y${y.toFixed(this.decimalPlaces)}`;
-            this.currentY = y;
-        }
-        if (z !== null && z !== undefined) {
-            line += ` Z${z.toFixed(this.decimalPlaces)}`;
-            this.currentZ = z;
-        }
-    
-        this.addLine(line);
+    rapidMove(x, y, z) {
+        this.addLine(`G0 X${x.toFixed(this.decimalPlaces)} Y${y.toFixed(this.decimalPlaces)} Z${z.toFixed(this.decimalPlaces)}`);
+        this.currentX = x;
+        this.currentY = y;
+        this.currentZ = z;
     }
-    
-    linearMove(x = null, y = null, z = null, feedRate = null) {
+
+    linearMove(x, y, z, feedRate = null) {
         if (feedRate !== null) this.currentFeedRate = feedRate;
-        let line = `G1`;
-    
-        if (x !== null && x !== undefined) {
-            line += ` X${x.toFixed(this.decimalPlaces)}`;
-            this.currentX = x;
-        }
-        if (y !== null && y !== undefined) {
-            line += ` Y${y.toFixed(this.decimalPlaces)}`;
-            this.currentY = y;
-        }
-        if (z !== null && z !== undefined) {
-            line += ` Z${z.toFixed(this.decimalPlaces)}`;
-            this.currentZ = z;
-        }
-    
-        line += ` F${this.currentFeedRate}`;
-        this.addLine(line);
+        this.addLine(`G1 X${x.toFixed(this.decimalPlaces)} Y${y.toFixed(this.decimalPlaces)} Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate}`);
+        this.currentX = x;
+        this.currentY = y;
+        this.currentZ = z;
     }
 
     polygonalFaceMill(boundaryPoints, depth, stepDown, overlap = 0.2) {
         const tool = toolLibrary.getTool(this.currentTool.toString());
-        this.comment(`Polygonal facing${tool ? ` with ${tool.description}` : ''}`);
-    
-        // Validate boundary
-        if (!Array.isArray(boundaryPoints) || boundaryPoints.length < 3) {
-            console.error("Invalid boundary points - need at least 3 points");
+        if (tool) {
+            this.comment(`Polygonal facing with ${tool.description}`);
+        } else {
+            this.comment(`Polygonal facing`);
+        }
+
+        // Validate boundary points
+        if (!boundaryPoints || boundaryPoints.length < 3) {
+            console.error("Invalid boundary points - need at least 3 points to define a milling area");
             return;
         }
-    
-        // Close boundary if not already closed
-        const first = boundaryPoints[0];
-        const last = boundaryPoints[boundaryPoints.length - 1];
-        const tol = 1e-6;
-        if (Math.abs(first.x - last.x) > tol || Math.abs(first.y - last.y) > tol) {
-            boundaryPoints.push({ ...first });
+
+        // Close the boundary if not already closed
+        if (boundaryPoints[0].x !== boundaryPoints[boundaryPoints.length-1].x || 
+            boundaryPoints[0].y !== boundaryPoints[boundaryPoints.length-1].y) {
+            boundaryPoints.push({...boundaryPoints[0]});
         }
-    
+
         const toolRadius = tool ? tool.diameter / 2 : 0.25;
-        const stepOver = (tool ? tool.diameter : 0.5) * (1 - overlap);
         const passes = Math.ceil(Math.abs(depth) / Math.abs(stepDown));
-        const zDir = depth < 0 ? -1 : 1;
-    
+        const stepOver = (tool ? tool.diameter : 0.5) * (1 - overlap);
+
+        // Calculate the bounding box of the area
         const bounds = this.calculateBounds(boundaryPoints);
         const centerX = (bounds.minX + bounds.maxX) / 2;
         const centerY = (bounds.minY + bounds.maxY) / 2;
-        const maxRadius = Math.hypot(bounds.maxX - centerX, bounds.maxY - centerY);
-    
+        const maxRadius = Math.max(
+            Math.sqrt(Math.pow(bounds.maxX - centerX, 2) + Math.pow(bounds.maxY - centerY, 2)),
+            Math.sqrt(Math.pow(bounds.minX - centerX, 2) + Math.pow(bounds.minY - centerY, 2))
+        );
+
         for (let pass = 1; pass <= passes; pass++) {
-            const currentDepth = zDir * Math.min(pass * Math.abs(stepDown), Math.abs(depth));
+            const currentDepth = Math.min(pass * stepDown, depth);
             this.comment(`Pass ${pass} at depth ${currentDepth.toFixed(this.decimalPlaces)}`);
-    
+
+            // Start at center
             this.rapidMove(centerX, centerY, this.rapidPlane);
             this.linearMove(centerX, centerY, currentDepth);
-    
+
+            // Spiral out with offset passes
             for (let radius = stepOver; radius <= maxRadius + stepOver; radius += stepOver) {
+                // Generate points along the boundary offset by current radius
                 const offsetPoints = this.offsetPolygon(boundaryPoints, -radius);
-                if (offsetPoints.length < 2) continue;
-    
-                this.linearMove(offsetPoints[0].x, offsetPoints[0].y, currentDepth);
-                for (let i = 1; i < offsetPoints.length; i++) {
-                    this.linearMove(offsetPoints[i].x, offsetPoints[i].y, currentDepth);
+                
+                if (offsetPoints.length > 0) {
+                    // Move to first point
+                    this.linearMove(offsetPoints[0].x, offsetPoints[0].y, currentDepth);
+                    
+                    // Mill along offset boundary
+                    for (let i = 1; i < offsetPoints.length; i++) {
+                        this.linearMove(offsetPoints[i].x, offsetPoints[i].y, currentDepth);
+                    }
                 }
             }
-    
+
             this.rapidMove(centerX, centerY, this.rapidPlane);
         }
     }
-    
-    // Bounding box
+
+    // Helper function to calculate bounding box of points
     calculateBounds(points) {
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (const { x, y } of points) {
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
+        
+        for (const point of points) {
+            minX = Math.min(minX, point.x);
+            maxX = Math.max(maxX, point.x);
+            minY = Math.min(minY, point.y);
+            maxY = Math.max(maxY, point.y);
         }
+        
         return { minX, maxX, minY, maxY };
     }
-    
-    // Inward polygon offset using bisectors (approximate method)
+
+    // Helper function to offset a polygon inward
     offsetPolygon(points, offset) {
+        if (points.length < 3) return [];
+        
+        const offsetPoints = [];
         const n = points.length;
-        if (n < 3) return [];
-    
-        const result = [];
+        
         for (let i = 0; i < n - 1; i++) {
-            const prev = points[(i - 1 + n - 1) % (n - 1)];
+            const prev = points[(i - 1 + n) % (n - 1)];
             const curr = points[i];
             const next = points[(i + 1) % (n - 1)];
-    
-            const e1x = curr.x - prev.x, e1y = curr.y - prev.y;
-            const e2x = next.x - curr.x, e2y = next.y - curr.y;
-    
-            const len1 = Math.hypot(e1x, e1y);
-            const len2 = Math.hypot(e2x, e2y);
+            
+            // Calculate edge vectors
+            const e1x = prev.x - curr.x;
+            const e1y = prev.y - curr.y;
+            const e2x = next.x - curr.x;
+            const e2y = next.y - curr.y;
+            
+            // Normalize edge vectors
+            const len1 = Math.sqrt(e1x * e1x + e1y * e1y);
+            const len2 = Math.sqrt(e2x * e2x + e2y * e2y);
+            
             if (len1 === 0 || len2 === 0) continue;
-    
-            const n1x = -e1y / len1, n1y = e1x / len1;
-            const n2x = -e2y / len2, n2y = e2x / len2;
-    
-            const bisectorX = n1x + n2x, bisectorY = n1y + n2y;
-            const bisLen = Math.hypot(bisectorX, bisectorY);
-            if (bisLen === 0) continue;
-    
-            const scale = offset / bisLen;
-            result.push({
-                x: curr.x + bisectorX * scale,
-                y: curr.y + bisectorY * scale
-            });
+            
+            const n1x = -e1y / len1;
+            const n1y = e1x / len1;
+            const n2x = -e2y / len2;
+            const n2y = e2x / len2;
+            
+            // Calculate bisector
+            const bisectorX = n1x + n2x;
+            const bisectorY = n1y + n2y;
+            const bisectorLen = Math.sqrt(bisectorX * bisectorX + bisectorY * bisectorY);
+            
+            if (bisectorLen === 0) continue;
+            
+            // Calculate offset point
+            const angle = Math.atan2(bisectorY, bisectorX);
+            const offsetX = curr.x + offset * Math.cos(angle);
+            const offsetY = curr.y + offset * Math.sin(angle);
+            
+            offsetPoints.push({ x: offsetX, y: offsetY });
         }
-    
-        if (result.length > 1) result.push({ ...result[0] }); // Close polygon
-        return result;
+        
+        // Close the polygon
+        if (offsetPoints.length > 0) {
+            offsetPoints.push({...offsetPoints[0]});
+        }
+        
+        return offsetPoints;
     }
 
 

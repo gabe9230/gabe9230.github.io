@@ -422,13 +422,11 @@ function generateGCode() {
             const errorElement = document.getElementById('error-message');
             
             try {
-                const func = new Function(`
-                    ${HaasGCodeGenerator.toString()}
+                const func = new Function('toolLibrary', 'HaasGCodeGenerator', `
                     ${jsCode}
                     return generateGCode();
                 `);
-                
-                const gcode = func();
+                const gcode = func(toolLibrary, HaasGCodeGenerator);
                 document.getElementById('g-code-output').textContent = gcode;
                 errorElement.style.display = 'none';
             } catch (e) {
