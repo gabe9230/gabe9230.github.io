@@ -1,391 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>JavaScript to HAAS G-code Converter - Documentation</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HAAS G-code Generator Documentation</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      line-height: 1.6;
-      margin: 0;
-      padding: 20px;
-      background-color: #f5f5f5;
-      color: #333;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h1, h2, h3, h4 {
-      color: #2c3e50;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 30px;
-      border-bottom: 2px solid #3498db;
-      padding-bottom: 15px;
-    }
-    h2 {
-      margin-top: 30px;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 10px;
-    }
-    h3 {
-      margin-top: 25px;
-      color: #2980b9;
-    }
-    h4 {
-      margin-top: 20px;
-      color: #16a085;
-    }
-    code {
-      background-color: #f0f0f0;
-      padding: 2px 5px;
-      border-radius: 3px;
-      font-family: 'Courier New', monospace;
-    }
-    pre {
-      background-color: #f8f8f8;
-      padding: 15px;
-      border-radius: 5px;
-      overflow-x: auto;
-      border-left: 4px solid #3498db;
-    }
-    table {
-      width: 100%;
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background: #f4f4f4; color: #333; }
+    .container { max-width: 1000px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1, h2, h3 { color: #2c3e50; }
+    pre { background: #f8f8f8; padding: 10px; border-left: 3px solid #3498db; overflow-x: auto; }
+    code { background: #eee; padding: 2px 4px; border-radius: 4px; }
+    .tool-table, .tool-table th, .tool-table td {
+      border: 1px solid #ccc;
       border-collapse: collapse;
-      margin: 20px 0;
+      padding: 8px;
     }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: left;
-    }
-    th {
-      background-color: #2c3e50;
-      color: white;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-    .note, .warning {
-      padding: 15px;
-      border-radius: 5px;
-      margin: 15px 0;
-    }
-    .note {
-      background-color: #e3f2fd;
-      border-left: 4px solid #2196f3;
-    }
-    .warning {
-      background-color: #fff8e1;
-      border-left: 4px solid #ffc107;
-    }
-    .method-signature {
-      background-color: #e8f5e9;
-      padding: 10px;
-      border-radius: 5px;
-      font-family: 'Courier New', monospace;
-      margin: 10px 0;
-    }
-    .toc {
-      background-color: #f0f0f0;
-      padding: 15px;
-      border-radius: 5px;
-      margin-bottom: 30px;
-    }
-    .toc ul {
-      padding-left: 20px;
-    }
-    .toc li {
-      margin-bottom: 5px;
-    }
-    .toc a {
-      color: #2980b9;
-      text-decoration: none;
-    }
-    .toc a:hover {
-      text-decoration: underline;
-    }
+    .tool-table th { background: #2c3e50; color: #fff; }
+    .tool-table tr:nth-child(even) { background-color: #f9f9f9; }
+    .required-tag { color: #555; font-style: italic; font-weight: normal; margin-left: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>JavaScript to HAAS G-code Converter Documentation</h1>
+    <h1>HAAS G-code Generator Documentation</h1>
 
-    <div class="toc">
-      <h2>Table of Contents</h2>
-      <ul>
-        <li><a href="#introduction">1. Introduction</a></li>
-        <li><a href="#getting-started">2. Getting Started</a></li>
-        <li><a href="#tool-library">3. Tool Library</a></li>
-        <li><a href="#generator-class">4. Generator Class</a></li>
-        <li><a href="#program-structure">5. Program Structure</a></li>
-        <li><a href="#movement">6. Movement Commands</a></li>
-        <li><a href="#machining">7. Machining Operations</a></li>
-        <li><a href="#advanced">8. Advanced Features</a></li>
-        <li><a href="#examples">9. Examples</a></li>
-      </ul>
-    </div>
+    <p>This documentation outlines the methods available through the <code>HaasGCodeGenerator</code> JavaScript class, allowing you to generate HAAS-compatible G-code from simple JS logic. It supports multiple tool types with parameter-based feed/speed selection.</p>
 
-    <section id="introduction">
-      <h2>1. Introduction</h2>
-      <p>This library allows generating HAAS-compatible G-code using high-level JavaScript functions. It is designed for education, simulation, and production pre-visualization workflows.</p>
-      <ul>
-        <li>G-code formatting with comments, tool changes, feedrates, etc.</li>
-        <li>Dynamic tool library and modal UI for tool creation</li>
-        <li>Feed rate and RPM calculations based on tool/material/type</li>
-        <li>Support for polygonal facing, threading, helical interpolation</li>
-      </ul>
-    </section>
+    <h2>Supported Tool Types</h2>
+    <ul>
+      <li><code>end_mill</code></li>
+      <li><code>face_mill</code></li>
+      <li><code>drill</code></li>
+      <li><code>tap</code> (requires <code>pitch</code>)</li>
+      <li><code>thread_mill</code> (requires <code>threadDirection</code>)</li>
+    </ul>
+    <p>Each tool type will have relevant machining data for RPM and feedrate calculation depending on the selected material.</p>
 
-    <section id="getting-started">
-        <h2>2. Getting Started</h2>
-        <p>Include the library in your HTML:</p>
-        <pre>&lt;script src="haas-gcode-library.js"&gt;&lt;/script&gt;</pre>
+<p>This example does the following:</p>
+<ul>
+  <li>Creates a new program named "My Program" with ID 0001</li>
+  <li>Starts the program with setup codes</li>
+  <li>Loads tool #1</li>
+  <li>Moves to the starting XY position</li>
+  <li>Performs a face milling operation over a 4x6 inch area</li>
+  <li>Ends the program cleanly</li>
+</ul>
 
-        <p>Define a G-code generation function:</p>
-        <pre>
-            function generateGCode() {
-            const haas = new HaasGCodeGenerator('0020', 'Example Part');
-            toolLibrary.addTool(1, 'end_mill', 'carbide', 0.25, 2);
-            haas.programStart();
-            haas.toolChange(1);
-            haas.startPosition(1, 1);
-            haas.plungeIntoPart(-0.1, 'end_mill');
-            haas.linearMove(2, 2, -0.1);
-            return haas.programEnd();
-            }
-        </pre>
-    </section>
+<h3>Example G-code Output</h3>
+<p>This is what the JavaScript above generates. If you're unfamiliar with G-code: it's a simple language used by CNC machines. Each line is a command to move, cut, or set a state. For example, <code>G0</code> means rapid move, <code>M06</code> is tool change, and <code>M30</code> ends the program. The JavaScript shown earlier generates these commands automatically.</p>
+<pre><code>
+  %
+  O0001 (My Program)
+  G17 G40 G80 G54 G20
+  M06 T1
+  G0 X0 Y0 Z0.5
+  ... (face milling motions)
+  M30
+  %
+</code></pre>
+<h2>Methods Reference</h2>
+    <h3><code>new HaasGCodeGenerator(programNumber, programName)</code><span class="required-tag">REQUIRED</span></h3>
+    <p>Constructs a generator instance. Must be called before any G-code methods can be used.</p>
 
-    <section id="tool-library">
-        <h2>3. Tool Library</h2>
-        <p>The tool library manages tool definitions and provides automatic speed/feed calculations based on material and cutter parameters.</p>
-      
-        <h3>Methods</h3>
-      
-        <div class="method-signature">
-          <code>addTool(toolNumber, toolType, toolMaterial, diameter, teeth)</code>
-        </div>
-        <p>Adds an end mill to the library. Currently only <code>end_mill</code> tools are supported.</p>
-      
-        <p><strong>Parameters:</strong></p>
-        <ul>
-          <li><span class="param-name">toolNumber</span> (<span class="param-type">Number</span>): Tool number (e.g. <code>1</code>)</li>
-          <li><span class="param-name">toolType</span> (<span class="param-type">String</span>): Must be <code>'end_mill'</code></li>
-          <li><span class="param-name">toolMaterial</span> (<span class="param-type">String</span>): Either <code>'hss'</code> or <code>'carbide'</code></li>
-          <li><span class="param-name">diameter</span> (<span class="param-type">Number</span>): Diameter in inches (e.g. <code>0.25</code>)</li>
-          <li><span class="param-name">teeth</span> (<span class="param-type">Number</span>): Number of flutes or teeth on the cutter</li>
-        </ul>
-      
-        <div class="example">
-          <p><strong>Example:</strong></p>
-          <pre>
-            // Add a 0.25" carbide end mill with 4 flutes
-            toolLibrary.addTool(1, 'end_mill', 'carbide', 0.25, 4);
-          </pre>
-        </div>
-      
-        <div class="method-signature">
-          <code>getTool(toolNumber)</code>
-        </div>
-        <p>Retrieves a tool object previously added to the library.</p>
-        <p><strong>Returns:</strong> <span class="return-type">Object</span> – Tool definition</p>
-      
-        <h3>Supported Tool Types</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Tool Type</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>end_mill</code></td>
-              <td>Standard flat, square, or ball end mill</td>
-            </tr>
-          </tbody>
-        </table>
-      
-        <div class="note">
-          <p><strong>Note:</strong> Additional tool types such as <code>face_mill</code>, <code>drill</code>, <code>tap</code>, and <code>thread_mill</code> are planned for future versions.</p>
-        </div>
-      </section>
-      
+    <h3><code>programStart()</code><span class="required-tag">REQUIRED</span></h3>
+    <p>Initializes the program with standard setup commands (e.g., <code>G17 G40 G80 G54 G20</code>).</p>
 
-    <section id="generator-class">
-      <h2>4. Generator Class</h2>
-      <p>Main generator object for all operations.</p>
+    <h3><code>toolChange(toolNumber)</code><span class="required-tag">REQUIRED</span></h3>
+    <p>Selects a tool by number and inserts the appropriate <code>M06</code> and spindle commands.</p>
 
-      <div class="method-signature">new HaasGCodeGenerator(programNumber, programName)</div>
+    <h3><code>startPosition(x, y)</code><span class="required-tag">REQUIRED</span></h3>
+    <p>Moves the tool rapidly to the starting XY location at a safe height above the part. Required before most cutting operations.</p>
 
-      <h3>Configuration</h3>
-      <ul>
-        <li><code>safeZ</code> = 2.0</li>
-        <li><code>rapidPlane</code> = 0.1</li>
-        <li><code>toolOffset</code> = 1</li>
-        <li><code>workOffset</code> = 'G54'</li>
-        <li><code>coolantMode</code> = 'M8'</li>
-        <li><code>spindleOverride</code> = 100</li>
-      </ul>
+    <h3><code>faceMill(x, y, width, length, depth, stepOver)</code></h3>
+    <p>Generates a zigzag face milling pattern for the specified area.</p>
 
-      <h3>Feed and Speed Calculation</h3>
-      <div class="method-signature">calculateRPM(tool, operationType)</div>
-      <p>Uses internal lookup table for speed (S) based on tool type, diameter, material.</p>
+    <h3><code>drillHole(x, y, retractZ, bottomZ, peckDepth, dwell)</code></h3>
+    <p>Performs drilling cycle at specified XY location with pecking.</p>
 
-      <div class="method-signature">calculateFeedRate(tool, operationType)</div>
-      <p>Feedrate (F) is based on RPM × feed-per-tooth × flutes, or per-rev for drill/tap.</p>
-    </section>
+    <h3><code>tapHole(x, y, retractZ, bottomZ)</code></h3>
+    <p>Performs a tapping cycle using calculated pitch and spindle direction.</p>
 
-    <section id="program-structure">
-      <h2>5. Program Structure</h2>
+    <h3><code>threadMillHole(x, y, retractZ, bottomZ)</code></h3>
+    <p>Performs circular thread milling. Requires thread direction.</p>
 
-      <div class="method-signature">programStart()</div>
-      <p>Initializes header, G20 mode, G28, G90, resets state.</p>
+    <h3><code>polygonalFaceMill(points[], depth, stepDown, overlap)</code></h3>
+    <p>Faces inside a closed polygon with spiral offsets.</p>
 
-      <div class="method-signature">toolChange(toolNumber)</div>
-      <p>Changes tools and sets description in comment.</p>
+    <h3><code>comment(text)</code></h3>
+    <p>Inserts a comment line into the G-code.</p>
 
-      <div class="method-signature">startPosition(x, y)</div>
-      <p>Moves to X/Y, starts spindle with RPM from <code>calculateRPM()</code>.</p>
+    <h3><code>programEnd()</code><span class="required-tag">REQUIRED</span></h3>
+    <p>Closes the program with <code>M30</code>. Must be called to finish the G-code correctly.</p>
 
-      <div class="method-signature">programEnd()</div>
-      <p>Closes the program with G80, M30, and returns full G-code string.</p>
-    </section>
-    <section id="movement">
-        <h2>6. Movement Commands</h2>
-  
-        <div class="method-signature">rapidMove(x, y, z)</div>
-        <p>G0 move to specified position. Any null value (e.g., <code>null</code>) will keep that axis unchanged.</p>
-  
-        <div class="method-signature">linearMove(x, y, z, [feedRate])</div>
-        <p>G1 linear move. Optional feed override.</p>
-  
-        <div class="method-signature">helicalMove(x, y, z, clockwise = true)</div>
-        <p>Helical interpolation using G02 (CW) or G03 (CCW). Requires valid arc plane geometry.</p>
-  
-        <div class="method-signature">getPosition()</div>
-        <p>Returns {x, y, z} machine coordinates.</p>
-      </section>
-  
-      <section id="machining">
-        <h2>7. Machining Operations</h2>
-  
-        <h3>Drilling</h3>
-        <div class="method-signature">drillHole(x, y, startZ, depth, [peckDepth = 0], [dwell = 0])</div>
-        <p>Drills a hole using G81 (simple) or G83 (pecking).</p>
-  
-        <h3>Tapping</h3>
-        <div class="method-signature">tapHole(x, y, startZ, depth, pitch, [peckDepth])</div>
-        <p>Taps hole using G84. Pitch determines feed per revolution.</p>
-  
-        <h3>Face Milling</h3>
-        <div class="method-signature">faceMill(startX, startY, width, length, depth, stepDown)</div>
-        <p>Basic rectangular facing with linear raster passes.</p>
-  
-        <h3>Pocket Milling</h3>
-        <div class="method-signature">pocketMill(startX, startY, width, length, depth, stepDown)</div>
-        <p>Clears rectangular pocket using spiral toolpath logic.</p>
-  
-        <h3>Contour Milling</h3>
-        <div class="method-signature">contourMill(points[], depth, stepDown)</div>
-        <p>Mills outline defined by a list of {x, y} points.</p>
-  
-        <h3>Helical Milling</h3>
-        <div class="method-signature">helicalMill(x, y, startZ, endZ, diameter, pitch, clockwise = true)</div>
-        <p>Creates threads or circular features by descending helix.</p>
-  
-        <h3>Thread Milling</h3>
-        <div class="method-signature">millThread(x, y, startZ, pitch, length, diameter, internal = true, direction = 'right')</div>
-        <p>Thread mill operation using circular interpolation.</p>
-  
-        <h3>Polygonal Facing</h3>
-        <div class="method-signature">polygonalFaceMill(boundaryPoints[], depth, stepDown, overlap = 0.2)</div>
-        <p>Spiral clears area inside any closed polygon boundary.</p>
-        <div class="note">Ensure boundary is closed: first point equals last.</div>
-      </section>
-  
-      <section id="advanced">
-        <h2>8. Advanced Features</h2>
-  
-        <h3>Offsets</h3>
-        <div class="method-signature">setWorkOffset(offsetCode)</div>
-        <p>Use G54 to G59 as active work offsets.</p>
-  
-        <div class="method-signature">resetWorkOffset()</div>
-        <p>Reverts to G54.</p>
-  
-        <h3>Coolant</h3>
-        <div class="method-signature">setCoolant(mode)</div>
-        <p>Modes: 'M8' (Flood), 'M7' (Mist), 'M9' (Off).</p>
-  
-        <h3>Spindle Control</h3>
-        <div class="method-signature">orientSpindle(angle)</div>
-        <p>Orients spindle to angle (M19).</p>
-  
-        <div class="method-signature">setSpindleOverride(percent)</div>
-        <p>Applies S-command scaling (e.g., 50 for 50% RPM).</p>
-      </section>
-  
-      <section id="examples">
-        <h2>9. Examples</h2>
-  
-        <h3>Basic Milling Program</h3>
-        <pre>function generateGCode() {
-    const haas = new HaasGCodeGenerator('1001', 'Face + Drill');
-    toolLibrary.addTool(1, 'face_mill', 'carbide', 1.0, 6);
-    toolLibrary.addTool(2, 'drill', 'hss', 0.25, 2);
-    haas.programStart();
-    haas.toolChange(1);
-    haas.startPosition(1, 1);
-    haas.faceMill(0, 0, 5, 3, -0.1, 0.05);
-    haas.toolChange(2);
-    haas.plungeIntoPart(0.1, 'drill');
-    haas.drillHole(2, 2, 0.1, -0.6, 0.1, 0.5);
-    return haas.programEnd();
-  }</pre>
-  
-        <h3>Polygonal Facing Example</h3>
-        <pre>function generatePolygonalMilling() {
-    const haas = new HaasGCodeGenerator('1002', 'Hex Pocket');
-    toolLibrary.addTool(3, 'polygonal_face_mill', 'carbide', 0.5, 4, {sides: 6});
-    const hex = [
-      {x: 0, y: 2},
-      {x: 1.732, y: 1},
-      {x: 1.732, y: -1},
-      {x: 0, y: -2},
-      {x: -1.732, y: -1},
-      {x: -1.732, y: 1},
-      {x: 0, y: 2}
-    ];
-    haas.programStart();
-    haas.toolChange(3);
-    haas.startPosition(0, 0);
-    haas.polygonalFaceMill(hex, -0.3, 0.05);
-    return haas.programEnd();
-  }</pre>
-  
-        <h3>Thread Milling</h3>
-        <pre>function threadExample() {
-    const haas = new HaasGCodeGenerator('1003', 'Thread Milling');
-    toolLibrary.addTool(5, 'thread_mill', 'carbide', 0.375, 3, {
-      threadDirection: 'right'
-    });
-    haas.programStart();
-    haas.toolChange(5);
-    haas.startPosition(2.0, 2.0);
-    haas.millThread(2.0, 2.0, 0.1, 1/16, 0.5, 0.375);
-    return haas.programEnd();
-  }</pre>
-      </section>
-    </div>
-  </body>
-  </html>
-  
+    <h2>Material-Specific Machining</h2>
+    <p>Feeds and speeds are determined dynamically from the selected material/tool type. The internal library uses a lookup via <code>getMachiningData(material, toolType)</code>. If not found, defaults are applied.</p>
+
+    <h2>Tool Parameter Table</h2>
+    <table class="tool-table">
+      <thead>
+        <tr>
+          <th>Tool Type</th>
+          <th>Required Parameters</th>
+          <th>Additional Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>end_mill</td><td>diameter, teeth</td><td>Default tool type</td></tr>
+        <tr><td>face_mill</td><td>diameter, teeth</td><td>Used for flat facing</td></tr>
+        <tr><td>drill</td><td>diameter</td><td>Feedrate depends on peck + dwell</td></tr>
+        <tr><td>tap</td><td>diameter, pitch</td><td>Pitch used for spindle sync</td></tr>
+        <tr><td>thread_mill</td><td>diameter, threadDirection</td><td>Requires thread milling pathing</td></tr>
+      </tbody>
+    </table>
+</body>
+</html>

@@ -31,7 +31,8 @@ const toolLibrary = {
         let description = `${typeNames[type]} ${diameter}" ${materialNames[material]}`;
         
         if (type === 'tap') {
-            description += ` ${1/additionalParams.pitch} TPI`;
+            const tpi = Math.round(1 / additionalParams.pitch);
+            description += ` ${tpi} TPI`;
         } else if (type === 'thread_mill') {
             description += ` ${additionalParams.threadDirection} hand`;
         }
@@ -49,14 +50,14 @@ const toolLibrary = {
             const row = document.createElement('tr');
             
             row.innerHTML = `
-                <td>${toolNumber}</td>
-                <td>${tool.type.replace('_', ' ').toUpperCase()}</td>
-                <td>${tool.material.toUpperCase()}</td>
-                <td>${tool.diameter}"</td>
-                <td>${tool.teeth}</td>
-                <td>${tool.material === 'hss' ? 'HSS' : 'Carbide'}</td>
-                <td>${tool.description}</td>
+            <td>${toolNumber}</td>
+            <td>${tool.type}</td>
+            <td>${tool.material}</td>
+            <td>${tool.diameter}"</td>
+            <td>${tool.teeth}</td>
+            <td>${tool.description}</td>
             `;
+
             
             tbody.appendChild(row);
         }
@@ -83,6 +84,9 @@ class HaasGCodeGenerator {
         this.coolantMode = 'M8'; // Default to flood coolant
         this.spindleOverride = 100; // 100% by default
         this.decimalPlaces = 4;
+        const tool = toolLibrary.getTool('1');
+        const material = tool?.material || 'aluminum';
+        const toolType = tool?.type || 'end_mill';
         
         // Track current tool position
         this.currentX = 0;
@@ -90,112 +94,81 @@ class HaasGCodeGenerator {
         this.currentZ = 0;
         
         // Speed and feed data based on provided charts (all materials)
-        this.machiningData = this.getMachiningData();
+        
     }
-    
+        
+    getMachiningData(material, toolType, diameter = 0.125) {
+        const baseProfiles = {
+            aluminum: { sfm: 150, chipload: 0.002 },
+            brass: { sfm: 125, chipload: 0.0025 },
+            tool_steel: { sfm: 50, chipload: 0.001 },
+            stainless_steel: { sfm: 60, chipload: 0.0015 },
+            cast_iron: { sfm: 70, chipload: 0.002 },
+            delrin: { sfm: 600, chipload: 0.003 },
+            abs: { sfm: 500, chipload: 0.0025 },
+            nylon: { sfm: 400, chipload: 0.002 },
+            peek: { sfm: 300, chipload: 0.0015 }
+        };
 
-    getMachiningData() {
+        const toolModifiers = {
+            end_mill:     { sfm: 1.0, chipload: 1.0 },
+            drill:        { sfm: 0.8, chipload: 0.75 },
+            tap:          { sfm: 0.6, chipload: 0.6 },
+            thread_mill:  { sfm: 0.5, chipload: 0.5 }
+        };
+
+        const base = baseProfiles[material] || { sfm: 100, chipload: 0.001 };
+        const mod = toolModifiers[toolType] || { sfm: 1.0, chipload: 1.0 };
+
+        const adjustedChipload = this.getDiameterAdjustedChipload(base.chipload * mod.chipload, diameter);
+
         return {
-            end_mills: {
-                aluminum: {
-                    hss: {
-                        "0.125": { speed: 150, feed_per_tooth: 0.002 },
-                        "0.25":  { speed: 150, feed_per_tooth: 0.002 },
-                        "0.375": { speed: 150, feed_per_tooth: 0.003 },
-                        "0.5":   { speed: 150, feed_per_tooth: 0.005 },
-                        "0.75":  { speed: 150, feed_per_tooth: 0.006 },
-                        "1.0":   { speed: 150, feed_per_tooth: 0.007 }
-                    },
-                    carbide: {
-                        "0.125": { speed: 300, feed_per_tooth: 0.002 },
-                        "0.25":  { speed: 300, feed_per_tooth: 0.002 },
-                        "0.375": { speed: 300, feed_per_tooth: 0.003 },
-                        "0.5":   { speed: 300, feed_per_tooth: 0.005 },
-                        "0.75":  { speed: 300, feed_per_tooth: 0.006 },
-                        "1.0":   { speed: 300, feed_per_tooth: 0.007 }
-                    }
-                },
-                low_carbon_steel: {
-                    hss: {
-                        "0.125": { speed: 90, feed_per_tooth: 0.0005 },
-                        "0.25":  { speed: 90, feed_per_tooth: 0.001 },
-                        "0.375": { speed: 90, feed_per_tooth: 0.002 },
-                        "0.5":   { speed: 90, feed_per_tooth: 0.003 },
-                        "0.75":  { speed: 90, feed_per_tooth: 0.004 },
-                        "1.0":   { speed: 90, feed_per_tooth: 0.005 }
-                    },
-                    carbide: {
-                        "0.125": { speed: 180, feed_per_tooth: 0.0005 },
-                        "0.25":  { speed: 180, feed_per_tooth: 0.001 },
-                        "0.375": { speed: 180, feed_per_tooth: 0.002 },
-                        "0.5":   { speed: 180, feed_per_tooth: 0.003 },
-                        "0.75":  { speed: 180, feed_per_tooth: 0.004 },
-                        "1.0":   { speed: 180, feed_per_tooth: 0.005 }
-                    }
-                },
-                stainless_steel: {
-                    hss: {
-                        "0.125": { speed: 60, feed_per_tooth: 0.0005 },
-                        "0.25":  { speed: 60, feed_per_tooth: 0.001 },
-                        "0.375": { speed: 60, feed_per_tooth: 0.002 },
-                        "0.5":   { speed: 60, feed_per_tooth: 0.002 },
-                        "0.75":  { speed: 60, feed_per_tooth: 0.003 },
-                        "1.0":   { speed: 60, feed_per_tooth: 0.004 }
-                    },
-                    carbide: {
-                        "0.125": { speed: 120, feed_per_tooth: 0.0005 },
-                        "0.25":  { speed: 120, feed_per_tooth: 0.001 },
-                        "0.375": { speed: 120, feed_per_tooth: 0.002 },
-                        "0.5":   { speed: 120, feed_per_tooth: 0.002 },
-                        "0.75":  { speed: 120, feed_per_tooth: 0.003 },
-                        "1.0":   { speed: 120, feed_per_tooth: 0.004 }
-                    }
-                }
-            }
+            sfm: base.sfm * mod.sfm,
+            chipload: adjustedChipload
         };
     }
+
     
+    getDiameterAdjustedChipload(baseChipload, diameter) {
+        if (diameter <= 0.0625) return baseChipload * 0.75;
+        if (diameter <= 0.125)  return baseChipload;
+        if (diameter <= 0.25)   return baseChipload * 1.25;
+        if (diameter <= 0.375)  return baseChipload * 1.75;
+        if (diameter <= 0.5)    return baseChipload * 2.25;
+        if (diameter <= 0.75)   return baseChipload * 2.5;
+        return baseChipload * 3;
+    }
     
-    calculateRPM(tool, operationType) {
-        const materialSelect = document.getElementById('material-select');
-        const material = materialSelect ? materialSelect.value : 'aluminum';
-        const materialKey = material.replace(/-/g, '_');
-        const toolType = operationType === 'end_mill' ? 'end_mills' : 'end_mills'; // future-proof for other tools
-        const diaKey = tool.diameter.toFixed(3); // match "0.125" style
-    
-        const data = (
-            this.machiningData[toolType]?.[materialKey]?.[tool.material]?.[diaKey]
-        );
-    
-        if (!data || !data.speed) {
-            console.error('Missing speed data for:', toolType, materialKey, tool.material, diaKey);
+    calculateRPM(tool) {
+        if (!tool || !tool.diameter || tool.diameter <= 0) {
+            console.warn("Invalid tool diameter. Defaulting RPM to 1000.");
             return 1000;
         }
     
-        return Math.round((4 * data.speed) / tool.diameter * (this.spindleOverride / 100));
+        const materialSelect = document.getElementById('material-select');
+        const material = materialSelect ? materialSelect.value.toLowerCase() : 'aluminum';
+        const machining = this.getMachiningData(material, tool.type);
+        const sfm = machining?.sfm || 100;
+        const rpm = (sfm * 3.82) / tool.diameter;
+    
+        return Math.round(rpm * (this.spindleOverride / 100));
     }
     
-    calculateFeedRate(tool, operationType) {
-        const materialSelect = document.getElementById('material-select');
-        const material = materialSelect ? materialSelect.value : 'aluminum';
-        const materialKey = material.replace(/-/g, '_');
-        const toolType = operationType === 'end_mill' ? 'end_mills' : 'end_mills'; // update later for drills/reamers
-        const diaKey = tool.diameter.toFixed(3); // ensure "0.125" format
-    
-        const data = (
-            this.machiningData[toolType]?.[materialKey]?.[tool.material]?.[diaKey]
-        );
-    
-        if (!data || !data.feed_per_tooth) {
-            console.error('Missing feed data for:', toolType, materialKey, tool.material, diaKey);
+    calculateFeedRate(tool) {
+        if (!tool || !tool.teeth || tool.teeth <= 0) {
+            console.warn("Invalid tool teeth. Defaulting feed rate to 10.");
             return 10;
         }
     
-        const rpm = this.calculateRPM(tool, operationType);
-        return data.feed_per_tooth * tool.teeth * rpm;
-    }
+        const materialSelect = document.getElementById('material-select');
+        const material = materialSelect ? materialSelect.value.toLowerCase() : 'aluminum';
+        const machining = this.getMachiningData(material, tool.type);
+        const chipload = machining?.chipload || 0.001;
+        const rpm = this.calculateRPM(tool);
     
-    
+        return Math.round(chipload * tool.teeth * rpm * 100) / 100;
+    }    
+  
     // Core formatting methods
     addLine(line = '') {
         this.gCode.push(line);
@@ -205,7 +178,7 @@ class HaasGCodeGenerator {
         this.addLine(`(${text})`);
     }
 
-    midpoint = ([x1, y1], [x2, y2]) => [(x1 + x2) / 2, (y1 + y2) / 2];
+    midpoint(p1, p2) { return [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2]; }
 
     // Program structure
     programStart() {
@@ -224,16 +197,24 @@ class HaasGCodeGenerator {
         this.currentTool = toolNumber;
         const tool = toolLibrary.getTool(toolNumber.toString());
         if (tool) {
+            const material = tool.material || 'aluminum';
+            const toolType = tool.type || 'end_mill';
+            this.machiningData = this.getMachiningData(material, toolType);
+            if (tool) {
+                this.currentFeedRate = this.calculateFeedRate(tool);
+            }            
             this.addLine(`M06 T${toolNumber} (${tool.description})`);
         } else {
             this.addLine(`M06 T${toolNumber} (Tool ${toolNumber})`);
         }
+        
     }
+    
 
     startPosition(x, y) {
         const tool = toolLibrary.getTool(this.currentTool.toString());
         if (tool) {
-            this.currentSpindleSpeed = this.calculateRPM(tool, tool.type);
+            this.currentSpindleSpeed = this.calculateRPM(tool);
         }
         
         this.addLine(`G0 G90 ${this.workOffset} X${x.toFixed(this.decimalPlaces)} Y${y.toFixed(this.decimalPlaces)} S${this.currentSpindleSpeed} M3`);
@@ -258,20 +239,30 @@ class HaasGCodeGenerator {
     }
 
     // Movement commands
-    rapidMove(x, y, z) {
+    rapidMove(x = null, y = null, z = null) {
+        if (x === null) x = this.currentX;
+        if (y === null) y = this.currentY;
+        if (z === null) z = this.currentZ;
+    
         this.addLine(`G0 X${x.toFixed(this.decimalPlaces)} Y${y.toFixed(this.decimalPlaces)} Z${z.toFixed(this.decimalPlaces)}`);
         this.currentX = x;
         this.currentY = y;
         this.currentZ = z;
     }
+    
 
-    linearMove(x, y, z, feedRate = null) {
+    linearMove(x = null, y = null, z = null, feedRate = null) {
+        if (x === null) x = this.currentX;
+        if (y === null) y = this.currentY;
+        if (z === null) z = this.currentZ;
         if (feedRate !== null) this.currentFeedRate = feedRate;
+    
         this.addLine(`G1 X${x.toFixed(this.decimalPlaces)} Y${y.toFixed(this.decimalPlaces)} Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate}`);
         this.currentX = x;
         this.currentY = y;
         this.currentZ = z;
     }
+    
 
     polygonalFaceMill(boundaryPoints, depth, stepDown, overlap = 0.2) {
         const tool = toolLibrary.getTool(this.currentTool.toString());
@@ -440,7 +431,7 @@ class HaasGCodeGenerator {
         const direction = clockwise ? 'G02' : 'G03';
         
         this.rapidMove(x, y, this.rapidPlane);
-        this.plungeIntoPart(startZ, 'end_mill');
+        this.plungeIntoPart(startZ);
         
         let currentZ = startZ;
         while (currentZ > endZ) {
@@ -458,10 +449,10 @@ class HaasGCodeGenerator {
         this.rapidMove(x, y, this.rapidPlane);
     }
 
-    plungeIntoPart(z, operationType) {
+    plungeIntoPart(z) {
         const tool = toolLibrary.getTool(this.currentTool.toString());
         if (tool) {
-            this.currentFeedRate = this.calculateFeedRate(tool, operationType);
+            this.currentFeedRate = this.calculateFeedRate(tool)/2;
             this.addLine(`G1 Z${z.toFixed(this.decimalPlaces)} F${this.currentFeedRate.toFixed(this.decimalPlaces)}`);
         } else {
             this.addLine(`(WARNING: No tool data for T${this.currentTool})`);
@@ -492,7 +483,6 @@ class HaasGCodeGenerator {
 
     resetWorkOffset() {
         this.workOffset = 'G54';
-        this.addLine('G54');
     }
 
     // Coolant control
@@ -528,7 +518,7 @@ class HaasGCodeGenerator {
         }
         
         this.rapidMove(x, y, this.rapidPlane);
-        this.plungeIntoPart(startZ, 'drill');
+        this.plungeIntoPart(startZ);
         
         if (peckDepth > 0) {
             this.addLine(`G83 X${x.toFixed(this.decimalPlaces)} Y${y.toFixed(this.decimalPlaces)} Z${depth.toFixed(this.decimalPlaces)} Q${peckDepth.toFixed(this.decimalPlaces)} R${startZ.toFixed(this.decimalPlaces)} P${dwell.toFixed(2)} F${this.currentFeedRate.toFixed(this.decimalPlaces)}`);
@@ -549,7 +539,7 @@ class HaasGCodeGenerator {
         }
         
         this.rapidMove(x, y, this.rapidPlane);
-        this.plungeIntoPart(startZ, 'tap');
+        this.plungeIntoPart(startZ);
         
         if (peckDepth > 0) {
             // Rigid tapping with peck (G84.2 on Haas)
@@ -604,9 +594,23 @@ class HaasGCodeGenerator {
             const currentDepth = Math.min(pass * stepDown, depth);
             this.comment(`Pass ${pass} at depth ${currentDepth.toFixed(this.decimalPlaces)}`);
             
-            const firstPoint = contourPoints[0];
-            this.rapidMove(firstPoint.x + radius, firstPoint.y + radius, this.rapidPlane);
-            this.linearMove(firstPoint.x + radius, firstPoint.y + radius, currentDepth);
+            const closedPoints = [...contourPoints];
+            if (
+                contourPoints[0].x !== contourPoints[contourPoints.length - 1].x ||
+                contourPoints[0].y !== contourPoints[contourPoints.length - 1].y
+            ) {
+                closedPoints.push({...contourPoints[0]});
+            }
+
+            this.rapidMove(closedPoints[0].x + radius, closedPoints[0].y + radius, this.rapidPlane);
+            this.linearMove(closedPoints[0].x + radius, closedPoints[0].y + radius, currentDepth);
+
+            for (let i = 1; i < closedPoints.length; i++) {
+                const point = closedPoints[i];
+                this.linearMove(point.x + radius, point.y + radius, currentDepth);
+            }
+            this.rapidMove(closedPoints[0].x + radius, closedPoints[0].y + radius, this.rapidPlane);
+
             
             for (let i = 1; i < contourPoints.length; i++) {
                 const point = contourPoints[i];
@@ -666,7 +670,7 @@ class HaasGCodeGenerator {
         const circleDirection = (direction === 'right') ? 'G03' : 'G02';
         
         this.rapidMove(x + effectiveRadius, y, this.rapidPlane);
-        this.plungeIntoPart(startZ, 'thread_mill');
+        this.plungeIntoPart(startZ);
         
         // Calculate number of circles needed
         const circles = Math.ceil(length / pitch);
