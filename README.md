@@ -51,11 +51,4 @@ Comply with the project’s non-commercial license
 
 Bug reports, ideas, and feature suggestions are always welcome!
 
-License
-This software is licensed for personal, educational, and non-commercial use only.
-
-Commercial redistribution, resale, or incorporation into proprietary products is prohibited without written permission.
-
-See the LICENSE file for full terms.
-
 Built and maintained by Gabriel Halloran — GitHub
