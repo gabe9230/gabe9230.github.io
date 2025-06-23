@@ -298,7 +298,7 @@ class GCodeViewer {
                 this.drawCylinder(
                     path.from.x, path.from.y, path.from.z,
                     path.to.x, path.to.y, path.to.z,
-                    toolRadius,
+                    toolRadius/100,
                     '#ff000033'  // Semi-transparent red
                 );
             }
