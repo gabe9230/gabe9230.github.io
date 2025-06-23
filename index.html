@@ -160,6 +160,23 @@
             backdrop-filter: blur(8px);
         }
         
+        .contact-links {
+            display:flex;
+            gap:36px;
+            align-items:center;
+            justify-content:center;
+        }
+        .contact-links img {
+            height:32px;
+            transition:
+            transform .25s ease,
+            filter    .25s ease;
+        }
+
+        .contact-links a:hover img {
+            transform:scale(1.125);
+        }
+
         /* Project cards */
         .projects-grid {
             display: grid;
@@ -224,6 +241,7 @@
         .contact-form {
             max-width: 600px;
             margin: 0 auto;
+            text-align: center;
         }
         
         .form-group {
@@ -340,12 +358,14 @@
                                     <label for="ContactInfo">
                                         <p>Email: gabriel@halloran.net</p>
                                         <p>Phone: 323-747-6097</p>
-                                        <a href="linkedin.com/in/gabriel-halloran-4b647624a" class="para-link">
-                                            LinkedIn
-                                        </a>
-                                        <a href="https://github.com/gabe9230" class="para-link">
-                                            Github
-                                        </a>
+                                        <div class="contact-links">
+                                            <a href="linkedin.com/in/gabriel-halloran-4b647624a">
+                                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/LinkedIn_icon.svg/2048px-LinkedIn_icon.svg.png">
+                                            </a>
+                                            <a href="https://github.com/gabe9230">
+                                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Github-desktop-logo-symbol.svg/2048px-Github-desktop-logo-symbol.svg.png">
+                                            </a>
+                                        </div>
                                     </label>
                                 </div>
                             </form>
