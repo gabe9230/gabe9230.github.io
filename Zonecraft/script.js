@@ -233,7 +233,8 @@ function showHandbook() {
             <li><code>audit</code> — View recent audit log entries</li>
             <li><code>metrics</code> — View performance &amp; error metrics</li>
             <li><code>clear</code> — Clear the terminal window</li>
-            <li><code>logout</code> — End your shift (after processing all requests)</li>
+            <li><code>logout</code> — Leave the program</li>
+            <li><code>endday</code> - End your shift (after processing all requests)</li>
             <li><code>help</code> — Show this commands list</li>
         </ul>
     </div>
@@ -278,7 +279,9 @@ function showMetrics() {
 /* ===================== Game State ============================ */
 const FOOD_COST = 2,
     RENT_COST = 35
-let GAME
+let GAME = {
+    leaving: false,
+}
 function generateRequests() {
     const cnt = 3;
     GAME.queue = [];
@@ -567,29 +570,40 @@ function endDay() {
 function handleDecision(key) {
     if (!GAME.awaiting) return false
     const status = GAME.awaiting.status
-
     // Yes/No decisions
     if (key === 'y' || key === 'n') {
         if (key === 'y') {
-            if (status === 'good') {
-                GAME.balance += 5
-                GAME.correct++
-                pushLine('Decision correct (+$5)')
-            } else if (status === 'bad') {
-                GAME.balance -= 30
-                GAME.wrong++
-                pushLine('Wrong decision (-$30)')
+            if (!GAME.leaving) {
+                if (status === 'good') {
+                    GAME.balance += 5
+                    GAME.correct++
+                    pushLine('Decision correct (+$5)')
+                } else if (status === 'bad') {
+                    GAME.balance -= 30
+                    GAME.wrong++
+                    pushLine('Wrong decision (-$30)')
+                }
+            } else {
+                window.location.replace(
+                    'hub.html',
+                );
             }
         } else {
             // key === 'n'
-            if (status === 'good') {
-                GAME.balance -= 30
-                GAME.wrong++
-                pushLine('Wrong decision (-$30)')
-            } else if (status === 'bad') {
-                GAME.balance += 5
-                GAME.correct++
-                pushLine('Decision correct (+$5)')
+            if (!GAME.leaving) {
+                if (status === 'good') {
+                    GAME.balance -= 30
+                    GAME.wrong++
+                    pushLine('Wrong decision (-$30)')
+                } else if (status === 'bad') {
+                    GAME.balance += 5
+                    GAME.correct++
+                    pushLine('Decision correct (+$5)')
+                }
+            } else {
+                pushLine('Action Cancelled')
+                GAME.leaving = false
+                GAME.awaiting = false
             }
         }
 
@@ -670,6 +684,13 @@ function handleCommand(cmd) {
         }
 
         case 'logout': {
+            pushLine('Are you sure you want to leave? Y/N')
+            GAME.leaving = true
+            GAME.awaiting = true
+            break
+        }
+
+        case 'endday': {
             if (GAME.awaiting) {
                 pushLine('Resolve pending request first')
                 break
@@ -681,7 +702,6 @@ function handleCommand(cmd) {
             endDay()
             break
         }
-
         case 'grep': {
             const term = rest.join(' ').toLowerCase()
             if (!term) return pushLine('Need search term')
