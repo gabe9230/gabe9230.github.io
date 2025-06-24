@@ -31,7 +31,26 @@
         line-height: 1.6;
         padding: 10px;
       }
+      .btn-wrap {
+        display: inline-block; /* shrink-wrap to button */
+        padding: 4px 6px; /* space around the button */
+        border: 2px solid #ff6b6b; /* visible border */
+        border-radius: 12px; /* rounded corners */
+        overflow: hidden; /* ensures inner content stays rounded */
+      }
 
+      .btn-wrap button {
+        background: #ff6b6b;
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px; /* optional: round the button itself */
+        cursor: pointer;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
       .container {
         max-width: 1200px;
         margin: auto;
@@ -208,6 +227,9 @@
   </head>
   <body>
     <div class="container">
+      <div>
+        <a href="../index.html" class="btn-wrap">Back</a>
+      </div>
       <h1>JavaScript to HAAS G-code Converter</h1>
       <div class="param-controls">
         <div class="param-row">
