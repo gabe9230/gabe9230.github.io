@@ -254,6 +254,33 @@ class GCodeViewer {
             this.stock.maxX, this.stock.maxY, this.stock.minZ,
             color
         );
+        
+        // Bottom face
+        this.drawQuad(
+            this.stock.minX, this.stock.minY, this.stock.minZ,
+            this.stock.maxX, this.stock.minY, this.stock.minZ,
+            this.stock.maxX, this.stock.minY, this.stock.maxZ,
+            this.stock.minX, this.stock.minY, this.stock.maxZ,
+            color
+        );
+
+        // Back face
+        this.drawQuad(
+            this.stock.minX, this.stock.minY, this.stock.maxZ,
+            this.stock.maxX, this.stock.minY, this.stock.maxZ,
+            this.stock.maxX, this.stock.maxY, this.stock.maxZ,
+            this.stock.minX, this.stock.maxY, this.stock.maxZ,
+            color
+        );
+
+        // Left face
+        this.drawQuad(
+            this.stock.minX, this.stock.minY, this.stock.minZ,
+            this.stock.minX, this.stock.minY, this.stock.maxZ,
+            this.stock.minX, this.stock.maxY, this.stock.maxZ,
+            this.stock.minX, this.stock.maxY, this.stock.minZ,
+            color
+        );
     }
 
     // Draw a quadrilateral face
@@ -644,7 +671,7 @@ class GCodeViewer {
                             Math.pow(path.to.z - path.from.z, 2)
                         )
                     });
-                    if (gCode === 'G1') {
+                    if (gCode === 'G1' || gCode === 'G2' || gCode === 'G3') {
                         this.stockBounds.minX = Math.min(this.stockBounds.minX, nextPos.x);
                         this.stockBounds.maxX = Math.max(this.stockBounds.maxX, nextPos.x);
                         this.stockBounds.minY = Math.min(this.stockBounds.minY, nextPos.y);
@@ -795,6 +822,8 @@ class GCodeViewer {
 
 // Initialize viewer
 const canvas = document.createElement('canvas');
+const viewer = new GCodeViewer(canvas);
+
 canvas.style.position = 'absolute';
 canvas.style.top = '0';
 canvas.style.left = '0';
@@ -802,7 +831,7 @@ canvas.style.zIndex = '1';
 document.body.appendChild(canvas);
 console.log('Canvas element created and added to body');
 
-const viewer = new GCodeViewer(canvas);
+
 
 // Add loading indicator
 function showLoading(show) {
@@ -822,6 +851,7 @@ function showLoading(show) {
 
 // Handle file input
 const fileInput = document.getElementById('fileInput');
+
 fileInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
