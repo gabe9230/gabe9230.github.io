@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gabe's Blog</title>
+    <title>Gabe's Particle Simulator</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
       rel="stylesheet"
@@ -92,33 +92,12 @@
         text-decoration: none;
       }
       .container {
-        width: min(800px, 90%);
+        width: 75%;
+        height: 50%;
         margin: 2rem auto;
         display: flex;
         flex-direction: column;
         gap: 1rem;
-      }
-      .card {
-        background: var(--card);
-        padding: 1.5rem;
-        border-radius: var(--radius);
-        transition: transform 0.1s, box-shadow 0.1s;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-      }
-      .card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.15);
-      }
-      article h2 {
-        margin-bottom: 0.5rem;
-      }
-      article time {
-        font-size: 0.9rem;
-        color: #9ca3af;
-      }
-      article .content {
-        white-space: pre-wrap;
-        margin-top: 1rem;
       }
     </style>
   </head>
@@ -127,24 +106,12 @@
       <div>
         <a href="../index.html" class="btn-wrap">Back</a>
       </div>
-      <h1>Gabriel's Blog</h1>
+      <h1>Particle Sim</h1>
     </header>
 
     <main class="container">
-      <article class="card">
-        <h2>Welcome to the Blog!</h2>
-        <time datetime="2025-06-23">June 23, 2025</time>
-        <div class="content">
-          I often find myself diving into niche technical rabbit holes—anything
-          from phased-array radio scanners to Cold Fusion. Most of that
-          curiosity doesn't fit neatly into everyday conversation, so this site
-          will double as a public notebook where I can write down what I'm
-          learning, share the occasional insight, and hopefully spark a
-          discussion or two. Expect posts that are concise and data-driven. If
-          something here resonates with you, feel free to reach out. Otherwise,
-          enjoy the ride as I document whatever grabs my attention next.
-        </div>
-      </article>
+      <canvas id="c">Please use a web browser with HTML Canvas</canvas>
     </main>
   </body>
+  <script src="script.js"></script>
 </html>
