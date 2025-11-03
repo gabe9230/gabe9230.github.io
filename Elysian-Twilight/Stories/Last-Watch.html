@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elysian Twilight Story Hub</title>
+    <script src="haas-gcode-library.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0d0d;
+        --card: #1a1a1d;
+        --fg: #eaeaea;
+        --accent: #ff6b6b;
+        --radius: 4px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.6;
+        padding: 10px;
+      }
+      /* ── background pattern ───────────────────────────── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.04) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.04) 50%,
+            rgba(255, 255, 255, 0.04) 75%,
+            transparent 75%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(255, 107, 107, 0.05) 0%,
+            transparent 70%
+          );
+        background-size: 40px 40px, 100% 100%;
+        pointer-events: none;
+        z-index: -1;
+      }
+      .btn-wrap {
+        display: inline-block; /* shrink-wrap to button */
+        padding: 4px 6px; /* space around the button */
+        border: 2px solid #ff6b6b; /* visible border */
+        border-radius: 12px; /* rounded corners */
+        overflow: hidden; /* ensures inner content stays rounded */
+      }
+
+      .btn-wrap button {
+        background: #ff6b6b;
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px; /* optional: round the button itself */
+        cursor: pointer;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        background: var(--card);
+        padding: 10px;
+        border-radius: var(--radius);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        margin-top: 1%;
+      }
+
+      h1 {
+        text-align: center;
+        color: var(--accent);
+        margin-bottom: 20px;
+      }
+
+      /* ── stories grid ──────────────────────────*/
+      .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .project-card {
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+            background-color: rgba(30, 30, 30, 0.6);
+            backdrop-filter: var(--card-blur);
+        }
+        
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.2);
+        }
+        
+        .project-img {
+            height: 200px;
+            background-color: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.5);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .project-info {
+            padding: 20px;
+        }
+        
+        .project-info h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .project-info p {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 15px;
+        }
+      /* ── buttons & links ───────────────────────── */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      button,
+      .docs-btn {
+        padding: 5px 10px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button:hover,
+      .docs-btn:hover {
+        opacity: 0.9;
+      }
+
+      /* ── modal ─────────────────────────────────── */
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1;
+      }
+      .modal-content {
+        background: var(--card);
+        margin: 4% auto;
+        padding: 10px;
+        border: 1px solid #444;
+        width: 90%;
+        max-width: 600px;
+        border-radius: var(--radius);
+        position: relative;
+      }
+      .close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 28px;
+        color: #aaa;
+        cursor: pointer;
+      }
+      .close:hover {
+        color: #fff;
+      }
+
+      /* ── responsive tweaks ─────────────────────── */
+      @media (max-width: 768px) {
+        .editor-container {
+          flex-direction: column;
+        }
+        .param-row {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .param-row label,
+        .param-row select,
+        .param-row input {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div>
+        <a href="../index.html" class="btn-wrap">Back</a>
+      </div>
+      <h1>Elysian Twilight Story Hub</h1>
+    </div>
+    <div class="container">
+      <a>
+      Last watch<br>
+      <br>
+      by Gabriel H<br>
+      <br>
+      Set ~32 years before the collapse of the Elysian Empire.<br>
+      <br>
+      ---<br>
+      <br>
+      They told him it would be over in twelve hours.<br>
+      “Hold the checkpoint. Control the crowd. Evac window closes at 0400. Your family will be picked up en route to Pad C-19. You'll reunite in transit. Then off-surface evac. You're not being left behind. That's a promise.”<br>
+      Enforcer Tel Varan stood at the foot of the elevator and told himself they meant it.<br>
+      The tower rose out of the earth like a spear aimed at the stars. A cable, meters thick, shimmered in the dry air as it vanished upward into the pink-tinted sky. The perimeter was quiet for now. Two squads total. The rest handled by automated guns and drones, all on auto-target mode. Just enough to look secure.<br>
+      His respirator hummed faintly as the first transport rumbled up. A civilian farm hauler packed with people in dust-covered clothes. <br>
+      Tel held up a hand.<br>
+      “This checkpoint is active. Evacuation is being conducted by priority. Remain here and wait for instructions.”<br>
+      They obeyed. For now.<br>
+      More followed.<br>
+      Within an hour, the road was clogged. Old utility trucks, grain carriers, even some groups of people on foot. Hundreds of people standing behind the yellow perimeter tape, their faces squinting up at the elevator's cable.<br>
+      The first questions came quickly.<br>
+      “What is this? Are we at the right site?”<br>
+      “How long do we wait?”<br>
+      Tel repeated what they told him to say. “All evacuees will be routed in order. Stay here and await further instructions.”<br>
+      He delivered the words like they meant something.<br>
+      And he kept lying.<br>
+      Because if they knew there was no leaving, they'd surge. And once they surged, the drones would fire. And once they fired, nothing could be salvaged.<br>
+      By the third hour, it was too hot and too dusty.<br>
+      The crowd had swelled into the thousands. People were pressing closer. Not enough to trigger an automated response, but enough to make the drones shift position. Tel stood motionless behind the barriers. His squad was spread thin. Only five enforcers to his left now. One of the others had stepped behind the barricade earlier to remove his helmet and vomit.<br>
+      The questions didn't stop. They just got louder.<br>
+      “Where are the medical tents? My daughter is sick!”<br>
+      Tel kept his voice even. “Remain calm. Processing is still underway.”<br>
+      He couldn't keep his hands from tightening on the rifle.<br>
+      He looked up at the cable.<br>
+      Still connected.<br>
+      Still silent.<br>
+      But not for long.<br>
+      Tel saw it before they did. <br>
+      The cable twitched. Just once. Almost imperceptibly, barely visible to the naked eye. But the HUD caught it.<br>
+      He braced.<br>
+      Above the clouds, beyond visibility, a command packet had been sent. The cable was about to snap.<br>
+      Someone in the crowd pointed upward. “Why did it move?”<br>
+      Others followed. Heads tilted. Fingers rose. Murmurs rippled like static.<br>
+      The final lift had already gone. There was nothing left to ascend.<br>
+      No one had told the people that.<br>
+      A blue-white pulse bloomed in the stratosphere. Then, like a great serpent, the tether's upper segment buckled and recoiled, vapor trailing as it began to collapse under its own weight. From this distance it looked graceful. Beautiful, even.<br>
+      Then the panic started.<br>
+      They didn't know what it meant, not exactly. But they could feel it.<br>
+      People began shouting.<br>
+      Afraid. Desperate.<br>
+      “What was that? What happened?”<br>
+      “Is it supposed to do that?”<br>
+      “Did they just cut the elevator?”<br>
+      The drones activated. Targeting lasers swept the outer crowd. Turrets shifted elevation.<br>
+      That was all it took.<br>
+      The crowd surged.<br>
+      Dozens ran toward the checkpoint gate. Others followed. Then hundreds. They weren't organized, and most weren't violent. They just wanted through.<br>
+      Wanted answers.<br>
+      Wanted hope.<br>
+      Two drones opened up to his left. One civilian, then four, then a dozen dropped before they even reached the barricade. Screams erupted. Blood sprayed across the dust.<br>
+      Someone threw a toolbox at the sensor array. It bounced harmlessly, but the turret registered it as a projectile and responded with lethal force.<br>
+      Tel didn't remember how long it lasted.<br>
+      The crowd eventually pulled back, broken and scattered. A few bodies still twitched near the tape.<br>
+      No orders. No new evac notice.<br>
+      Just silence, and the distant sound of wind dragging ash over concrete.<br>
+      Finally after what felt like hours, his comm crackled.<br>
+      “Unit A3, report to your assigned evac pad immediately. Retrieve your dependents. Route to Pad C-19.”<br>
+      The interior of the van smelled like old leather. Tel sat in the forward bench, his rifle laid across his knees, helmet removed for the precious filtered air. The rear cabin was configured for four enforcers, but he was the only one assigned to Pad C-19. The others had already peeled off to their own pads, each routed to a different exit zone.<br>
+      No shared extraction. No coordinated departure.<br>
+      He watched through the narrow viewport as the elevator shrank behind them. The sky above it still shimmered faintly where the cable had burned away, like a scar across the sky. Wind had picked up, dragging fine ash over the road. Visibility was dropping fast.<br>
+      “Route confirmed,” said the van's onboard AI. “Stop one: District 6, Block 14.”<br>
+      Home.<br>
+      Ank'reah had already begun to die.<br>
+      The streets were nearly empty now. Most of the civilian population had fled to false evacuation points or been lost in the confusion. A few bodies lay in gutters or against walls, slumped like puppets cut from their strings. No blood. Just stillness.<br>
+      The buildings looked wrong too.<br>
+      Windows sealed with anything that could block the white fog. Cloth. Plastic. Sometimes foam. And the plants. Ivy that used to climb the skywalk pillars now glowed a faint, unnatural red.<br>
+      Tel didn't speak as the van pulled up in front of the apartment block.<br>
+      He stepped out into the wind and climbed the steps two at a time.<br>
+      She opened the door before he knocked.<br>
+      “Tel,” Myrah whispered.<br>
+      She didn't ask questions. She just pulled him into a silent, shaking embrace. Their son stood behind her, clutching a data pad that had long since lost signal. His face lit up at the sight of his father, and for a moment, Tel allowed himself to believe they would make it.<br>
+      He ushered them to the van without a word.<br>
+      The ride to Pad C-19 took half an hour. The vehicle glided past shuttered buildings, red-leaved trees, and collapsed streetlights.<br>
+      No one spoke.<br>
+      When the pad came into view, Tel felt something clench in his gut.<br>
+      It was empty.<br>
+      No personnel. No lights. No shuttle.<br>
+      Just an open landing circle, its beacon still blinking, and a locked terminal nearby with a dead screen.<br>
+      He stepped out. Checked the pad. Checked the sky.<br>
+      Nothing.<br>
+      The fog was already beginning to reach the perimeter.<br>
+      “Where's the ship?” Myrah asked behind him.<br>
+      Tel looked at her. Then at the boy.<br>
+      He said nothing.<br>
+      Tel had parked the van just outside the pad's beacon circle and helped Myrah set up a place to sit — a shipping pallet flipped on its side, shielded from the wind. The boy curled up beside her, wrapped in Tel's outer coat. The air was dry but cold, and the fog was starting to creep in from the east like spilled chalk.<br>
+      There were no sounds but the wind and the slow pulse of the landing beacon, still blinking its useless signal into the dead sky.<br>
+      He activated the pad's terminal again. Still offline. Comms link error. No uplink to the station. No orbital handshake.<br>
+      Every few minutes, he tried the encrypted emergency channel.<br>
+      Nothing.<br>
+      Myrah asked once, “Could it be late?”<br>
+      Tel didn't answer.<br>
+      He tried not to meet her eyes after that.<br>
+      Time passed without shape.<br>
+      He sat beside them. Sometimes standing. Sometimes pacing. He counted the seconds between the beacon's pulses. He counted the number of cracks in the concrete. He recited his badge number over and over in his head just to keep his thoughts from drifting.<br>
+      By hour four, the fog had swallowed most of the terrain outside the pad. The road they came in on was gone. The white was climbing now, drifting up the sides of nearby buildings and coating them in pale dust. <br>
+      Then the coughing started.<br>
+      Just one dry breath.<br>
+      Then another.<br>
+      He turned his head sharply. Myrah tried to hide it.<br>
+      “I'm fine,” she said, too quickly.<br>
+      But Tel had already seen her skin.<br>
+      Not bruised. Not pale.<br>
+      Just flat. Blank. Pigmentless.<br>
+      She didn't know what it meant. But he did.<br>
+      He looked to the boy. His lips were pale, his eyes glassy. Sweat clung to his temples, even in the cold.<br>
+      It was already happening.<br>
+      There was no question.<br>
+      No hesitation.<br>
+      Tel stood, retrieved his sidearm, and walked behind the van where the wind would carry the noise away from them.<br>
+      He called them both. Said he loved them. Held them one last time.<br>
+      Then he made it quick.<br>
+      Two shots.<br>
+      One each.<br>
+      The last of his live ammunition.<br>
+      He dragged the bodies to the side of the pad.<br>
+      There was no shovel. He started digging with his hands, scooping out dust and grit with fingers already starting to tremble. His vision blurred, and he thought at first it was tears.<br>
+      But it wasn't.<br>
+      It was fever.<br>
+      The blight has taken him too.<br>
+      And the burial would remain unfinished.<br>
+      The fever came on like a tide.<br>
+      Hot, then cold. Then both at once. Tel staggered back from the half-dug grave and leaned against the van, panting. His hands shook uncontrollably. Muscles spasmed in waves down his arms. His skin looked pale under the armor's inner seal — almost bleached. He knew what stage this was.<br>
+      He had studied the briefing once. Stage One: hypermetabolic acceleration. The body eats itself to feed something it doesnt understand.<br>
+      He'd assumed it would come slower.<br>
+      It had barely been an hour.<br>
+      The pain sharpened by degrees.<br>
+      First his gut. Then his spine. Then his joints — all of them, all at once. Like someone had poured molten glass into his bones and then let it cool. His armor felt heavier with each breath.<br>
+      He vomited next to the graves. It was mostly bile.<br>
+      Then he dry-heaved until blood came up.<br>
+      He sat down in the dust, eyes unfocused. The fog had completely swallowed the roads now. The city was gone. There was no horizon anymore, just white.<br>
+      The landing beacon kept pulsing.<br>
+      Still no ship.<br>
+      He lasted longer than he thought before it began.<br>
+      The urge.<br>
+      It crept in as a whisper. Then a voice. Then a command.<br>
+      You're starving, it said. You need something. You have something.<br>
+      He turned toward the bodies.<br>
+      He didnt want to.<br>
+      But his eyes kept drifting back. His brain conjured memories. The warmth of skin. The weight of meat. The shape of a thigh beneath fabric.<br>
+      His stomach twisted. Not in disgust.<br>
+      In hunger.<br>
+      He crawled toward them once.<br>
+      Stopped.<br>
+      Crawled again.<br>
+      Then sat still for what might have been an hour, forehead pressed to the dirt, fingers digging into his scalp like claws.<br>
+      He whispered her name over and over. Not in grief. As a prayer.<br>
+      He did not eat.<br>
+      But he wanted to.<br>
+      He needed to.<br>
+      His vision blurred again. Blood vessels bursting in the eyes.<br>
+      His heartbeat wouldn't slow.<br>
+      His skin was flaking now. The outer layers peeling in sheets. Beneath it, the surface had gone chalk-white. His fingertips had begun to harden. He scratched one against the van's side panel and watched it flake off like powder.<br>
+      His mouth was dry. His lips cracked. Every breath came with effort.<br>
+      The fever didn't break.<br>
+      It only climbed.<br>
+      And still, the beacon blinked.<br>
+      At some point, his muscles stopped working.<br>
+      Not from exhaustion. From failure.<br>
+      He had tried to stand, to drag himself back into the van, but his knees locked halfway through the motion. Not pain. Not fatigue. Just a refusal. His own body denying him.<br>
+      He fell sideways into the dirt and didn't get up.<br>
+      Stage Two had begun.<br>
+      Dermal calcification.<br>
+      He remembered the charts. The scans. Briefings with medical officers explaining what the infected became.<br>
+      Skin first. Then muscle. Then tendon and joint. The flesh ossified into a marble-white casing that sealed the infected inside. Hardened them into statues.<br>
+      But the mind stayed active.<br>
+      That part he hadn't believed.<br>
+      He believed it now.<br>
+      By the second hour, he could no longer move his arms. His back was arched unnaturally, one shoulder half-buried in the dust, staring sideways at the beacon. Its light pulsed every three seconds, shining against the fog, indifferent.<br>
+      He had stopped sweating. The fever had nowhere to escape.<br>
+      His breath came shallow through cracked lips.<br>
+      He still hadn't blinked.<br>
+      His eyelids wouldn't close.<br>
+      The hunger faded.<br>
+      What came next was worse.<br>
+      The silence.<br>
+      Not the silence of sound, but the silence of thought. Of certainty. Of the future. It left only the past. And the past had sharp edges.<br>
+      He saw the crowd again.<br>
+      Not as a mass. As individuals.<br>
+      The woman who had screamed for her son.<br>
+      The girl holding an old toy, asking if she was in the right place.<br>
+      The old man who had stood just behind the tape for hours without saying a word.<br>
+      He saw the fear in their eyes when the drones opened fire. When the turrets clicked live. <br>
+      He thought of the promise.<br>
+      He remembered how easily he had believed it.<br>
+      His guilt did not take the form of a scream.<br>
+      It was quieter than that.<br>
+      A breath he could no longer take.<br>
+      A word he could no longer say.<br>
+      A body he could no longer move.<br>
+      He was a prisoner sealed in stone, listening to the last echoes of all the wrong things he had done.<br>
+      And the beacon kept blinking.<br>
+      There was no more time.<br>
+      Not in the way Tel had known it. There was only sensation, and the absence of it.<br>
+      Pain came and went in great tidal pulses, leaving lucidity in its wake. In those moments, he remembered his name. His orders. The faces he had turned away. The light blinking beside the van.<br>
+      Then the pain returned, and the world narrowed to heat and weight and the pressure building behind his eyes.<br>
+      He could no longer move. Could no longer breathe in a way that meant anything. The calcification had locked his chest, but his brain refused to die.<br>
+      Somewhere deep inside, the infection kept him alive. Or maybe not alive. Sustained.<br>
+      A living sarcophagus. Buried in place.<br>
+      He tried to count to keep his mind sharp.<br>
+      It worked for a while.<br>
+      Then the numbers began folding in on themselves. He forgot how high he had gotten. He started again. Then again. Then he lost the concept of counting altogether.<br>
+      He tried to remember his son's voice. His wife's laugh. But they were too close to the moment he had killed them, and those memories curled into guilt when he touched them.<br>
+      So he stopped trying.<br>
+      Voices came next.<br>
+      Not his own.<br>
+      Sometimes they whispered. Sometimes they screamed. Sometimes they cried.<br>
+      They said things he didn't want to hear.<br>
+      You knew.<br>
+      You didn't hesitate.<br>
+      You could have said no.<br>
+      You could have let them through.<br>
+      You could have saved them.<br>
+      He screamed back in his mind, but there was nothing to push against. No mouth to form the sound. No lungs to give it breath. Just thought, echoing in a tomb of flesh and bone.<br>
+      The fog had reached the bodies by now. He couldn't see them, but he felt it. Something in the air. The pressure. The presence.<br>
+      He wanted to cry, but his tear ducts had long since closed.<br>
+      The beacon kept blinking.<br>
+      Still waiting for a ship that would never come.<br>
+      He didn't feel the pustules at first.<br>
+      His body had long since ceased to register sensation. But when the first one split open along his ribs, leaking hot red fluid into the crevice between skin and calcified shell, something primal inside him reacted.<br>
+      Not in fear.<br>
+      In relief.<br>
+      The pressure was building.<br>
+      He welcomed it.<br>
+      He felt the swelling beneath his eyes, in his chest, between his joints. The Ichor had bloomed fully now, multiplying within his body like an invading tide. There was no room left inside for thought. No space for guilt or memory.<br>
+      Only pressure.<br>
+      A tormenting, unbearable, merciful fullness.<br>
+      A second heartbeat that pulsed through every inch of hardened flesh.<br>
+      He could no longer tell if his mind was screaming or singing.<br>
+      But he knew this was the end.<br>
+      The moment came not with a bang, but with a rupture.<br>
+      His torso split down the center.<br>
+      Calcified ribs exploded outward. Shards of bone scattered across the landing pad. A cloud of white mist jetted into the air, fine and thick, adding to the ocean of fog engulfing the landing pads.<br>
+      The beacon continued to blink, reflecting off fragments of his skull.<br>
+      No one saw it happen.<br>
+      No one came for him.<br>
+      No one ever would.<br>
+      </a>
+    </div>
+  </body>
+</html>

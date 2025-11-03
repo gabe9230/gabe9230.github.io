@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elysian Twilight Story Hub</title>
+    <script src="haas-gcode-library.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0d0d;
+        --card: #1a1a1d;
+        --fg: #eaeaea;
+        --accent: #ff6b6b;
+        --radius: 4px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.6;
+        padding: 10px;
+      }
+      /* ── background pattern ───────────────────────────── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.04) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.04) 50%,
+            rgba(255, 255, 255, 0.04) 75%,
+            transparent 75%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(255, 107, 107, 0.05) 0%,
+            transparent 70%
+          );
+        background-size: 40px 40px, 100% 100%;
+        pointer-events: none;
+        z-index: -1;
+      }
+      .btn-wrap {
+        display: inline-block; /* shrink-wrap to button */
+        padding: 4px 6px; /* space around the button */
+        border: 2px solid #ff6b6b; /* visible border */
+        border-radius: 12px; /* rounded corners */
+        overflow: hidden; /* ensures inner content stays rounded */
+      }
+
+      .btn-wrap button {
+        background: #ff6b6b;
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px; /* optional: round the button itself */
+        cursor: pointer;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        background: var(--card);
+        padding: 10px;
+        border-radius: var(--radius);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        margin-top: 1%;
+      }
+
+      h1 {
+        text-align: center;
+        color: var(--accent);
+        margin-bottom: 20px;
+      }
+
+      /* ── stories grid ──────────────────────────*/
+      .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .project-card {
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+            background-color: rgba(30, 30, 30, 0.6);
+            backdrop-filter: var(--card-blur);
+        }
+        
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.2);
+        }
+        
+        .project-img {
+            height: 200px;
+            background-color: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.5);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .project-info {
+            padding: 20px;
+        }
+        
+        .project-info h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .project-info p {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 15px;
+        }
+      /* ── buttons & links ───────────────────────── */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      button,
+      .docs-btn {
+        padding: 5px 10px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button:hover,
+      .docs-btn:hover {
+        opacity: 0.9;
+      }
+
+      /* ── modal ─────────────────────────────────── */
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1;
+      }
+      .modal-content {
+        background: var(--card);
+        margin: 4% auto;
+        padding: 10px;
+        border: 1px solid #444;
+        width: 90%;
+        max-width: 600px;
+        border-radius: var(--radius);
+        position: relative;
+      }
+      .close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 28px;
+        color: #aaa;
+        cursor: pointer;
+      }
+      .close:hover {
+        color: #fff;
+      }
+
+      /* ── responsive tweaks ─────────────────────── */
+      @media (max-width: 768px) {
+        .editor-container {
+          flex-direction: column;
+        }
+        .param-row {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .param-row label,
+        .param-row select,
+        .param-row input {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div>
+        <a href="../index.html" class="btn-wrap">Back</a>
+      </div>
+      <h1>Elysian Twilight Story Hub</h1>
+    </div>
+    <div class="container">
+      <a>
+        What Follows Dust<br>
+        by Gabriel H<br>
+        Set ~7 years after the collapse of the Elysian Empire.<br>
+        ---<br>
+        They came down just before dawn.<br>
+        No atmospheric burn, no sonic boom - not anymore. These weren't fleet drops or noble parades. Just a pair of low-orbit workhorses bleeding thrust as they cut across the treeline, coils charged low to avoid drawing attention. The kind of landing you only made when you didn’t want anyone knowing you were here until you were already at their door.<br>
+        Morra watched them from a shallow ridge. One arm rested across his knee, the other around his coilgun. He didn''t say anything. He didn't blink.<br>
+        His armor was standard-issue House Veridan bulkplate, darkened from time and ash. No heraldry. No unit patch. Nothing that marked him as anything more than another piece of hardware.<br>
+        When the first carrier hissed open, he stood and walked downhill to meet it.<br>
+        ---<br>
+        It used to be called Resettlement Zone N-17 in the ledgers. The people who lived here called it Noira.<br>
+        A water-rich plateau. Good soil. Just another standard farming basin. Technically, it had pledged loyalty to House Veridan during the succession cascade, but loyalty meant little when neither claimant could protect the crops and both wanted conscripts.<br>
+        Morra knew the layout. He'd patrolled the hills here before the collapse. Back then it had been a quiet farming basin - sixty, maybe seventy thousand spread across nine villages. Not loyal, not rebellious. Just tired.<br>
+        Now only two of the villages still had power. And the signal traffic coming out of N-17 was dirty. Bursty. Encrypted. Not military-grade, but scrambled enough to catch Command's attention.<br>
+        So they sent a contractor unit down to “verify compliance.” In practice, that meant two squads, a burner AI core, and authorization to execute a full sweep with minimal oversight.<br>
+        Morra was assigned field lead.<br>
+        ---<br>
+        The deployment briefing had been one line of plaintext:<br>
+        "If they have something to hide, don't let them die with it."<br>
+        They didn't need to say more. The mission wasn't about proving anything. It was about reminding people what it meant to live under a House's shadow - even a failing one.<br>
+        ---<br>
+        The first village was already burning when Morra arrived.<br>
+        A squad from the other dropship had swept through thirty minutes earlier. They left the bodies unburied. Civilians - old men, women, teenagers - laid out like broken sticks between collapsed shelters.<br>
+        The air stank of conductive burns. Scorch patterns across the ground showed where someone had panicked and tried to run. The AI's targeting logic didn't bother with disabling shots.<br>
+        Morra walked through the smoke without speaking. The others followed: five, all contracted from offworld, rotated from suppression actions in the outer belt. None of them had names that mattered.<br>
+        A child's arm jutted from beneath a fractured wall panel.<br>
+        Morra stared at it for a moment too long. Then moved on.<br>
+        ---<br>
+        They reached the second village at 0800 local.<br>
+        It hadn't been touched yet.<br>
+        N-17's administrative block sat on a slope above a shallow aquifer, ringed with vertical hydrofarms and ancient solar relays. The inhabitants had gathered in the commons before the troops even arrived. No resistance. No weapons in sight.<br>
+        Morra kept his visor up.<br>
+        There were maybe two hundred of them - too thin, too old, too afraid. These weren't fighters. These were people who hadn't been able to evacuate when the roads were bombed out last winter.<br>
+        The other squad moved in with the confidence of men already bored with their task. A contractor named Radek pulled a woman out of line and slammed her against the processor wall. She screamed. A child ran. Another soldier fired a warning shot into the dirt.<br>
+        Morra raised a hand. They froze.<br>
+        “Stand down,” he said, voice flat through his amp. “Let the AI do the scan first.”<br>
+        No one liked being told to wait, but the suits backed off.<br>
+        The AIs support drone hovered overhead, emitting a pulsefield that scanned for hostile circuitry. There was none. No weapons caches. No relay beacons. Just worn-down infrastructure and exhausted people.<br>
+        But the pulse caught something else - an encrypted storage node buried beneath the administrative complex.<br>
+        It wasn't large. It wasn't active.<br>
+        But it was enough.<br>
+        ---<br>
+        The structure was half-collapsed and soot-marked, an old Elysian data vault once used for census logging and crop yield reports. Redundant, obsolete, forgotten, or at least it was supposed to be.<br>
+        The AI flagged it as a Category-3 encryption cluster with active shielding protocols. Military origin? Unclear. Too old for direct correlation. But the fact it still held power meant someone had maintained it.<br>
+        Morra issued the breach order without ceremony.<br>
+        Radek's squad set the charges. The detonation was small, directional, and clean. The building's entrance collapsed inward with a controlled thud. Dust rolled through the village like a crawling fog. Screams followed.<br>
+        Inside, they found what was left of a backup comms array, several carbon-blind power cores, and a hardened data spine still humming beneath ten centimeters of shielded plating.<br>
+        Morra didn't ask questions. He tagged the core for offload. Command would strip it later.<br>
+        The villagers were rounded up while the others swept the ruins. Morra stood off to the side, coilgun slung low, helmet back on. He didn't look at the civilians. He didn't need to.<br>
+        This was the fifth sweep he'd led since the sector fell into chaos. They were all the same: identify, extract, punish. The evidence didn't matter. What mattered was control.<br>
+        “Orders from orbit,” Radek called out from across the square. “Execute hard sterilization. No structure left standing.”<br>
+        No one questioned it. The charges were already set. The accelerants laid. The squad fanned out to execute the burn.<br>
+        Morra lit the first ignition trigger himself.<br>
+        ---<br>
+        By sundown, the village was gone.<br>
+        They made camp in the treeline west of the ridge, high enough to watch the fires burn out below. No one talked about what they'd done. There was no need.<br>
+        The contractors broke open field rations and warmed them on a coilplate. Radek passed around a flask of stim. Someone played back encrypted updates from the orbital bands - infighting in another quadrant, a governor assassinated, a noble heir captured alive, then flayed on a broadcast stream. No one seemed surprised.<br>
+        Morra sat apart, rifle across his knees, visor dark against the glow.<br>
+        He watched the ruins flicker.<br>
+        ---<br>
+        Then she appeared.<br>
+        Kaela.<br>
+        He almost didn't believe it at first. But the way she moved - cautious, deliberate, same hitch in her step - it was her.<br>
+        She picked her way through the edge of the burn zone with a satchel slung low and a glowstrip taped to her shoulder. He hadn't seen her in nearly a decade, not since the collapse fractured their unit and the medics had been reassigned. She'd been a field surgeon then. Quiet, quick-handed, stubborn in the way only real soldiers ever were.<br>
+        Now she was scavenging bodies.<br>
+        He watched from the shadows. She didn't see him. She was marking the dead with scraps of colored cloth. Cataloging what was left.<br>
+        He didn't call out.<br>
+        He couldn't.<br>
+        ---<br>
+        At 0400, the strike window opened.<br>
+        The drone pinged the sky. Satellite response confirmed orbital burn authorization. No appeal. No delay. Full sterilization approved.<br>
+        Morra looked toward the ruins.<br>
+        Kaela had vanished into the shattered remains of the clinic.<br>
+        He opened a channel.<br>
+        > MORRA: Civilian responder in target zone. Recommend abort.<br>
+        > COMMAND: Zone tagged. Request logged. Request Denied. Execute.<br>
+        No further input.<br>
+        ---<br>
+        The orbital strike came twenty seconds later.<br>
+        The blast erased the clinic in one burn.<br>
+        Morra watched it happen. He didn't look away.<br>
+        ---<br>
+        The heat lingered long after the light faded.<br>
+        For hours, the crater glowed faintly under a sky gone colorless. What remained of N-17 lay buried beneath fused soil, scorched metal, and sterilized ash. The orbital strike had done its job - there would be no recovery. No rebuilding.<br>
+        The squad broke camp before sunrise.<br>
+        Their new assignment came via low-orbit packet: secondary sweep, suspected insurgent contact near the northern ridge. Another village. Another standard op.<br>
+        Morra followed in silence.<br>
+        He hadn't spoken since the strike. No one pushed him on it. He was quiet, but efficient. The kind of silence that didn't invite conversation. The kind that meant he understood what was necessary.<br>
+        ---<br>
+        They moved fast through the ridgeline pass. Standard staggered formation. AI support on overwatch. No chatter. Just the hum of magnetic coils and the crunch of gravel beneath armored boots.<br>
+        The first shot came at 0930.<br>
+        A tight burst of flechettes snapped across the squad's right flank. One went down, armor split at the knee. A second fell before he could reach cover.<br>
+        Then came the drones - small, fast, precision-guided. Too well-tuned for scavenged tech. These weren't locals with old rifles. Someone with real training had set this up.<br>
+        Morra dropped to cover and returned fire.<br>
+        He didn't think. Didn't plan. He moved on instinct, muscle memory carved from years of clearing kill zones. His coilgun hissed in bursts. One drone fell. Then another. Then he pivoted and marked the ridge nest. Two shots. One confirmed kill. The rest scattered.<br>
+        The ambush dissolved.<br>
+        But it had done its job.<br>
+        ---<br>
+        Nine bodies.<br>
+        Only Morra remained.<br>
+        He stood in the aftermath, breath ragged inside his helmet. Radek's corpse slumped over a shattered outcrop, mouth open like he'd died mid-laugh. The others were worse - flechettes had torn through armor like cloth, leaving meat where once were men.<br>
+        No comms check. No recovery beacon.<br>
+        Morra didn't ping Command.<br>
+        He just turned and walked back the way they had come.<br>
+        ---<br>
+        He reached the treeline by dusk.<br>
+        Smoke still rose in the distance - thin spirals curling upward from the remains of N-17. The air smelled like iron and ash.<br>
+        He didn't stop.<br>
+        Didn't eat. Didn't check his HUD. Just moved.<br>
+        By nightfall, he stood again at the edge of the burn zone. The crater stretched before him like a wound.<br>
+        The place where the clinic had stood was gone.<br>
+        Not collapsed.<br>
+        Gone.<br>
+        ---<br>
+        He sat in silence on a ridge of broken stone. Above him, the stars spun on a sky that no longer belonged to us. Below, the earth whispered its dead into the dust.<br>
+        He remembered Kaela, just once.<br>
+        Then he closed his eyes.<br>
+        And waited.<br>
+        ---<br>
+        He stayed in the ruins for five days.<br>
+        No orders came. No patrols followed. The orbital grid above N-17 had shifted its attention to another grid sector, another fire. The war had moved on - fast, hungry, and blind. But Morra remained.<br>
+        He survived on dried rations and meltwater skimmed from cooling slag. He moved through the crater like a ghost, his coilgun never far from reach. Sleep came in fits. Dreams didn't come at all.<br>
+        There were no bodies left. The strike had seen to that.<br>
+        Only fragments.<br>
+        A melted surgical kit. A scorched medallion etched with an old unit crest - his. And hers.<br>
+        Kaela had kept it. All these years.<br>
+        He buried it in a shallow trench at the crater's edge.<br>
+        No marker.<br>
+        Just silence.<br>
+        ---<br>
+        On the sixth day, the storm came in from the east - static-charged, chemical-heavy, bloated with acid and ash. Standard procedure would have been to signal for evac, deploy a storm shelter, wait it out.<br>
+        He didn't.<br>
+        He walked.<br>
+        Armor pitted. Rifle heavy. Helmet off.<br>
+        He crossed the valley floor and didn't stop. Not when the lightning hit the ridge behind him. Not when the winds turned sharp enough to flay exposed skin. Not when the last grid beacon in his HUD blinked out one by one.<br>
+        He walked because there was nowhere else to go.<br>
+        And nothing left to do.<br>
+        ---<br>
+        By the time he reached the next village, it was already gone - shelled out, charred flat, looted clean. A hollow memory of civilization. No movement. No voices. Just walls burned black and a dry well full of shattered bones.<br>
+        He sat in the square, surrounded by silence.<br>
+        The war hadn't passed through here. It had settled in.<br>
+        And it wasn't leaving.<br>
+        ---<br>
+        That night, he built a fire out of ruined fencing and dry roots. Not for warmth. Not even for light. Just because.<br>
+        He watched it burn.<br>
+        His thoughts were quiet.<br>
+        Not peaceful. Just empty.<br>
+        ---<br>
+        At dawn, he left the village behind.<br>
+        No roads.<br>
+        No maps.<br>
+        No direction.<br>
+        What followed the dust was quieter than death, and far less merciful.<br>
+      </a>
+    </div>
+  </body>
+</html>

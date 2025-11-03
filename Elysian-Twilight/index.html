@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elysian Twilight Story Hub</title>
+    <script src="haas-gcode-library.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0d0d;
+        --card: #1a1a1d;
+        --fg: #eaeaea;
+        --accent: #ff6b6b;
+        --radius: 4px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.6;
+        padding: 10px;
+      }
+      /* ── background pattern ───────────────────────────── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.04) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.04) 50%,
+            rgba(255, 255, 255, 0.04) 75%,
+            transparent 75%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(255, 107, 107, 0.05) 0%,
+            transparent 70%
+          );
+        background-size: 40px 40px, 100% 100%;
+        pointer-events: none;
+        z-index: -1;
+      }
+      .btn-wrap {
+        display: inline-block; /* shrink-wrap to button */
+        padding: 4px 6px; /* space around the button */
+        border: 2px solid #ff6b6b; /* visible border */
+        border-radius: 12px; /* rounded corners */
+        overflow: hidden; /* ensures inner content stays rounded */
+      }
+
+      .btn-wrap button {
+        background: #ff6b6b;
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px; /* optional: round the button itself */
+        cursor: pointer;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        background: var(--card);
+        padding: 10px;
+        border-radius: var(--radius);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        margin-top: 1%;
+      }
+
+      h1 {
+        text-align: center;
+        color: var(--accent);
+        margin-bottom: 20px;
+      }
+
+      /* ── stories grid ──────────────────────────*/
+      .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .project-card {
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+            background-color: rgba(30, 30, 30, 0.6);
+            backdrop-filter: var(--card-blur);
+        }
+        
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.2);
+        }
+        
+        .project-img {
+            height: 200px;
+            background-color: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.5);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .project-info {
+            padding: 20px;
+        }
+        
+        .project-info h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .project-info p {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 15px;
+        }
+      /* ── buttons & links ───────────────────────── */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      button,
+      .docs-btn {
+        padding: 5px 10px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button:hover,
+      .docs-btn:hover {
+        opacity: 0.9;
+      }
+
+      /* ── modal ─────────────────────────────────── */
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1;
+      }
+      .modal-content {
+        background: var(--card);
+        margin: 4% auto;
+        padding: 10px;
+        border: 1px solid #444;
+        width: 90%;
+        max-width: 600px;
+        border-radius: var(--radius);
+        position: relative;
+      }
+      .close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 28px;
+        color: #aaa;
+        cursor: pointer;
+      }
+      .close:hover {
+        color: #fff;
+      }
+
+      /* ── responsive tweaks ─────────────────────── */
+      @media (max-width: 768px) {
+        .editor-container {
+          flex-direction: column;
+        }
+        .param-row {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .param-row label,
+        .param-row select,
+        .param-row input {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div>
+        <a href="../index.html" class="btn-wrap">Back</a>
+      </div>
+      <h1>Elysian Twilight Story Hub</h1>
+    </div>
+    <div class="container" style="text-align: center;">
+      <a>Here are a few short stories I wrote set in a fictional Sci-Fi universe I am working on.</a> <br>
+      <a>WARNING: my writing style is very grim and unsettling for some</a>
+    </div>
+    <section id="projects">
+                <div class="container">
+                    <div class="section-content" style="--section-blur: 3px; --card-blur: 2px;">
+                        <div class="projects-grid">
+                            <!-- Project 1 -->
+                            <div class="project-card">
+                                <div class="project-info">
+                                    <h3>What Follows Dust</h3>
+                                    <p>Set in the aftermath of a fallen empire, What Follows Dust follows a soldier leading punitive sweeps through ruined villages, uncovering remnants of resistance, and enduring the consequences of escalating destruction.</p>
+                                    <a href="Stories\What-Follows-Dust.html" class="btn">View Project</a>
+                                </div>
+                            </div>
+                            
+                            <!-- Project 2 -->
+                            <div class="project-card">
+                                <div class="project-info">
+                                    <h3>Last Watch</h3>
+                                    <p>A grim pre-collapse tale of an enforcer at a doomed evacuation site.</p>
+                                    <a href="Stories\Last-Watch.html" class="btn">View Project</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+  </body>
+</html>
