@@ -2,13 +2,13 @@ const BACKGROUND_COLOR = 0x111111;
 const RAPID_COLOR = 0x3ba1ff;
 const CUT_COLOR = 0xff5533;
 const STOCK_COLOR = 0x888888;
-const TOOL_DEFAULT_DIAMETER = 0.25;
+const TOOL_DEFAULT_DIAMETER = 0.5;
 const MAX_VOXELS_PER_AXIS = 1024;
 const MIN_VOXELS_PER_AXIS = 1;
 const MAX_TOTAL_VOXELS = 16000000;
-const FINE_VOXEL_SIZE_MM = 1;
-const COARSE_VOXEL_SIZE_MM = 5;
-const FINE_MARGIN_MM = 6;
+const FINE_VOXEL_SIZE_MM = 0.1;
+const COARSE_VOXEL_SIZE_MM = 10;
+const FINE_MARGIN_MM = 1;
 
 function createEmptyBounds() {
     return {
@@ -811,6 +811,20 @@ class GCodeViewer {
     }
 
     createCoarseEnvelope() {
+        if (boundsValid(this.stockBounds)) {
+            const xyMargin = this.isMetric ? 10 : (10 / 25.4);
+            const zMargin = this.isMetric ? 5 : (5 / 25.4);
+
+            return {
+                minX: this.stockBounds.minX - xyMargin,
+                maxX: this.stockBounds.maxX + xyMargin,
+                minY: this.stockBounds.minY - xyMargin,
+                maxY: this.stockBounds.maxY + xyMargin,
+                minZ: this.stockBounds.minZ - zMargin,
+                maxZ: this.stockBounds.maxZ
+            };
+        }
+
         const base = boundsValid(this.bounds) ? this.bounds : {
             minX: -this.stockBuffer,
             maxX: this.stockBuffer,

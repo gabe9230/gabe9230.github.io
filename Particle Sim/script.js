@@ -5,7 +5,7 @@ canvas.width = window.innerWidth * 0.8
 canvas.height = window.innerHeight * 0.8
 const Width = canvas.width; const Height = canvas.height;
 const ParticleCount = 500
-const DistanceScale = 0.01;
+const DistanceScale = 100;
 const Hydrogen = {
     Protons: 1,
     Neutrons: 0,
@@ -49,6 +49,16 @@ function getCharge(p) {
 function getMass(p) {
     return p.Protons + p.Neutrons
 }
+function getBiggest() {
+    let current = ParticleArr[0]
+
+    ParticleArr.forEach(function (index) {
+        if (getMass(index) > getMass(current)) {
+            current = index
+        }
+    })
+    return(current)
+}
 function drawCircle(x, y, r, c) {
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
@@ -74,8 +84,9 @@ function fuseInto(a, b) {
     a.EShell2 += b.EShell2;
 
     // Decide & eject neutrons (after combining)
-    const nEject = neutronsToEject(a.Protons, a.Neutrons);
-    ejectNeutrons(a, nEject, /*kick=*/3.0);
+    // const nEject = neutronsToEject(a.Protons, a.Neutrons);
+    // const nEject = 1
+    // ejectNeutrons(a, nEject, /*kick=*/3.0);
 }
 
 // Spawn a free neutron particle
@@ -115,7 +126,8 @@ function ejectNeutrons(product, count, kick = 3.0) {
         const off = 0.2; // fm (since 1 px == 1 fm)
         const nx = product.X + Math.cos(theta) * off;
         const ny = product.Y + Math.sin(theta) * off;
-
+        nx += nvx
+        ny += nvy
         ParticleArr.push(createNeutron(nx, ny, nvx, nvy));
 
         // recoil accumulates opposite to ejected neutron
@@ -137,8 +149,8 @@ function populate() {
     for (let i = 0; i < ParticleCount; i++) {
         const r = Math.random();
         let base;
-        if (r < 0.5) base = Hydrogen;
-        else if (r < 0.85) base = Helium;
+        if (r < 0.9) base = Hydrogen;
+        else if (r < 0.99) base = Helium;
         else base = Lithium;
 
         // make a fresh particle with its own random position & zero velocity
@@ -166,7 +178,7 @@ function clampVel(p, vmax = 8) {
     if (p.VX > vmax) p.VX = vmax; else if (p.VX < -vmax) p.VX = -vmax;
     if (p.VY > vmax) p.VY = vmax; else if (p.VY < -vmax) p.VY = -vmax;
 }
-function electrostatic(a, b, dt = 1, k = 1000, softening = 0.3) {
+function electrostatic(a, b, dt = 1, k = 1e7, softening = 0.3) {
     const s = DistanceScale;
     const dx = (b.X - a.X) * s;
     const dy = (b.Y - a.Y) * s;
@@ -187,7 +199,7 @@ function electrostatic(a, b, dt = 1, k = 1000, softening = 0.3) {
     b.VX -= (F / m2) * ux * dt;
     b.VY -= (F / m2) * uy * dt;
 }
-function fusionPass(fusionR = 0.5) {
+function fusionPass(fusionR) {
     const s = (typeof DistanceScale !== 'undefined') ? DistanceScale : 1;
     const thresh2 = (fusionR * s) * (fusionR * s);
     const removed = new Set();
@@ -224,10 +236,10 @@ function fusionPass(fusionR = 0.5) {
 function strongNuclear(
     a, b,
     dt = 1,
-    g_attr = 1e6,
-    r0    = 1.0,     // fm
-    coreR = 0.5,     // fm
-    g_core = 5e4,    // smaller than g_attr so it’s net-attractive outside core
+    g_attr = 3e5,
+    r0    = 1.25,
+    coreR = 0.2,
+    g_core = 1e4,
     soft  = 0.1  
 ) {
     // Use DistanceScale if defined; else 1
@@ -291,7 +303,7 @@ function weakNuclear(a, b, dt = 1, g = 5, r0 = 0.5, soft = 0.1) {
     b.VX -= (F / m2) * ux * dt;
     b.VY -= (F / m2) * uy * dt;
 }
-function edgeRepulsion(p, dt = 1, kWall = 1e2, soft = 0.5) {
+function edgeRepulsion(p, dt = 1, kWall = 10000000, soft = 0.5) {
     kWall = kWall * Math.max(1, Math.abs(getCharge(p)))
     const s = DistanceScale;
     const m = Math.max(1e-6, getMass(p));
@@ -334,7 +346,7 @@ function draw() {
 function loop() {
     accumulateForces()
     move()
-    fusionPass(0.5)
+    fusionPass(1)
     draw()
 }
 function Startup() {
