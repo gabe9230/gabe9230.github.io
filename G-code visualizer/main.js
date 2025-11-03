@@ -1,786 +1,921 @@
-// Simple 2.5D visualization engine
-class GCodeViewer {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        if (!this.ctx) {
-            console.error('Failed to get 2D context');
+const BACKGROUND_COLOR = 0x111111;
+const RAPID_COLOR = 0x3ba1ff;
+const CUT_COLOR = 0xff5533;
+const STOCK_COLOR = 0x888888;
+const TOOL_DEFAULT_DIAMETER = 0.25;
+const MAX_VOXELS_PER_AXIS = 1024;
+const MIN_VOXELS_PER_AXIS = 1;
+const MAX_TOTAL_VOXELS = 16000000;
+const FINE_VOXEL_SIZE_MM = 1;
+const COARSE_VOXEL_SIZE_MM = 5;
+const FINE_MARGIN_MM = 6;
+
+function createEmptyBounds() {
+    return {
+        minX: Infinity,
+        maxX: -Infinity,
+        minY: Infinity,
+        maxY: -Infinity,
+        minZ: Infinity,
+        maxZ: -Infinity
+    };
+}
+
+function expandBounds(bounds, point) {
+    if (!Number.isFinite(bounds.minX)) {
+        bounds.minX = bounds.maxX = point.x;
+        bounds.minY = bounds.maxY = point.y;
+        bounds.minZ = bounds.maxZ = point.z;
+        return;
+    }
+    bounds.minX = Math.min(bounds.minX, point.x);
+    bounds.maxX = Math.max(bounds.maxX, point.x);
+    bounds.minY = Math.min(bounds.minY, point.y);
+    bounds.maxY = Math.max(bounds.maxY, point.y);
+    bounds.minZ = Math.min(bounds.minZ, point.z);
+    bounds.maxZ = Math.max(bounds.maxZ, point.z);
+}
+
+function expandBoundsWithRadius(bounds, point, radius) {
+    const r = Math.max(0, radius);
+    if (!Number.isFinite(bounds.minX)) {
+        bounds.minX = point.x - r;
+        bounds.maxX = point.x + r;
+        bounds.minY = point.y - r;
+        bounds.maxY = point.y + r;
+        return;
+    }
+    bounds.minX = Math.min(bounds.minX, point.x - r);
+    bounds.maxX = Math.max(bounds.maxX, point.x + r);
+    bounds.minY = Math.min(bounds.minY, point.y - r);
+    bounds.maxY = Math.max(bounds.maxY, point.y + r);
+    bounds.minZ = Math.min(bounds.minZ, point.z - r);
+    bounds.maxZ = Math.max(bounds.maxZ, point.z + r);
+}
+
+function boundsValid(bounds) {
+    return Number.isFinite(bounds.minX) &&
+        Number.isFinite(bounds.maxX) &&
+        Number.isFinite(bounds.minY) &&
+        Number.isFinite(bounds.maxY) &&
+        Number.isFinite(bounds.minZ) &&
+        Number.isFinite(bounds.maxZ);
+}
+
+function boundsCenter(bounds) {
+    return {
+        x: (bounds.minX + bounds.maxX) * 0.5,
+        y: (bounds.minY + bounds.maxY) * 0.5,
+        z: (bounds.minZ + bounds.maxZ) * 0.5
+    };
+}
+
+function boundsDimensions(bounds) {
+    return {
+        x: bounds.maxX - bounds.minX,
+        y: bounds.maxY - bounds.minY,
+        z: bounds.maxZ - bounds.minZ
+    };
+}
+
+function gcodeToWorldVector3(point) {
+    return new THREE.Vector3(point.x, point.z, point.y);
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function clearGroup(group) {
+    const children = [...group.children];
+    for (const child of children) {
+        group.remove(child);
+        disposeChild(child);
+    }
+}
+
+function disposeChild(child) {
+    if (child.children && child.children.length) {
+        clearGroup(child);
+    }
+    if (child.geometry && typeof child.geometry.dispose === 'function') {
+        child.geometry.dispose();
+    }
+    if (Array.isArray(child.material)) {
+        for (const material of child.material) {
+            disposeMaterial(material);
+        }
+    } else if (child.material) {
+        disposeMaterial(child.material);
+    }
+    if (child.texture && typeof child.texture.dispose === 'function') {
+        child.texture.dispose();
+    }
+}
+
+function disposeMaterial(material) {
+    if (material.map && typeof material.map.dispose === 'function') {
+        material.map.dispose();
+    }
+    if (typeof material.dispose === 'function') {
+        material.dispose();
+    }
+}
+
+class VoxelStock {
+    constructor(bounds, resolution) {
+        this.bounds = bounds;
+        this.resolution = {
+            x: Math.max(1, Math.floor(resolution.x)),
+            y: Math.max(1, Math.floor(resolution.y)),
+            z: Math.max(1, Math.floor(resolution.z))
+        };
+
+        const size = boundsDimensions(bounds);
+        this.size = {
+            x: size.x > 0 ? size.x : 1,
+            y: size.y > 0 ? size.y : 1,
+            z: size.z > 0 ? size.z : 1
+        };
+
+        this.cellSize = {
+            x: this.size.x / this.resolution.x,
+            y: this.size.y / this.resolution.y,
+            z: this.size.z / this.resolution.z
+        };
+
+        this.cellDiagonal = Math.sqrt(
+            this.cellSize.x * this.cellSize.x +
+            this.cellSize.y * this.cellSize.y +
+            this.cellSize.z * this.cellSize.z
+        );
+
+        const total = this.resolution.x * this.resolution.y * this.resolution.z;
+        this.data = new Uint8Array(total);
+        this.data.fill(1);
+    }
+
+    index(ix, iy, iz) {
+        return ix + this.resolution.x * (iy + this.resolution.y * iz);
+    }
+
+    voxelCenter(ix, iy, iz) {
+        return {
+            x: this.bounds.minX + (ix + 0.5) * this.cellSize.x,
+            y: this.bounds.minY + (iy + 0.5) * this.cellSize.y,
+            z: this.bounds.minZ + (iz + 0.5) * this.cellSize.z
+        };
+    }
+
+    carveSegment(start, end, radius) {
+        if (!(radius > 0)) {
             return;
         }
-        console.log('Canvas context initialized');
-        
-        this.paths = [];
-        this.camera = {
-            distance: 300,
-            rotation: { 
-                x: -Math.PI / 4,  // -45 degrees from horizontal
-                y: -Math.PI / 4,  // -45 degrees from front
-                z: 0 
-            },
-            fov: 45
-        };
-        this.isDragging = false;
-        this.lastMouseX = 0;
-        this.lastMouseY = 0;
-        this.scale = 1;
-        this.isMetric = true;  // Default to metric
-        this.bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0, minZ: 0, maxZ: 0 };
-        this.stockBounds = {
-            minX: Infinity, maxX: -Infinity,
-            minY: Infinity, maxY: -Infinity,
-            minZ: Infinity, maxZ: -Infinity
-        };
 
-        this.stock = null;
-        this.toolDiameter = 0.25;
-        this.stockBuffer = 1.0; // 1 unit buffer for X and Y
-        this.stockZBuffer = 0.1; // 0.1 unit buffer for Z (vertical)
-        this.tools = new Map(); // Store tool information
-        this.currentTool = 1; // Default to tool 1
-        this.needsRender = true; // Flag to track if rendering is needed
+        const dirX = end.x - start.x;
+        const dirY = end.y - start.y;
+        const dirZ = end.z - start.z;
+        const lengthSq = dirX * dirX + dirY * dirY + dirZ * dirZ;
 
-        this.setupEventListeners();
-        this.resize();
-        this.render();
-    }
-
-    setupEventListeners() {
-        // Mouse wheel for zoom
-        this.canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            this.camera.distance *= e.deltaY > 0 ? 0.95 : 1.05;
-            this.needsRender = true;
-            this.render();
-        });
-
-        // Mouse drag for rotation
-        this.canvas.addEventListener('mousedown', (e) => {
-            this.isDragging = true;
-            this.lastMouseX = e.clientX;
-            this.lastMouseY = e.clientY;
-        });
-
-        this.canvas.addEventListener('mousemove', (e) => {
-            if (!this.isDragging) return;
-            
-            const deltaX = e.clientX - this.lastMouseX;
-            const deltaY = e.clientY - this.lastMouseY;
-            
-            const sensitivity = 0.003;
-            
-            // Rotate around Y axis for horizontal movement
-            this.camera.rotation.y += deltaX * sensitivity;
-            
-            // Rotate around X axis for vertical movement (inverted)
-            this.camera.rotation.x -= deltaY * sensitivity;
-            
-            // Clamp vertical rotation to prevent flipping
-            this.camera.rotation.x = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, this.camera.rotation.x));
-            
-            this.lastMouseX = e.clientX;
-            this.lastMouseY = e.clientY;
-            
-            this.needsRender = true;
-            this.render();
-        });
-
-        this.canvas.addEventListener('mouseup', () => {
-            this.isDragging = false;
-        });
-
-        // Window resize
-        window.addEventListener('resize', () => {
-            this.resize();
-            this.needsRender = true;
-            this.render();
-        });
-    }
-
-    resize() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-        console.log('Canvas resized:', this.canvas.width, this.canvas.height);
-    }
-
-    // Project 3D point to 2D screen coordinates
-    projectPoint(x, y, z) {
-        // Apply camera rotation
-        const cosX = Math.cos(this.camera.rotation.x);
-        const sinX = Math.sin(this.camera.rotation.x);
-        const cosY = Math.cos(this.camera.rotation.y);
-        const sinY = Math.sin(this.camera.rotation.y);
-        
-        // Rotate point around Y axis (horizontal rotation)
-        let rx = x * cosY - z * sinY;
-        let ry = y;
-        let rz = x * sinY + z * cosY;
-        
-        // Rotate point around X axis (vertical rotation)
-        let rrx = rx;
-        let rry = ry * cosX - rz * sinX;
-        let rrz = ry * sinX + rz * cosX;
-        
-        // Move point away from camera
-        rrz += this.camera.distance;
-        
-        if (rrz <= 0) return null; // Point is behind camera
-        
-        // Apply perspective
-        const f = this.camera.fov;
-        const scale = this.scale * (this.canvas.width / 2) / Math.tan(f * Math.PI / 360);
-        
-        const px = (rrx * scale / rrz) + this.canvas.width / 2;
-        const py = (-rry * scale / rrz) + this.canvas.height / 2;
-        
-        return { x: px, y: py, depth: rrz };
-    }
-
-    // Draw a line in 3D space
-    drawLine(x1, y1, z1, x2, y2, z2, color) {
-        const p1 = this.projectPoint(x1, y1, z1);
-        const p2 = this.projectPoint(x2, y2, z2);
-
-        if (!p1 || !p2) return;
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(p1.x, p1.y);
-        this.ctx.lineTo(p2.x, p2.y);
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-    }
-
-    // Draw a point in 3D space
-    drawPoint(x, y, z, color, size = 4) {
-        const p = this.projectPoint(x, y, z);
-        if (!p) return;
-
-        this.ctx.beginPath();
-        this.ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-        this.ctx.fillStyle = color;
-        this.ctx.fill();
-    }
-
-    // Draw coordinate system
-    drawCoordinateSystem() {
-        const size = 50;
-        this.ctx.lineWidth = 3;
-        this.drawLine(0, 0, 0, size, 0, 0, '#ff0000'); // X axis (red) - left/right
-        this.drawLine(0, 0, 0, 0, size, 0, '#0000ff'); // Z axis (blue) - vertical
-        this.drawLine(0, 0, 0, 0, 0, size, '#00ff00'); // Y axis (green) - depth
-        this.ctx.lineWidth = 2;
-    }
-
-    // Draw grid
-    drawGrid() {
-        // Calculate grid size based on part bounds
-        const margin = 2; // Add 2 units of margin
-        const minX = Math.floor(this.bounds.minX - margin);
-        const maxX = Math.ceil(this.bounds.maxX + margin);
-        const minZ = Math.floor(this.bounds.minZ - margin);
-        const maxZ = Math.ceil(this.bounds.maxZ + margin);
-        
-        const color = '#444444';
-        this.ctx.lineWidth = 1;
-
-        // Draw major grid lines (every 5 units)
-        for (let i = minX; i <= maxX; i++) {
-            if (i % 1 === 0) {
-                this.ctx.strokeStyle = '#666666';
-            } else {
-                this.ctx.strokeStyle = color;
-            }
-            this.drawLine(i, 0, minZ, i, 0, maxZ, this.ctx.strokeStyle);
+        if (lengthSq < 1e-12) {
+            this.carveSphereAtPoint(start, radius);
+            return;
         }
 
-        for (let i = minZ; i <= maxZ; i++) {
-            if (i % 1 === 0) {
-                this.ctx.strokeStyle = '#666666';
-            } else {
-                this.ctx.strokeStyle = color;
-            }
-            this.drawLine(minX, 0, i, maxX, 0, i, this.ctx.strokeStyle);
-        }
+        const radiusPad = radius + this.cellDiagonal * 0.5;
+        const radiusPadSq = radiusPad * radiusPad;
 
-        this.ctx.lineWidth = 2;
-    }
+        const minX = Math.min(start.x, end.x) - radiusPad;
+        const maxX = Math.max(start.x, end.x) + radiusPad;
+        const minY = Math.min(start.y, end.y) - radiusPad;
+        const maxY = Math.max(start.y, end.y) + radiusPad;
+        const minZ = Math.min(start.z, end.z) - radiusPad;
+        const maxZ = Math.max(start.z, end.z) + radiusPad;
 
-    createStock() {
-        const xyBuffer = this.stockBuffer;
-        const zBuffer = this.stockZBuffer;
-        const b = this.stockBounds;
+        const ixMin = clamp(Math.floor((minX - this.bounds.minX) / this.cellSize.x), 0, this.resolution.x - 1);
+        const ixMax = clamp(Math.floor((maxX - this.bounds.minX) / this.cellSize.x), 0, this.resolution.x - 1);
+        const iyMin = clamp(Math.floor((minY - this.bounds.minY) / this.cellSize.y), 0, this.resolution.y - 1);
+        const iyMax = clamp(Math.floor((maxY - this.bounds.minY) / this.cellSize.y), 0, this.resolution.y - 1);
+        const izMin = clamp(Math.floor((minZ - this.bounds.minZ) / this.cellSize.z), 0, this.resolution.z - 1);
+        const izMax = clamp(Math.floor((maxZ - this.bounds.minZ) / this.cellSize.z), 0, this.resolution.z - 1);
 
-        return {
-            minX: b.minX - xyBuffer,
-            maxX: b.maxX + xyBuffer,
-            minY: b.minY - zBuffer,
-            maxY: b.maxY + zBuffer,
-            minZ: b.minZ - xyBuffer,
-            maxZ: b.maxZ + xyBuffer
-        };
-    }
+        const lengthInv = 1 / lengthSq;
 
-    // Draw stock
-    drawStock() {
-        if (!this.stock) return;
+        for (let iz = izMin; iz <= izMax; iz++) {
+            const centerZ = this.bounds.minZ + (iz + 0.5) * this.cellSize.z;
+            for (let iy = iyMin; iy <= iyMax; iy++) {
+                const centerY = this.bounds.minY + (iy + 0.5) * this.cellSize.y;
+                for (let ix = ixMin; ix <= ixMax; ix++) {
+                    const idx = this.index(ix, iy, iz);
+                    if (this.data[idx] === 0) continue;
 
-        const color = '#666666';
-        const alpha = 0.3;
+                    const centerX = this.bounds.minX + (ix + 0.5) * this.cellSize.x;
 
-        // Draw top face
-        this.ctx.fillStyle = `rgba(102, 102, 102, ${alpha})`;
-        this.drawQuad(
-            this.stock.minX, this.stock.maxY, this.stock.minZ,
-            this.stock.maxX, this.stock.maxY, this.stock.minZ,
-            this.stock.maxX, this.stock.maxY, this.stock.maxZ,
-            this.stock.minX, this.stock.maxY, this.stock.maxZ,
-            color
-        );
+                    const toStartX = centerX - start.x;
+                    const toStartY = centerY - start.y;
+                    const toStartZ = centerZ - start.z;
 
-        // Draw front face
-        this.drawQuad(
-            this.stock.minX, this.stock.minY, this.stock.minZ,
-            this.stock.maxX, this.stock.minY, this.stock.minZ,
-            this.stock.maxX, this.stock.maxY, this.stock.minZ,
-            this.stock.minX, this.stock.maxY, this.stock.minZ,
-            color
-        );
+                    const projection = (toStartX * dirX + toStartY * dirY + toStartZ * dirZ) * lengthInv;
+                    const t = clamp(projection, 0, 1);
 
-        // Draw right face
-        this.drawQuad(
-            this.stock.maxX, this.stock.minY, this.stock.minZ,
-            this.stock.maxX, this.stock.minY, this.stock.maxZ,
-            this.stock.maxX, this.stock.maxY, this.stock.maxZ,
-            this.stock.maxX, this.stock.maxY, this.stock.minZ,
-            color
-        );
-        
-        // Bottom face
-        this.drawQuad(
-            this.stock.minX, this.stock.minY, this.stock.minZ,
-            this.stock.maxX, this.stock.minY, this.stock.minZ,
-            this.stock.maxX, this.stock.minY, this.stock.maxZ,
-            this.stock.minX, this.stock.minY, this.stock.maxZ,
-            color
-        );
+                    const closestX = start.x + dirX * t;
+                    const closestY = start.y + dirY * t;
+                    const closestZ = start.z + dirZ * t;
 
-        // Back face
-        this.drawQuad(
-            this.stock.minX, this.stock.minY, this.stock.maxZ,
-            this.stock.maxX, this.stock.minY, this.stock.maxZ,
-            this.stock.maxX, this.stock.maxY, this.stock.maxZ,
-            this.stock.minX, this.stock.maxY, this.stock.maxZ,
-            color
-        );
+                    const diffX = centerX - closestX;
+                    const diffY = centerY - closestY;
+                    const diffZ = centerZ - closestZ;
+                    const distSq = diffX * diffX + diffY * diffY + diffZ * diffZ;
 
-        // Left face
-        this.drawQuad(
-            this.stock.minX, this.stock.minY, this.stock.minZ,
-            this.stock.minX, this.stock.minY, this.stock.maxZ,
-            this.stock.minX, this.stock.maxY, this.stock.maxZ,
-            this.stock.minX, this.stock.maxY, this.stock.minZ,
-            color
-        );
-    }
-
-    // Draw a quadrilateral face
-    drawQuad(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, color) {
-        const p1 = this.projectPoint(x1, y1, z1);
-        const p2 = this.projectPoint(x2, y2, z2);
-        const p3 = this.projectPoint(x3, y3, z3);
-        const p4 = this.projectPoint(x4, y4, z4);
-
-        if (!p1 || !p2 || !p3 || !p4) return;
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(p1.x, p1.y);
-        this.ctx.lineTo(p2.x, p2.y);
-        this.ctx.lineTo(p3.x, p3.y);
-        this.ctx.lineTo(p4.x, p4.y);
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.strokeStyle = color;
-        this.ctx.stroke();
-    }
-
-    // Draw tool path with material removal
-    drawToolPath() {
-        for (const path of this.paths) {
-            const color = path.type === 'cut' ? '#ff0000' : '#00ff00';
-            
-            // Draw the tool path
-            this.drawLine(
-                path.from.x, path.from.y, path.from.z,
-                path.to.x, path.to.y, path.to.z,
-                color
-            );
-
-            // Draw tool position indicators
-            this.drawPoint(path.from.x, path.from.y, path.from.z, color);
-            this.drawPoint(path.to.x, path.to.y, path.to.z, color);
-
-            // If it's a cutting move, draw the material removal
-            if (path.type === 'cut') {
-                const toolRadius = this.toolDiameter / 2;
-                this.drawCylinder(
-                    path.from.x, path.from.y, path.from.z,
-                    path.to.x, path.to.y, path.to.z,
-                    toolRadius/100,
-                    '#ff000033'  // Semi-transparent red
-                );
+                    if (distSq <= radiusPadSq) {
+                        this.data[idx] = 0;
+                    }
+                }
             }
         }
     }
 
-    // Draw a cylinder between two points with proper 3D orientation
-    drawCylinder(x1, y1, z1, x2, y2, z2, radius, color) {
-        const segments = 8; // Reduced from 12 to 8 for better performance
-        const angleStep = (Math.PI * 2) / segments;
+    carveSphereAtPoint(center, radius) {
+        const radiusPad = radius + this.cellDiagonal * 0.5;
+        const radiusPadSq = radiusPad * radiusPad;
 
-        // Calculate the direction vector
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const dz = z2 - z1;
-        const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const minX = clamp(Math.floor((center.x - radiusPad - this.bounds.minX) / this.cellSize.x), 0, this.resolution.x - 1);
+        const maxX = clamp(Math.floor((center.x + radiusPad - this.bounds.minX) / this.cellSize.x), 0, this.resolution.x - 1);
+        const minY = clamp(Math.floor((center.y - radiusPad - this.bounds.minY) / this.cellSize.y), 0, this.resolution.y - 1);
+        const maxY = clamp(Math.floor((center.y + radiusPad - this.bounds.minY) / this.cellSize.y), 0, this.resolution.y - 1);
+        const minZ = clamp(Math.floor((center.z - radiusPad - this.bounds.minZ) / this.cellSize.z), 0, this.resolution.z - 1);
+        const maxZ = clamp(Math.floor((center.z + radiusPad - this.bounds.minZ) / this.cellSize.z), 0, this.resolution.z - 1);
 
-        // Skip if length is too small
-        if (length < 0.001) return;
+        for (let iz = minZ; iz <= maxZ; iz++) {
+            const centerZ = this.bounds.minZ + (iz + 0.5) * this.cellSize.z;
+            for (let iy = minY; iy <= maxY; iy++) {
+                const centerY = this.bounds.minY + (iy + 0.5) * this.cellSize.y;
+                for (let ix = minX; ix <= maxX; ix++) {
+                    const idx = this.index(ix, iy, iz);
+                    if (this.data[idx] === 0) continue;
 
-        // Calculate the rotation matrix to align cylinder with direction
-        const axis = [dx, dy, dz];
-        const up = [0, 1, 0]; // World up vector
-        const right = this.crossProduct(axis, up);
-        this.normalizeVector(right);
-        const newUp = this.crossProduct(right, axis);
-        this.normalizeVector(newUp);
+                    const centerX = this.bounds.minX + (ix + 0.5) * this.cellSize.x;
 
-        // Create points around the circle at both ends
-        const startPoints = [];
-        const endPoints = [];
-        
-        for (let i = 0; i < segments; i++) {
-            const angle = i * angleStep;
-            const cos = Math.cos(angle);
-            const sin = Math.sin(angle);
+                    const dx = centerX - center.x;
+                    const dy = centerY - center.y;
+                    const dz = centerZ - center.z;
+                    const distSq = dx * dx + dy * dy + dz * dz;
 
-            // Calculate points on the circle using the rotation matrix
-            const startPoint = {
-                x: x1 + radius * (cos * right[0] + sin * newUp[0]),
-                y: y1 + radius * (cos * right[1] + sin * newUp[1]),
-                z: z1 + radius * (cos * right[2] + sin * newUp[2])
-            };
-            const endPoint = {
-                x: x2 + radius * (cos * right[0] + sin * newUp[0]),
-                y: y2 + radius * (cos * right[1] + sin * newUp[1]),
-                z: z2 + radius * (cos * right[2] + sin * newUp[2])
+                    if (distSq <= radiusPadSq) {
+                        this.data[idx] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    clearRegion(region) {
+        const ixMin = clamp(Math.floor((region.minX - this.bounds.minX) / this.cellSize.x), 0, this.resolution.x - 1);
+        const ixMax = clamp(Math.floor((region.maxX - this.bounds.minX) / this.cellSize.x), 0, this.resolution.x - 1);
+        const iyMin = clamp(Math.floor((region.minY - this.bounds.minY) / this.cellSize.y), 0, this.resolution.y - 1);
+        const iyMax = clamp(Math.floor((region.maxY - this.bounds.minY) / this.cellSize.y), 0, this.resolution.y - 1);
+        const izMin = clamp(Math.floor((region.minZ - this.bounds.minZ) / this.cellSize.z), 0, this.resolution.z - 1);
+        const izMax = clamp(Math.floor((region.maxZ - this.bounds.minZ) / this.cellSize.z), 0, this.resolution.z - 1);
+
+        if (ixMax < ixMin || iyMax < iyMin || izMax < izMin) return;
+
+        for (let iz = izMin; iz <= izMax; iz++) {
+            for (let iy = iyMin; iy <= iyMax; iy++) {
+                for (let ix = ixMin; ix <= ixMax; ix++) {
+                    const idx = this.index(ix, iy, iz);
+                    this.data[idx] = 0;
+                }
+            }
+        }
+    }
+
+    isFilled(ix, iy, iz) {
+        if (ix < 0 || iy < 0 || iz < 0) return false;
+        if (ix >= this.resolution.x || iy >= this.resolution.y || iz >= this.resolution.z) return false;
+        return this.data[this.index(ix, iy, iz)] !== 0;
+    }
+
+    buildMesh(color = STOCK_COLOR, opacity = 0.85) {
+        const positions = [];
+        const normals = [];
+        const indices = [];
+
+        const hx = this.cellSize.x * 0.5;
+        const hy = this.cellSize.y * 0.5;
+        const hz = this.cellSize.z * 0.5;
+
+        const pushFace = (cornerList, normal) => {
+            const worldNormal = {
+                x: normal.x,
+                y: normal.z,
+                z: normal.y
             };
 
-            startPoints.push(startPoint);
-            endPoints.push(endPoint);
-        }
+            for (const corner of cornerList) {
+                const world = gcodeToWorldVector3(corner);
+                positions.push(world.x, world.y, world.z);
+                normals.push(worldNormal.x, worldNormal.y, worldNormal.z);
+            }
 
-        // Draw the cylinder faces
-        for (let i = 0; i < segments; i++) {
-            const next = (i + 1) % segments;
-            
-            // Draw the side face
-            this.drawQuad(
-                startPoints[i].x, startPoints[i].y, startPoints[i].z,
-                startPoints[next].x, startPoints[next].y, startPoints[next].z,
-                endPoints[next].x, endPoints[next].y, endPoints[next].z,
-                endPoints[i].x, endPoints[i].y, endPoints[i].z,
-                color
+            const base = (positions.length / 3) - 4;
+            indices.push(
+                base,
+                base + 1,
+                base + 2,
+                base,
+                base + 2,
+                base + 3
             );
+        };
 
-            // Only draw end caps if the cylinder is long enough
-            if (length > radius * 2) {
-                this.drawTriangle(
-                    x1, y1, z1,
-                    startPoints[i].x, startPoints[i].y, startPoints[i].z,
-                    startPoints[next].x, startPoints[next].y, startPoints[next].z,
-                    color
-                );
-                this.drawTriangle(
-                    x2, y2, z2,
-                    endPoints[i].x, endPoints[i].y, endPoints[i].z,
-                    endPoints[next].x, endPoints[next].y, endPoints[next].z,
-                    color
-                );
+        for (let iz = 0; iz < this.resolution.z; iz++) {
+            for (let iy = 0; iy < this.resolution.y; iy++) {
+                for (let ix = 0; ix < this.resolution.x; ix++) {
+                    if (!this.isFilled(ix, iy, iz)) continue;
+
+                    const center = this.voxelCenter(ix, iy, iz);
+                    const minX = center.x - hx;
+                    const maxX = center.x + hx;
+                    const minY = center.y - hy;
+                    const maxY = center.y + hy;
+                    const minZ = center.z - hz;
+                    const maxZ = center.z + hz;
+
+                    if (!this.isFilled(ix + 1, iy, iz)) {
+                        pushFace([
+                            { x: maxX, y: minY, z: minZ },
+                            { x: maxX, y: minY, z: maxZ },
+                            { x: maxX, y: maxY, z: maxZ },
+                            { x: maxX, y: maxY, z: minZ }
+                        ], { x: 1, y: 0, z: 0 });
+                    }
+                    if (!this.isFilled(ix - 1, iy, iz)) {
+                        pushFace([
+                            { x: minX, y: minY, z: maxZ },
+                            { x: minX, y: minY, z: minZ },
+                            { x: minX, y: maxY, z: minZ },
+                            { x: minX, y: maxY, z: maxZ }
+                        ], { x: -1, y: 0, z: 0 });
+                    }
+                    if (!this.isFilled(ix, iy + 1, iz)) {
+                        pushFace([
+                            { x: minX, y: maxY, z: minZ },
+                            { x: maxX, y: maxY, z: minZ },
+                            { x: maxX, y: maxY, z: maxZ },
+                            { x: minX, y: maxY, z: maxZ }
+                        ], { x: 0, y: 1, z: 0 });
+                    }
+                    if (!this.isFilled(ix, iy - 1, iz)) {
+                        pushFace([
+                            { x: minX, y: minY, z: maxZ },
+                            { x: maxX, y: minY, z: maxZ },
+                            { x: maxX, y: minY, z: minZ },
+                            { x: minX, y: minY, z: minZ }
+                        ], { x: 0, y: -1, z: 0 });
+                    }
+                    if (!this.isFilled(ix, iy, iz + 1)) {
+                        pushFace([
+                            { x: minX, y: minY, z: maxZ },
+                            { x: minX, y: maxY, z: maxZ },
+                            { x: maxX, y: maxY, z: maxZ },
+                            { x: maxX, y: minY, z: maxZ }
+                        ], { x: 0, y: 0, z: 1 });
+                    }
+                    if (!this.isFilled(ix, iy, iz - 1)) {
+                        pushFace([
+                            { x: maxX, y: minY, z: minZ },
+                            { x: maxX, y: maxY, z: minZ },
+                            { x: minX, y: maxY, z: minZ },
+                            { x: minX, y: minY, z: minZ }
+                        ], { x: 0, y: 0, z: -1 });
+                    }
+                }
             }
         }
-    }
 
-    // Helper function to draw a triangle
-    drawTriangle(x1, y1, z1, x2, y2, z2, x3, y3, z3, color) {
-        const p1 = this.projectPoint(x1, y1, z1);
-        const p2 = this.projectPoint(x2, y2, z2);
-        const p3 = this.projectPoint(x3, y3, z3);
-
-        if (!p1 || !p2 || !p3) return;
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(p1.x, p1.y);
-        this.ctx.lineTo(p2.x, p2.y);
-        this.ctx.lineTo(p3.x, p3.y);
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.strokeStyle = color;
-        this.ctx.stroke();
-    }
-
-    // Vector math helper functions
-    crossProduct(a, b) {
-        return [
-            a[1] * b[2] - a[2] * b[1],
-            a[2] * b[0] - a[0] * b[2],
-            a[0] * b[1] - a[1] * b[0]
-        ];
-    }
-
-    normalizeVector(v) {
-        const length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-        if (length > 0) {
-            v[0] /= length;
-            v[1] /= length;
-            v[2] /= length;
+        if (indices.length === 0) {
+            return null;
         }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setIndex(indices);
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+        geometry.computeBoundingBox();
+        geometry.computeBoundingSphere();
+
+        const material = new THREE.MeshStandardMaterial({
+            color,
+            transparent: opacity < 1,
+            opacity,
+            metalness: 0.05,
+            roughness: 0.9
+        });
+
+        return new THREE.Mesh(geometry, material);
     }
+}
 
-    parseToolInfo(line) {
-        // Match formats like:
-        // (Tool: 1/8 BME)
-        // (Tool: 0.125 BME)
-        // (Tool: T1 1/8 BME)
-        const toolMatch = line.match(/\(Tool:\s*T?(\d+)?\s+((\d+(\.\d+)?|\d+\/\d+))\s+([A-Z]+)/i);
+class GCodeViewer {
+    constructor(container) {
+        this.container = container;
 
-        if (toolMatch) {
-            const toolNum = parseInt(toolMatch[1] || "1");
-            const dimStr = toolMatch[2].trim();
-            const description = toolMatch[5].trim();
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setClearColor(BACKGROUND_COLOR, 1);
+        container.appendChild(this.renderer.domElement);
 
-            const diameter = this.parseDimension(dimStr);
-            if (!isNaN(diameter)) {
-                this.tools.set(toolNum, {
-                    diameter: diameter,
-                    description: description
-                });
-                console.log(`Parsed tool ${toolNum}: ${diameter} units diameter - ${description}`);
-            } else {
-                console.warn(`Invalid diameter string "${dimStr}" on line: ${line}`);
-            }
-        }
-    }
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(BACKGROUND_COLOR);
 
-
-
-
-    // Parse dimension string (e.g., "1/8" or "0.125")
-    parseDimension(dimStr) {
-        if (dimStr.includes('/')) {
-            const [num, denom] = dimStr.split('/');
-            return parseFloat(num) / parseFloat(denom);
-        }
-        return parseFloat(dimStr);
-    }
-
-    // Calculate arc points with proper 3D orientation
-    calculateArcPoints(start, end, center, clockwise) {
-        const points = [];
-        
-        // Calculate radius in XZ plane
-        const radius = Math.sqrt(
-            Math.pow(start.x - center.x, 2) +
-            Math.pow(start.z - center.z, 2)
+        this.camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            5000
         );
+        this.camera.position.set(150, 150, 150);
 
-        // Calculate start and end angles in XZ plane
-        const startAngle = Math.atan2(start.z - center.z, start.x - center.x);
-        let endAngle = Math.atan2(end.z - center.z, end.x - center.x);
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.target.set(0, 0, 0);
 
-        // Adjust end angle based on direction
-        if (clockwise && endAngle >= startAngle) {
-            endAngle -= Math.PI * 2;
-        } else if (!clockwise && endAngle <= startAngle) {
-            endAngle += Math.PI * 2;
-        }
+        const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+        const keyLight = new THREE.DirectionalLight(0xffffff, 0.75);
+        keyLight.position.set(120, 200, 90);
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
+        fillLight.position.set(-80, 150, -120);
+        this.scene.add(ambient, keyLight, fillLight);
 
-        // Calculate number of segments based on arc length and radius
-        const arcLength = Math.abs(endAngle - startAngle) * radius;
-        const minSegments = 16; // Reduced from 32 to 16 for better performance
-        const maxSegments = 32; // Added maximum segments to prevent excessive detail
-        const segments = Math.min(maxSegments, Math.max(minSegments, Math.ceil(arcLength / (radius * 0.1))));
+        const grid = new THREE.GridHelper(400, 40, 0x555555, 0x333333);
+        grid.material.transparent = true;
+        grid.material.opacity = 0.25;
+        this.scene.add(grid);
 
-        // Generate points along the arc
-        for (let i = 0; i <= segments; i++) {
-            const t = i / segments;
-            const angle = startAngle + (endAngle - startAngle) * t;
-            
-            // Calculate position in XZ plane
-            const x = center.x + radius * Math.cos(angle);
-            const z = center.z + radius * Math.sin(angle);
-            
-            // Linear interpolation for Y
-            const y = start.y + (end.y - start.y) * t;
+        const axes = new THREE.AxesHelper(50);
+        axes.material.depthTest = false;
+        axes.renderOrder = 1;
+        this.scene.add(axes);
 
-            points.push({ x, y, z });
-        }
+        this.stockGroup = new THREE.Group();
+        this.scene.add(this.stockGroup);
 
-        return points;
-    }
+        this.pathGroup = new THREE.Group();
+        this.scene.add(this.pathGroup);
 
-    render() {
-        // Only render if something has changed
-        if (!this.needsRender) return;
-        this.needsRender = false;
+        this.toolHead = new THREE.Mesh(
+            new THREE.SphereGeometry(1.5, 18, 12),
+            new THREE.MeshBasicMaterial({ color: 0xffff3f })
+        );
+        this.toolHead.visible = false;
+        this.scene.add(this.toolHead);
 
-        // Clear canvas
-        this.ctx.fillStyle = '#111111';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Draw grid and coordinate system
-        this.drawGrid();
-        this.drawCoordinateSystem();
-
-        // Draw stock
-        this.drawStock();
-
-        // Draw tool paths with material removal
-        this.drawToolPath();
-
-        // Debug: Draw a test point at origin
-        this.drawPoint(0, 0, 0, '#ffffff', 8);
-    }
-
-    // Parse G-code
-    parseGCode(gcode) {
-        console.log('Parsing G-code');
-        const lines = gcode.split('\n');
         this.paths = [];
-        let currentPos = { x: 0, y: 0, z: 0 };
-        let absoluteMode = true;
+        this.tools = new Map();
+        this.currentTool = 1;
+        this.toolDiameter = TOOL_DEFAULT_DIAMETER;
         this.isMetric = true;
-        this.bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0, minZ: 0, maxZ: 0 };
+        this.stockBuffer = 1.0;
+        this.stockZBuffer = 0.5;
 
-        for (let rawLine of lines) {
-            console.log('\nProcessing line:', rawLine);
+        this.bounds = createEmptyBounds();
+        this.stockBounds = createEmptyBounds();
+        this.coarseStock = null;
+        this.fineStock = null;
 
-            // Parse tool information from comments
+        this.animate = this.animate.bind(this);
+        this.onResize = this.onResize.bind(this);
+
+        window.addEventListener('resize', this.onResize);
+        this.animate();
+    }
+
+    onResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    animate() {
+        requestAnimationFrame(this.animate);
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    resetView() {
+        if (boundsValid(this.bounds)) {
+            const center = boundsCenter(this.bounds);
+            const dimensions = boundsDimensions(this.bounds);
+            const maxSize = Math.max(dimensions.x, dimensions.y, dimensions.z);
+            const distance = Math.max(100, maxSize * 2.25);
+            const worldCenter = gcodeToWorldVector3(center);
+            this.controls.target.copy(worldCenter);
+            this.camera.position.set(
+                worldCenter.x + distance,
+                worldCenter.y + distance * 0.9,
+                worldCenter.z + distance
+            );
+        } else {
+            this.controls.target.set(0, 0, 0);
+            this.camera.position.set(150, 150, 150);
+        }
+        this.controls.update();
+    }
+
+    parseGCode(gcode) {
+        this.paths = [];
+        this.tools.clear();
+        this.currentTool = 1;
+        this.toolDiameter = TOOL_DEFAULT_DIAMETER;
+        this.isMetric = true;
+        this.bounds = createEmptyBounds();
+        this.stockBounds = createEmptyBounds();
+        this.coarseStock = null;
+        this.fineStock = null;
+
+        let absoluteMode = true;
+        let currentPos = { x: 0, y: 0, z: 0 };
+
+        expandBounds(this.bounds, currentPos);
+        expandBoundsWithRadius(this.stockBounds, currentPos, this.toolDiameter * 0.5);
+
+        const lines = gcode.split(/\r?\n/);
+
+        for (const rawLine of lines) {
             this.parseToolInfo(rawLine);
 
-            // Remove comments but preserve the original line for logging
-            const commentMatch = rawLine.match(/;.*|\(.*?\)/);
-            const comment = commentMatch ? commentMatch[0] : '';
-            const line = rawLine.replace(/;.*|\(.*?\)/g, '').trim().toUpperCase();
-            
-            if (!line) {
-                console.log('Empty line after comment removal');
+            const cleaned = rawLine.replace(/;.*|\(.*?\)/g, '').trim().toUpperCase();
+            if (!cleaned) continue;
+
+            if (cleaned.includes('G20')) this.isMetric = false;
+            if (cleaned.includes('G21')) this.isMetric = true;
+            if (cleaned.includes('G90')) absoluteMode = true;
+            if (cleaned.includes('G91')) absoluteMode = false;
+
+            const toolMatch = cleaned.match(/\bT(\d+)\b/);
+            if (toolMatch) {
+                const toolNumber = parseInt(toolMatch[1], 10);
+                if (!Number.isNaN(toolNumber)) {
+                    this.currentTool = toolNumber;
+                    const toolInfo = this.tools.get(toolNumber);
+                    if (toolInfo && toolInfo.diameter > 0) {
+                        this.toolDiameter = toolInfo.diameter;
+                    }
+                }
+            }
+
+            const motionMatch = cleaned.match(/\bG0?0\b|\bG0?1\b|\bG2\b|\bG3\b/);
+            let motionCode = null;
+            if (motionMatch) {
+                const rawCode = motionMatch[0];
+                motionCode = rawCode === 'G00' ? 'G0' :
+                    rawCode === 'G01' ? 'G1' : rawCode;
+            }
+
+            const x = this.extractCoord(cleaned, 'X');
+            const y = this.extractCoord(cleaned, 'Y');
+            const z = this.extractCoord(cleaned, 'Z');
+            const i = this.extractCoord(cleaned, 'I');
+            const j = this.extractCoord(cleaned, 'J');
+            const k = this.extractCoord(cleaned, 'K');
+
+            const nextPos = {
+                x: x !== null ? (absoluteMode ? x : currentPos.x + x) : currentPos.x,
+                y: y !== null ? (absoluteMode ? y : currentPos.y + y) : currentPos.y,
+                z: z !== null ? (absoluteMode ? z : currentPos.z + z) : currentPos.z
+            };
+
+            expandBounds(this.bounds, nextPos);
+
+            if (!motionCode) {
+                currentPos = nextPos;
                 continue;
             }
 
-            console.log('Parsed line:', {
-                original: rawLine,
-                cleaned: line,
-                comment: comment
-            });
-
-            // Check for unit mode
-            if (line.includes('G20')) {
-                this.isMetric = false;
-                console.log('Switching to Imperial units');
-            }
-            if (line.includes('G21')) {
-                this.isMetric = true;
-                console.log('Switching to Metric units');
-            }
-
-            if (line.includes('G90')) {
-                absoluteMode = true;
-                console.log('Switching to Absolute mode');
-            }
-            if (line.includes('G91')) {
-                absoluteMode = false;
-                console.log('Switching to Relative mode');
-            }
-
-            // Check for tool change
-            const toolMatch = line.match(/T(\d+)/);
-            if (toolMatch) {
-                this.currentTool = parseInt(toolMatch[1]);
-                const toolInfo = this.tools.get(this.currentTool);
-                if (toolInfo) {
-                    this.toolDiameter = toolInfo.diameter/2;
-                    console.log(`Switched to tool ${this.currentTool}: ${this.toolDiameter} units diameter`);
-                }
-            }
-
-            // Improved G-code command detection
-            const gMatch = line.match(/G([0-3])/);
-            if (gMatch) {
-                console.log('Found G-code command:', gMatch[0]);
-            }
-
-            // Extract all coordinates
-            const x = this.extractCoord(line, 'X');
-            const y = this.extractCoord(line, 'Y');
-            const z = this.extractCoord(line, 'Z');
-            const i = this.extractCoord(line, 'I');
-            const j = this.extractCoord(line, 'J');
-
-            // Log raw coordinates
-            if (x !== null || y !== null || z !== null || i !== null || j !== null) {
-                console.log('Raw coordinates:', {
-                    line: rawLine,
-                    x, y, z,
-                    i, j,
-                    absoluteMode
+            if (motionCode === 'G0') {
+                this.paths.push({
+                    type: 'rapid',
+                    from: { ...currentPos },
+                    to: { ...nextPos },
+                    toolDiameter: this.toolDiameter
                 });
-            }
+            } else if (motionCode === 'G1') {
+                this.paths.push({
+                    type: 'cut',
+                    from: { ...currentPos },
+                    to: { ...nextPos },
+                    toolDiameter: this.toolDiameter
+                });
+                expandBoundsWithRadius(this.stockBounds, currentPos, this.toolDiameter * 0.5);
+                expandBoundsWithRadius(this.stockBounds, nextPos, this.toolDiameter * 0.5);
+            } else if (motionCode === 'G2' || motionCode === 'G3') {
+                const clockwise = motionCode === 'G2';
+                const center = {
+                    x: currentPos.x + (i ?? 0),
+                    y: currentPos.y + (j ?? 0),
+                    z: currentPos.z + (k ?? 0)
+                };
 
-            // Swap Y and Z coordinates to match world system
-            const nextPos = {
-                x: x !== null ? (absoluteMode ? x : currentPos.x + x) : currentPos.x,
-                y: z !== null ? (absoluteMode ? z : currentPos.y + z) : currentPos.y,
-                z: y !== null ? (absoluteMode ? y : currentPos.z + y) : currentPos.z
-            };
+                const endPos = { ...nextPos };
+                if (x === null && y === null) {
+                    endPos.x = currentPos.x;
+                    endPos.y = currentPos.y;
+                }
 
-            if (gMatch) {
-                const gCode = gMatch[0];
-                console.log('Processing G-code:', {
-                    command: gCode,
+                const arcPoints = this.calculateArcPoints(
                     currentPos,
-                    nextPos,
-                    i, j,
-                    hasIJ: i !== null || j !== null
-                });
+                    endPos,
+                    center,
+                    clockwise
+                );
 
-                if (gCode === 'G0' || gCode === 'G1') {
-                    // Linear move
-                    const path = {
-                        type: gCode === 'G0' ? 'rapid' : 'cut',
-                        from: { ...currentPos },
-                        to: { ...nextPos }
-                    };
-                    this.paths.push(path);
-                    console.log('Linear move:', {
-                        gCode,
-                        from: path.from,
-                        to: path.to,
-                        distance: Math.sqrt(
-                            Math.pow(path.to.x - path.from.x, 2) +
-                            Math.pow(path.to.y - path.from.y, 2) +
-                            Math.pow(path.to.z - path.from.z, 2)
-                        )
-                    });
-                    if (gCode === 'G1' || gCode === 'G2' || gCode === 'G3') {
-                        this.stockBounds.minX = Math.min(this.stockBounds.minX, nextPos.x);
-                        this.stockBounds.maxX = Math.max(this.stockBounds.maxX, nextPos.x);
-                        this.stockBounds.minY = Math.min(this.stockBounds.minY, nextPos.y);
-                        this.stockBounds.maxY = Math.max(this.stockBounds.maxY, nextPos.y);
-                        this.stockBounds.minZ = Math.min(this.stockBounds.minZ, nextPos.z);
-                        this.stockBounds.maxZ = Math.max(this.stockBounds.maxZ, nextPos.z);
-                    }
-
-                } else if (gCode === 'G2' || gCode === 'G3') {
-                    console.log('Processing arc move');
-                    
-                    // For arcs where X/Y are omitted, use current position
-                    const endPos = {
-                        x: x !== null ? (absoluteMode ? x : currentPos.x + x) : currentPos.x,
-                        y: z !== null ? (absoluteMode ? z : currentPos.y + z) : currentPos.y,
-                        z: y !== null ? (absoluteMode ? y : currentPos.z + y) : currentPos.z
-                    };
-
-                    // For arcs where I is omitted, use 0
-                    const center = {
-                        x: currentPos.x + (i !== null ? i : 0),
-                        y: currentPos.y,
-                        z: currentPos.z + (j !== null ? j : 0)
-                    };
-
-                    // If this is a full circle (X/Y omitted), calculate end position
-                    if (x === null && y === null) {
-                        endPos.x = currentPos.x;
-                        endPos.z = currentPos.z;
-                    }
-                    
-                    console.log('Arc move details:', {
-                        gCode,
-                        from: currentPos,
-                        to: endPos,
-                        center: center,
-                        i: i !== null ? i : 0,
-                        j: j !== null ? j : 0,
-                        clockwise: gCode === 'G2',
-                        radius: Math.sqrt(
-                            Math.pow(center.x - currentPos.x, 2) +
-                            Math.pow(center.z - currentPos.z, 2)
-                        )
-                    });
-
-                    const points = this.calculateArcPoints(
-                        currentPos,
-                        endPos,
-                        center,
-                        gCode === 'G2'
-                    );
-
-                    console.log(`Generated ${points.length} points for arc`);
-
-                    // Add segments of the arc
-                    for (let i = 0; i < points.length - 1; i++) {
-                        const path = {
+                if (arcPoints.length > 1) {
+                    for (let idx = 0; idx < arcPoints.length - 1; idx++) {
+                        const from = arcPoints[idx];
+                        const to = arcPoints[idx + 1];
+                        this.paths.push({
                             type: 'cut',
-                            from: points[i],
-                            to: points[i + 1]
-                        };
-                        this.paths.push(path);
-                        console.log(`Arc segment ${i + 1}/${points.length - 1}:`, {
-                            from: path.from,
-                            to: path.to,
-                            distance: Math.sqrt(
-                                Math.pow(path.to.x - path.from.x, 2) +
-                                Math.pow(path.to.y - path.from.y, 2) +
-                                Math.pow(path.to.z - path.from.z, 2)
-                            )
+                            from,
+                            to,
+                            toolDiameter: this.toolDiameter
                         });
+                        expandBoundsWithRadius(this.stockBounds, from, this.toolDiameter * 0.5);
+                        expandBoundsWithRadius(this.stockBounds, to, this.toolDiameter * 0.5);
+                        expandBounds(this.bounds, from);
+                        expandBounds(this.bounds, to);
                     }
-                    for (let i = 0; i < points.length; i++) {
-                        const pt = points[i];
-                        this.stockBounds.minX = Math.min(this.stockBounds.minX, pt.x);
-                        this.stockBounds.maxX = Math.max(this.stockBounds.maxX, pt.x);
-                        this.stockBounds.minY = Math.min(this.stockBounds.minY, pt.y);
-                        this.stockBounds.maxY = Math.max(this.stockBounds.maxY, pt.y);
-                        this.stockBounds.minZ = Math.min(this.stockBounds.minZ, pt.z);
-                        this.stockBounds.maxZ = Math.max(this.stockBounds.maxZ, pt.z);
-                    }
-
                 }
-                
             }
-
-            // Update bounds
-            this.bounds.minX = Math.min(this.bounds.minX, nextPos.x);
-            this.bounds.maxX = Math.max(this.bounds.maxX, nextPos.x);
-            this.bounds.minY = Math.min(this.bounds.minY, nextPos.y);
-            this.bounds.maxY = Math.max(this.bounds.maxY, nextPos.y);
-            this.bounds.minZ = Math.min(this.bounds.minZ, nextPos.z);
-            this.bounds.maxZ = Math.max(this.bounds.maxZ, nextPos.z);
 
             currentPos = nextPos;
         }
 
-        console.log('Parsing complete:');
-        console.log('Found paths:', this.paths.length);
-        console.log('Units:', this.isMetric ? 'Metric (mm)' : 'Imperial (inches)');
-        console.log('Bounds:', this.bounds);
-        console.log('Tools:', Object.fromEntries(this.tools));
-        
-        // Create stock based on bounds
-        this.stock = this.createStock();
-        
-        // Adjust camera to fit the part
-        this.fitCameraToBounds();
-        this.render();
+        this.updateSceneAfterParsing(currentPos);
+    }
+
+    updateSceneAfterParsing(finalPos) {
+        clearGroup(this.pathGroup);
+        clearGroup(this.stockGroup);
+        this.toolHead.visible = false;
+
+        if (!this.paths.length) {
+            this.resetView();
+            return;
+        }
+
+        this.buildToolPaths();
+
+        const coarseEnvelope = this.createCoarseEnvelope();
+        const coarseResolution = this.estimateVoxelResolution(coarseEnvelope, this.getCoarseVoxelSize());
+        this.coarseStock = new VoxelStock(coarseEnvelope, coarseResolution);
+
+        const hasCuts = this.paths.some((path) => path.type === 'cut');
+        let fineEnvelope = null;
+        let includeCoarseMesh = true;
+
+        if (hasCuts) {
+            fineEnvelope = this.createFineEnvelope(coarseEnvelope);
+            const fineResolution = this.estimateVoxelResolution(fineEnvelope, this.getFineVoxelSize());
+            this.fineStock = new VoxelStock(fineEnvelope, fineResolution);
+
+            const fineDistinct =
+                fineEnvelope.minX > coarseEnvelope.minX ||
+                fineEnvelope.maxX < coarseEnvelope.maxX ||
+                fineEnvelope.minY > coarseEnvelope.minY ||
+                fineEnvelope.maxY < coarseEnvelope.maxY ||
+                fineEnvelope.minZ > coarseEnvelope.minZ ||
+                fineEnvelope.maxZ < coarseEnvelope.maxZ;
+
+            if (fineDistinct) {
+                this.coarseStock.clearRegion(fineEnvelope);
+            } else {
+                includeCoarseMesh = false;
+            }
+
+            for (const path of this.paths) {
+                if (path.type !== 'cut') continue;
+                this.fineStock.carveSegment(
+                    path.from,
+                    path.to,
+                    (path.toolDiameter ?? this.toolDiameter) * 0.5
+                );
+            }
+
+            const fineMesh = this.fineStock.buildMesh(STOCK_COLOR, 0.9);
+            if (fineMesh) {
+                this.stockGroup.add(fineMesh);
+            }
+
+            const fineOutline = this.buildStockOutline(fineEnvelope, 0xff8844, 0.18);
+            if (fineOutline) {
+                this.stockGroup.add(fineOutline);
+            }
+        }
+
+        if (includeCoarseMesh) {
+            const coarseOpacity = hasCuts ? 0.35 : 0.55;
+            const coarseMesh = this.coarseStock.buildMesh(STOCK_COLOR, coarseOpacity);
+            if (coarseMesh) {
+                this.stockGroup.add(coarseMesh);
+            }
+        }
+
+        const coarseOutline = this.buildStockOutline(coarseEnvelope, 0x555555, 0.12);
+        if (coarseOutline) {
+            this.stockGroup.add(coarseOutline);
+        }
+
+        if (finalPos) {
+            const worldPos = gcodeToWorldVector3(finalPos);
+            this.toolHead.position.copy(worldPos);
+            this.toolHead.visible = true;
+        }
+
+        this.resetView();
+    }
+
+    buildToolPaths() {
+        if (!this.paths.length) return;
+
+        const positions = [];
+        const colors = [];
+
+        const rapidColor = new THREE.Color(RAPID_COLOR);
+        const cutColor = new THREE.Color(CUT_COLOR);
+
+        for (const path of this.paths) {
+            const start = gcodeToWorldVector3(path.from);
+            const end = gcodeToWorldVector3(path.to);
+            positions.push(
+                start.x, start.y, start.z,
+                end.x, end.y, end.z
+            );
+
+            const color = path.type === 'cut' ? cutColor : rapidColor;
+            colors.push(
+                color.r, color.g, color.b,
+                color.r, color.g, color.b
+            );
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(positions, 3)
+        );
+        geometry.setAttribute(
+            'color',
+            new THREE.Float32BufferAttribute(colors, 3)
+        );
+
+        const material = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.95
+        });
+
+        const segments = new THREE.LineSegments(geometry, material);
+        this.pathGroup.add(segments);
+    }
+
+    buildStockOutline(bounds, color = 0x777777, opacity = 0.2) {
+        if (!boundsValid(bounds)) return null;
+        const minWorld = gcodeToWorldVector3({
+            x: bounds.minX,
+            y: bounds.minY,
+            z: bounds.minZ
+        });
+        const maxWorld = gcodeToWorldVector3({
+            x: bounds.maxX,
+            y: bounds.maxY,
+            z: bounds.maxZ
+        });
+
+        const box = new THREE.Box3(minWorld, maxWorld);
+        const helper = new THREE.Box3Helper(box, color);
+        if (Array.isArray(helper.material)) {
+            helper.material.forEach((mat) => {
+                mat.transparent = true;
+                mat.opacity = opacity;
+                mat.depthTest = false;
+            });
+        } else if (helper.material) {
+            helper.material.transparent = true;
+            helper.material.opacity = opacity;
+            helper.material.depthTest = false;
+        }
+        helper.renderOrder = 2;
+        return helper;
+    }
+
+    createCoarseEnvelope() {
+        const base = boundsValid(this.bounds) ? this.bounds : {
+            minX: -this.stockBuffer,
+            maxX: this.stockBuffer,
+            minY: -this.stockBuffer,
+            maxY: this.stockBuffer,
+            minZ: -this.stockZBuffer,
+            maxZ: this.stockZBuffer
+        };
+
+        const xyBuffer = Math.max(this.stockBuffer, this.getCoarseVoxelSize() * 2);
+        const zBuffer = Math.max(this.stockZBuffer, this.getCoarseVoxelSize() * 2);
+
+        return {
+            minX: base.minX - xyBuffer,
+            maxX: base.maxX + xyBuffer,
+            minY: base.minY - xyBuffer,
+            maxY: base.maxY + xyBuffer,
+            minZ: base.minZ - zBuffer,
+            maxZ: base.maxZ + zBuffer
+        };
+    }
+
+    createFineEnvelope(coarseEnvelope) {
+        if (!boundsValid(this.stockBounds)) {
+            return { ...coarseEnvelope };
+        }
+
+        const margin = this.getFineMargin();
+
+        const result = {
+            minX: Math.max(coarseEnvelope.minX, this.stockBounds.minX - margin),
+            maxX: Math.min(coarseEnvelope.maxX, this.stockBounds.maxX + margin),
+            minY: Math.max(coarseEnvelope.minY, this.stockBounds.minY - margin),
+            maxY: Math.min(coarseEnvelope.maxY, this.stockBounds.maxY + margin),
+            minZ: Math.max(coarseEnvelope.minZ, this.stockBounds.minZ - margin),
+            maxZ: Math.min(coarseEnvelope.maxZ, this.stockBounds.maxZ + margin)
+        };
+
+        if (result.minX >= result.maxX ||
+            result.minY >= result.maxY ||
+            result.minZ >= result.maxZ) {
+            return { ...coarseEnvelope };
+        }
+
+        return result;
+    }
+
+    estimateVoxelResolution(bounds, targetSize) {
+        if (!(targetSize > 0)) targetSize = 1;
+        const dimensions = boundsDimensions(bounds);
+
+        const requested = {
+            x: dimensions.x > 0 ? Math.ceil(dimensions.x / targetSize) : 1,
+            y: dimensions.y > 0 ? Math.ceil(dimensions.y / targetSize) : 1,
+            z: dimensions.z > 0 ? Math.ceil(dimensions.z / targetSize) : 1
+        };
+
+        let resolution = {
+            x: clamp(requested.x, MIN_VOXELS_PER_AXIS, MAX_VOXELS_PER_AXIS),
+            y: clamp(requested.y, MIN_VOXELS_PER_AXIS, MAX_VOXELS_PER_AXIS),
+            z: clamp(requested.z, MIN_VOXELS_PER_AXIS, MAX_VOXELS_PER_AXIS)
+        };
+
+        let total = resolution.x * resolution.y * resolution.z;
+        if (total > MAX_TOTAL_VOXELS) {
+            const scale = Math.cbrt(total / MAX_TOTAL_VOXELS);
+            resolution = {
+                x: clamp(Math.max(1, Math.round(resolution.x / scale)), MIN_VOXELS_PER_AXIS, MAX_VOXELS_PER_AXIS),
+                y: clamp(Math.max(1, Math.round(resolution.y / scale)), MIN_VOXELS_PER_AXIS, MAX_VOXELS_PER_AXIS),
+                z: clamp(Math.max(1, Math.round(resolution.z / scale)), MIN_VOXELS_PER_AXIS, MAX_VOXELS_PER_AXIS)
+            };
+        }
+
+        return resolution;
+    }
+
+    getFineVoxelSize() {
+        return this.isMetric ? FINE_VOXEL_SIZE_MM : (FINE_VOXEL_SIZE_MM / 25.4);
+    }
+
+    getCoarseVoxelSize() {
+        return this.isMetric ? COARSE_VOXEL_SIZE_MM : (COARSE_VOXEL_SIZE_MM / 25.4);
+    }
+
+    getFineMargin() {
+        const toolPad = Math.max(this.toolDiameter, this.getFineVoxelSize() * 4);
+        const baseMargin = this.isMetric ? FINE_MARGIN_MM : (FINE_MARGIN_MM / 25.4);
+        return Math.max(toolPad, baseMargin);
+    }
+
+    parseToolInfo(line) {
+        const toolMatch = line.match(/\(TOOL:\s*T?(\d+)?\s+((\d+(\.\d+)?|\d+\/\d+))\s+([A-Z]+)/i);
+        if (!toolMatch) return;
+
+        const toolNum = parseInt(toolMatch[1] || '1', 10);
+        const dimStr = toolMatch[2].trim();
+        const description = toolMatch[5].trim();
+
+        const diameter = this.parseDimension(dimStr);
+        if (Number.isFinite(diameter) && diameter > 0) {
+            this.tools.set(toolNum, {
+                diameter,
+                description
+            });
+        }
     }
 
     extractCoord(line, axis) {
@@ -788,95 +923,104 @@ class GCodeViewer {
         return match ? parseFloat(match[1]) : null;
     }
 
-    fitCameraToBounds() {
-        // Calculate the size of the part
-        const sizeX = this.bounds.maxX - this.bounds.minX;
-        const sizeY = this.bounds.maxY - this.bounds.minY;
-        const sizeZ = this.bounds.maxZ - this.bounds.minZ;
-        
-        // Calculate the maximum dimension
-        const maxSize = Math.max(sizeX, sizeY, sizeZ);
-        
-        // Set camera distance based on part size
-        this.camera.distance = maxSize * 2;
-        
-        // Center the view on the part
-        const centerX = (this.bounds.minX + this.bounds.maxX) / 2;
-        const centerY = (this.bounds.minY + this.bounds.maxY) / 2;
-        const centerZ = (this.bounds.minZ + this.bounds.maxZ) / 2;
-        
-        // Adjust camera position to look at the center
-        this.camera.rotation.x = -Math.PI / 4;
-        this.camera.rotation.y = -Math.PI / 4;
+    parseDimension(dimStr) {
+        if (dimStr.includes('/')) {
+            const [num, denom] = dimStr.split('/');
+            const numerator = parseFloat(num);
+            const denominator = parseFloat(denom);
+            if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
+                return NaN;
+            }
+            return numerator / denominator;
+        }
+        return parseFloat(dimStr);
     }
 
-    resetView() {
-        this.camera.rotation.x = -Math.PI / 4;  // -45 degrees from horizontal
-        this.camera.rotation.y = -Math.PI / 4;  // -45 degrees from front
-        this.camera.rotation.z = 0;
-        this.camera.distance = 300;
-        this.scale = 1;
-        this.render();
+    calculateArcPoints(start, end, center, clockwise) {
+        const radius = Math.hypot(start.x - center.x, start.y - center.y);
+        if (!(radius > 0)) {
+            return [start, end];
+        }
+
+        let startAngle = Math.atan2(start.y - center.y, start.x - center.x);
+        let endAngle = Math.atan2(end.y - center.y, end.x - center.x);
+
+        if (clockwise && endAngle >= startAngle) {
+            endAngle -= Math.PI * 2;
+        } else if (!clockwise && endAngle <= startAngle) {
+            endAngle += Math.PI * 2;
+        }
+
+        const angleDiff = endAngle - startAngle;
+        const arcLength = Math.abs(angleDiff) * radius;
+        const segments = clamp(Math.ceil(arcLength / Math.max(radius * 0.25, 0.5)), 12, 90);
+
+        const points = [];
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const angle = startAngle + angleDiff * t;
+            points.push({
+                x: center.x + radius * Math.cos(angle),
+                y: center.y + radius * Math.sin(angle),
+                z: start.z + (end.z - start.z) * t
+            });
+        }
+
+        points[0] = { ...start };
+        points[points.length - 1] = { ...end };
+        return points;
     }
 }
 
-// Initialize viewer
-const canvas = document.createElement('canvas');
-const viewer = new GCodeViewer(canvas);
+const viewer = new GCodeViewer(document.body);
 
-canvas.style.position = 'absolute';
-canvas.style.top = '0';
-canvas.style.left = '0';
-canvas.style.zIndex = '1';
-document.body.appendChild(canvas);
-console.log('Canvas element created and added to body');
-
-
-
-// Add loading indicator
 function showLoading(show) {
     const controls = document.getElementById('controls');
+    if (!controls) return;
+    let loading = document.getElementById('loading');
     if (show) {
-        const loading = document.createElement('div');
-        loading.id = 'loading';
-        loading.textContent = 'Processing G-code...';
-        loading.style.color = '#fff';
-        loading.style.marginLeft = '10px';
-        controls.appendChild(loading);
-    } else {
-        const loading = document.getElementById('loading');
-        if (loading) loading.remove();
+        if (!loading) {
+            loading = document.createElement('div');
+            loading.id = 'loading';
+            loading.textContent = 'Processing G-code...';
+            loading.style.color = '#fff';
+            loading.style.marginLeft = '10px';
+            controls.appendChild(loading);
+        }
+    } else if (loading) {
+        loading.remove();
     }
 }
 
-// Handle file input
 const fileInput = document.getElementById('fileInput');
+if (fileInput) {
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
 
-fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    showLoading(true);
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            viewer.parseGCode(e.target.result);
-        } catch (error) {
-            console.error('Error processing G-code:', error);
-            alert('Error processing G-code file. Please check the console for details.');
-        } finally {
+        showLoading(true);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                viewer.parseGCode(e.target?.result || '');
+            } catch (error) {
+                console.error('Error processing G-code:', error);
+                alert('Error processing G-code file. See console for details.');
+            } finally {
+                showLoading(false);
+            }
+        };
+        reader.onerror = () => {
+            alert('Error reading file');
             showLoading(false);
-        }
-    };
-    reader.onerror = () => {
-        alert('Error reading file');
-        showLoading(false);
-    };
-    reader.readAsText(file);
-});
+        };
+        reader.readAsText(file);
+    });
+}
 
-// Handle reset view button
-document.getElementById('resetViewBtn').addEventListener('click', () => {
-    viewer.resetView();
-});
+const resetButton = document.getElementById('resetViewBtn');
+if (resetButton) {
+    resetButton.addEventListener('click', () => {
+        viewer.resetView();
+    });
+}
