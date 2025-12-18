@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muscle Evolution Lab | Arcade</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Muscle Evolution Lab</h1>
+        <div class="nav-links">
+            <a class="btn ghost" href="../index.html">Arcade Home</a>
+            <a class="btn ghost" href="../../index.html#projects">Portfolio</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="layout">
+            <section class="panel" aria-label="Builder Controls">
+                <h2>Creature Designer</h2>
+                <p>Drop soft-body nodes, stitch them together with contractible muscles, then unleash a neural network to teach your creature how to move. Right now the arena is a side-scrolling hill climb - future challenges can swap in different terrain or water.</p>
+
+                <div class="control-row">
+                    <button id="mode-add" class="btn">Add Node</button>
+                    <button id="mode-connect" class="btn ghost">Connect Muscle</button>
+                    <button id="mode-bone" class="btn ghost">Connect Bone</button>
+                    <button id="mode-anchor" class="btn ghost">Toggle Anchor</button>
+                    <button id="mode-delete" class="btn ghost">Delete Node</button>
+                    <button id="clear-build" class="btn ghost">Clear Design</button>
+                </div>
+
+                <div class="mode-indicator">
+                    <strong>Mode</strong>
+                    <span id="active-mode">Add Node</span>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="chip node"></div>
+                        <span>Dynamic node - mass point controlled by muscles.</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="chip anchor"></div>
+                        <span>Anchored node - held in place, great for ground contact.</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="chip muscle"></div>
+                        <span>Muscle - contracts to 60% length / relaxes to 110% length.</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="chip bone"></div>
+                        <span>Bone - rigid link that holds a fixed distance.</span>
+                    </div>
+                </div>
+
+                <p><strong>Tips:</strong> drag nodes to reposition. Double-click a node to toggle its anchor state without changing modes. Use Connect Bone for rigid struts and Delete Node mode to remove mistakes.</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span>Nodes</span>
+                        <strong id="node-count">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Muscles</span>
+                        <strong id="muscle-count">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Best Distance</span>
+                        <strong id="best-distance">0.00 m</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Generation</span>
+                        <strong id="generation">-</strong>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <button id="run-evolution" class="btn">Run Evolution</button>
+                    <button id="stop-evolution" class="btn ghost">Stop</button>
+                    <button id="toggle-ghosts" class="btn ghost" aria-pressed="false">Show All Ghosts</button>
+                    <button id="export-creature" class="btn ghost">Export Blueprint</button>
+                    <button id="import-creature" class="btn ghost">Import Blueprint</button>
+                </div>
+
+                <div class="log" id="log" aria-live="polite">
+                    <div class="log-entry"><strong>Ready.</strong> Craft a creature and launch the run.</div>
+                </div>
+            </section>
+
+            <section class="panel" aria-label="Simulation Canvas">
+                <h2>World View</h2>
+                <p id="status-line">Awaiting design...</p>
+                <div class="canvas-wrap">
+                    <canvas id="mini-map" class="mini-map" width="200" height="120"></canvas>
+                    <canvas id="world" width="960" height="520"></canvas>
+                </div>
+                <div class="status-bar">
+                    <span>Challenge: <strong>Hill sprint (side-scroller)</strong></span>
+                    <span>Controller: <strong>Generational neural net</strong></span>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+
+
+

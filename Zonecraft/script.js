@@ -584,9 +584,7 @@ function handleDecision(key) {
                     pushLine('Wrong decision (-$30)')
                 }
             } else {
-                window.location.replace(
-                    'hub.html',
-                );
+                window.location.replace('../Arcade/index.html');
             }
         } else {
             // key === 'n'
@@ -629,9 +627,19 @@ function handleDecision(key) {
 }
 
 function handleCommand(cmd) {
-    const [root, ...rest] = cmd.split(/\s+/)
+    const [rootRaw, ...rest] = cmd.split(/\s+/)
+    const root = (rootRaw || '').toLowerCase()
     panels.terminal.style.display = 'block'
     switch (root) {
+        case 'y':
+        case 'n':
+        case 'x': {
+            if (!handleDecision(root)) {
+                pushLine('No pending decision')
+            }
+            break
+        }
+
         case 'buyfood':
             const num = rest.join(' ').toLowerCase()
             if (num*FOOD_COST <= GAME.balance){
@@ -726,11 +734,6 @@ function handleCommand(cmd) {
 
 /* =================== Keyboard handling ====================== */
 function handleTyping(e) {
-    if (state.input === '' && (e.key === 'y' || e.key === 'n' || e.key === 'x')) {
-        if (handleDecision(e.key)) {
-            return
-        }
-    }
     if (e.key === 'Backspace') {
         state.input = state.input.slice(0, -1)
         drawPrompt()

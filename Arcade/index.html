@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcade | Gabriel Halloran</title>
+    <style>
+        :root {
+            --accent: #ff6b6b;
+            --card-bg: rgba(20, 20, 30, 0.75);
+            --surface: rgba(10, 10, 20, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #fff;
+            background: radial-gradient(circle at top, #1a2a6c, #1f1a3a 45%, #090909 100%);
+            backdrop-filter: blur(4px);
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.75);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            letter-spacing: 0.02em;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 22px;
+            border-radius: 999px;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-ghost:hover {
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 6px 12px rgba(255, 107, 107, 0.2);
+        }
+
+        main {
+            padding: 60px 20px 80px;
+        }
+
+        .intro {
+            max-width: 900px;
+            margin: 0 auto 60px;
+            text-align: center;
+        }
+
+        .intro h1 {
+            margin-bottom: 12px;
+            font-size: 46px;
+            letter-spacing: 0.03em;
+        }
+
+        .intro p {
+            margin: 0 auto;
+            max-width: 640px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .games-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 28px;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        }
+
+        .game-card {
+            padding: 26px;
+            border-radius: 14px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 16px 28px rgba(5, 5, 15, 0.55);
+        }
+
+        .blank-card {
+            min-height: 180px;
+            opacity: 0.35;
+            pointer-events: none;
+            justify-content: center;
+        }
+
+        .blank-card:hover {
+            transform: none;
+            border-color: rgba(255, 255, 255, 0.06);
+            box-shadow: none;
+        }
+
+        .game-title {
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: 0.02em;
+        }
+
+        .game-meta {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .coming-soon {
+            margin-top: auto;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @media (max-width: 600px) {
+            nav {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .intro h1 {
+                font-size: 36px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a class="logo" href="../index.html">Gabriel Halloran</a>
+            <a class="btn btn-ghost" href="../index.html#projects">Back to Portfolio</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="intro">
+            <h1>The Arcade</h1>
+            <p>Jump into a rotating collection of small experiments, prototypes, and playful ideas. Blank cabinets mark the spaces reserved for what comes next.</p>
+        </section>
+
+        <section class="games">
+            <div class="games-grid">
+                <article class="game-card">
+                    <h2 class="game-title">Zonecraft</h2>
+                    <p class="game-meta">Oversee the root zone database, juggle requests, and keep the world wide web humming. Work in progress.</p>
+                    <a class="btn btn-primary" href="../Zonecraft/main.html">Launch Game</a>
+                </article>
+
+                <article class="game-card">
+                    <h2 class="game-title">Muscle Evolution Lab</h2>
+                    <p class="game-meta">Design soft-body creatures and let a generational neural network learn how to sprint uphill without direct player input.</p>
+                    <a class="btn btn-primary" href="muscle-evolution/index.html">Engineer Creature</a>
+                </article>
+
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+                <article class="game-card blank-card" aria-hidden="true"></article>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        Back to building — check for new cabinets soon.
+    </footer>
+</body>
+</html>
