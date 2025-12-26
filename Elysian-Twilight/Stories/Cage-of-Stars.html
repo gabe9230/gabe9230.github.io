@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elysian Twilight Story Hub</title>
+    <script src="haas-gcode-library.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0d0d;
+        --card: #1a1a1d;
+        --fg: #eaeaea;
+        --accent: #ff6b6b;
+        --radius: 4px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.6;
+        padding: 10px;
+      }
+      /* ── background pattern ───────────────────────────── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.04) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.04) 50%,
+            rgba(255, 255, 255, 0.04) 75%,
+            transparent 75%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(255, 107, 107, 0.05) 0%,
+            transparent 70%
+          );
+        background-size: 40px 40px, 100% 100%;
+        pointer-events: none;
+        z-index: -1;
+      }
+      .btn-wrap {
+        display: inline-block; /* shrink-wrap to button */
+        padding: 4px 6px; /* space around the button */
+        border: 2px solid #ff6b6b; /* visible border */
+        border-radius: 12px; /* rounded corners */
+        overflow: hidden; /* ensures inner content stays rounded */
+      }
+
+      .btn-wrap button {
+        background: #ff6b6b;
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px; /* optional: round the button itself */
+        cursor: pointer;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        background: var(--card);
+        padding: 10px;
+        border-radius: var(--radius);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        margin-top: 1%;
+      }
+
+      h1 {
+        text-align: center;
+        color: var(--accent);
+        margin-bottom: 20px;
+      }
+
+      /* ── stories grid ──────────────────────────*/
+      .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .project-card {
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+            background-color: rgba(30, 30, 30, 0.6);
+            backdrop-filter: var(--card-blur);
+        }
+        
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.2);
+        }
+        
+        .project-img {
+            height: 200px;
+            background-color: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.5);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .project-info {
+            padding: 20px;
+        }
+        
+        .project-info h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .project-info p {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 15px;
+        }
+      /* ── buttons & links ───────────────────────── */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      button,
+      .docs-btn {
+        padding: 5px 10px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button:hover,
+      .docs-btn:hover {
+        opacity: 0.9;
+      }
+
+      /* ── modal ─────────────────────────────────── */
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1;
+      }
+      .modal-content {
+        background: var(--card);
+        margin: 4% auto;
+        padding: 10px;
+        border: 1px solid #444;
+        width: 90%;
+        max-width: 600px;
+        border-radius: var(--radius);
+        position: relative;
+      }
+      .close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 28px;
+        color: #aaa;
+        cursor: pointer;
+      }
+      .close:hover {
+        color: #fff;
+      }
+
+      /* ── responsive tweaks ─────────────────────── */
+      @media (max-width: 768px) {
+        .editor-container {
+          flex-direction: column;
+        }
+        .param-row {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .param-row label,
+        .param-row select,
+        .param-row input {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div>
+        <a href="../index.html" class="btn-wrap">Back</a>
+      </div>
+      <h1>Elysian Twilight Story Hub</h1>
+    </div>
+    <div class="container">
+      Cage of Stars<br />
+      by Gabriel H<br />
+      Set ~48 years after the collapse of the Elysian Empire.<br />
+<br />
+      They saw it from the slag fields first, where the air tasted like coins and Heat crawled through the ducting in slow pulses, the kind metal makes when it's working harder than it should. Molten iron turned to a scab in troughs as foremen raised their faces toward a sky that no longer belonged to them.<br />
+      The ship arrived without spectacle: a long black cross cut into the clouds, no flare, no thunder, just the feeling of something heavy sliding into place above the world. It dulled the light. It made the wind forget which way it wanted to go. Someone in the yard said the old word the way a person might say their father's name at a graveside.<br />
+      "Warden."<br />
+      Rell heard it from the machine hall, a low breath passed from mouth to mouth. She stepped out under a rusted gantry and watched as dust lifted in the updraft, then dropped as if the ship's weight had reached the air before its body did.. The ship seemed impossibly still, the way mountains pretend to be still while ice and stone creep under the skin.<br />
+      Sirens tried, and then did not. Search beams unreeled and went thin halfway up. Radio nets began to scream and then held their breath. Somewhere far underfoot, capacitors hissed out their stored charge like animals dying in burrows. The smell changed in the hall—hot metal and old oil, and then something new, the angelic sting of ozone gone feral.<br />
+      "EMP," Yori said beside her, calm because the word fit a shape and shapes were her business. She held a dish she'd built from museum glass and farm relay scrap. She tilted it toward the sky and listened. "Not ours. Loyalist failsafe in the polar array. Triggered on the Warden's transit. It'll scramble the shield lattice and blind the comm synapse. Fifty minutes. Maybe less."<br />
+      "Long enough to be fools," Kade said.<br />
+      Rell watched the ship. It didn't move. Her palms itched. Machines complained to her in ways other people couldn't hear. This one said nothing at all.<br />
+      "We don't have artillery," she said. "Even if the shields are down, that hull laughs at everything we can throw in the air."<br />
+      "We don't throw," Brohn said from the door, smiling like he'd already tasted victory and couldn't decide if he liked it. There was a crack down one of his teeth that he caressed with his tongue when he was thinking. "We take. Board, cut, steal the golden heart. We come down carrying a sun on a chain."<br />
+      Rell kept looking at the sky because she knew if she looked at Brohn now she'd see the future she didn't want and not be able to swallow it back down. She thought about the quiet of the ship's hull, and the way gravity felt heavier than it had a moment ago.<br />
+      Kade didn't look at either of them. He had that narrow cold in him he got when a door was already open and he had to be the first one through. "Window's closing," he said. "If we're going, we go."<br />
+      Yori didn't argue. She never did, not about the inevitable. She reached up once, put her hand on Rell's shoulder, and squeezed like she was checking that the bone was still bone, then let go. "It's the only time we'll ever get."<br />
+      They left the machine hall while the sky still felt stunned.<br />
+<br />
+      The shuttle looked like it had been built by a drunk with a good memory. It was an ore tug stripped to bone and skinned in plates stolen from scrap one river over. Its coils whined in a timbre you only heard when a bearing wanted to fail and was too proud. Inside, the air tasted like salt.<br />
+      Tamsin wasn't here. It was just the four of them by Rell's insistence—Rell, Kade, Yori, Brohn. Everyone else who mattered was needed on the ground, because a planet is heavier than one ship no matter how big the ship is. Kade took the pilot sling without drama and let the straps bite him until they held. He lifted them with gentleness anyway—his only superstition. The shuttle lifted unevenly, the way old rigs do when every worn bearing remembers what it used to be paid for.<br />
+      "Forty-nine," Yori said, dish propped against her knee. "Shields are down across the high lattice. The auto-protection below that is still twitching."<br />
+      Brohn leaned over her shoulder to watch the numbers scroll like rain. "Twitching isn't sleeping."<br />
+      Yori didn't answer him.<br />
+      Rell sat with her boots braced under a crossbar and watched the planet unstack. Slag flats, sink basins stitched with dead rail, rusting conveyors. Then the low clouds boiling under them and suddenly everything was clean. The Warden hung above it all, a beetle-black cross, edges so precise her eyes kept slipping off when she tried to count seams.<br />
+      "We stay under the nodal arc," Kade said, voice quiet in the helmet net. "We don't light anything bright enough to wake the old gods."<br />
+      Brohn laughed, then stifled it because the ship filled the cockpit and it didn't feel like a joke anymore. "Old gods," he said anyway, softer. "Old thieves."<br />
+      Rell put her palm against the bulkhead and felt the shuttle vibrate in a rhythm slightly wrong, then adjust to a cleaner line. Kade had felt it too and trimmed without thinking. It comforted her: the sense that some things still responded to human hands in a sane way.<br />
+      They came in on the shadow side. The hull filled the view and then the world. At this range, it wasn't a shape anymore. It was a surface with habits. Layered plates with edges that didn't line up where a quadratic wanted them to; ribs that swelled a little when some inner pressure shifted; thin lines like a ledger of surgical scars. No windows. No rails. No welcome.<br />
+      The shuttle kissed the hull. Magnets clunked. Rell's molars ached with the contact. The field tried to push them off and Kade's hands met it, coaxed, held.<br />
+      "Forty-five," Yori said. "No handshake. No vents open. No…nothing. It's deaf in the useful places and hearing in the wrong ones."<br />
+      "Perfect," Brohn said, and burned a hole.<br />
+      His cutter sang into the plate, a sweet sheer note Rell felt in the drum of her ear. The metal didn't melt so much as decide it was supposed to be elsewhere. He scored a square. The last inch stuck and then let go with a little pop like a knuckle. Air sighed. Cold rushed at them in a polite hurry.<br />
+      Rell stepped through and the ship took her weight the way a stranger takes a held door: with courtesy and no warmth.<br />
+<br />
+      Inside was not a corridor. Not in the way you mean corridors. It was a curved volume that wanted to be part of a larger curve, then changed its mind and flowed into something else before the thought finished. The floor had a preference for down, but not a commitment. The walls were ribbed in a way that made you want to count them until your eyes got bored and wandered.<br />
+      The light didn't glow. It watched. It lay flush under a skin like the white of an eye.<br />
+      They moved in single file because the geometry bullied you into it. Kade first, because there were always doors to be kicked open in corridors that didn't have doors. Yori second, Yori carried the dish under one arm the way a mechanic carries something that breaks if you breathe wrong. Rell third, because if something started to complain she'd hear it and because she hated being last. Brohn last, because he liked to look back and see the hole home still there.<br />
+      "Gravity's bent," Yori murmured. "Ship's wearing its own weight wrong."<br />
+      "It's rebalancing," Rell said, hand on a spar. She could feel it, the way a big machine adjusts load across a frame when a bearing runs hot. "Bleeding heat through its bones."<br />
+      "No traps," Kade said, not because he believed it but because you had to say it. He scanned with his rifle and the rifle came back with nothing.<br />
+      The emptiness had a scent: antiseptic cold, the clean air of things that sterilize themselves in boredom. They climbed a throat that blew warmth up past them—waste heat from a heart too proud to show it. They stepped into a chamber that curved in on itself like a pressure vessel, every surface built to hold something that didn't want holding..<br />
+      Twelve petals of almost-armor ringed a not-hole that was deeper than the room. Thick cables hugged each petal and disappeared into the deck. Around the ring, consoles the size of coffins slept until a human hand hovered and they flickered awake.<br />
+      Yori didn't touch first. She listened. "Forty-one."<br />
+      Rell drifted closer to a console. Glyphs poured down the surface like a bureaucrat's dream—formal, legible, indifferent. She said hello in the only language machines listen to: patience. The code rolled.<br />
+      "Look," Brohn said, peering over her shoulder pretending as if he could read fleet. "Find me a yes."<br />
+      Rell found a scar. One message written into an old layer and pinned there like a moth, carrying the dead smell of a noble's office.<br />
+      BEACON / LAST-ORDER: HOUSE VERIDAN<br />
+      PRIORITY: FEED<br />
+      PAYLOAD: LOW-RESISTANCE COLONY / NOIRA<br />
+      ACK: RECEIVED<br />
+      ACTION: ORBITAL HOLD / BLINDNESS DETECTED / WAIT<br />
+      She read it aloud because some things need sound to be real.<br />
+      Yori swallowed, then spoke like she'd already spent all the anger the world was going to give her. "He called it. He couldn't keep the world so he fed it to the dog on a long leash."<br />
+      Kade took a tighter grip on his rifle. "Then we end it here."<br />
+      Brohn smiled because he always smiled when he should have blinked. "Or we take it. We take the converter. One cage for a small black sun. No more rationing. No more begging off rusted lines and tired rivers. We build a city of lights. We sell what we don't need and buy a hundred lives."<br />
+      Rell kept her eyes on the petals. She could feel the thing behind them—no, not a thing. An argument with the universe floored into a smaller shape than it wanted. "If we move it wrong," she said, "the throat shears. The field tears. The hole inside tastes air. It'll eat the ship. Then us. Then the sky. Then everything that used to be called Noira."<br />
+      "Or we do it right," Brohn said, as if that sentence wasn't the kind of sentence people didn't live long after.<br />
+      "Admin lattice is fused," Yori said. "Human control layer burned out long ago. There's no steering it. Only break or take."<br />
+      "Forty," Kade said. "Pick."<br />
+      Rell shut her eyes and saw slopes. The iris could be eased so the return flowed in a lazy curl rather than a rip. If they did it smooth, the bottle would fold itself like a blanket and go to sleep. The ship would go cold. The planet would be blue under a quiet sky. She saw a little boy in a yard under a hanging washline looking up without fear.<br />
+      She opened her eyes back into metal and breathed. "We destroy it."<br />
+      Brohn laughed. Not happy. Relieved to finally have a fight worth fighting. "Then I stop you."<br />
+      He moved, and the room changed.<br />
+      He didn't go for a gun. He took three fast steps and had his blade out and angled to cut Yori's wrist because she was the one who could blind the teeth. Kade was already moving—rifle half-lowered—and smashed Brohn into the edge of a console with a sound like the room said "no." The blade skittered. Brohn twisted, small and quick like a weasel in a sack.<br />
+      Rell didn't look. She was already at the crossfeed, where the return choked down into something sanity could hold. She found the bolt that was only a bolt if you weren't paying attention and put the tool no one should own on it.<br />
+      "Thirty-eight," Yori said, knuckles white on the dish. "I can blind motion nets for twenty seconds if I burn this. After that the ship knows us."<br />
+      "We only need one minute," Rell said, because if you say the thing you need sometimes it's true.<br />
+      Brohn made the little sign he made before gambling with more than he could pay. "You burn it, you leave us empty and on our knees next month. You do this, we beg again. We die slower." He heaved against Kade's hold and Kade's shoulder popped like a twig in a cold fire. Kade hissed but didn't let go.<br />
+      "Be quiet," Yori said with gritted teeth.<br />
+      Rell eased the choke. Gentle, like laying a cool cloth on a fevered head. The iris petals shivered. The hum dropped a key. The field tug that held the bottle did the human thing: it tried to hold and failed gracefully.<br />
+      The chamber's lights slid toward the color of old blood.<br />
+      "Teeth," Yori said. "Here they come."<br />
+      Something opened in the ceiling like a pupil dilating and spat three drones the size of plates, legs tucked, optics blank. Kade shot one as it fell and professional courtesy meant the bullet vanished without drama and the drone came apart like a toy hitting a wall. The second skated, spider-thin, toward Yori's dish. She put the dish in its path like a shield. The drone hit, hesitated on a geometry problem, and re-evaluated murder. Kade shot it and it ceased to be relevant. The third landed near Rell's knee and cocked its head at the tool like it could smell intent. Rell kicked it and her boot found an edge that made it spin like a coin. Kade ventilated it while it got its balance back.<br />
+      "Thirty-five," Yori said, grabbing the dish by the cracked face. "Mask is on. I can hold some sensors blind for twenty. Rell—"<br />
+      "Almost," Rell said.<br />
+      The ship woke the way an animal wakes when you touch the wound instead of the fur. The floor caught Kade's boots like a tired hand. He pulled, and it pulled back. He kept his stance anyway, firing precise and small into openings the ship made on accident. The console under Yori's palm became hot and then changed stiffness under her fingers—soft to hard—and she swore without sound.<br />
+      "Rell," Kade said, voice flat. The word wasn't a question. It was an inventory.<br />
+      "Now," Rell said, and moved the choke past a balance no drawing would have admitted to.<br />
+      For half a heartbeat, the bottle remembered the mathematics of kindness. It folded. The hum slipped into a lower song.<br />
+      "Down," Yori whispered, almost laughing. "It's—"<br />
+      The ship misheard her.<br />
+      A force came in from the hole they'd opened. Not bullets. Pressure. It turned joints into bad lies and made lungs reconsider the idea of breathing. Rell tasted iron. Kade grunted and set himself in a way that meant part of him was now a shelf.<br />
+      Brohn tore free, not with strength—he never had much of that—but with the disgusting grace of a man who had worked in tight spaces long enough to know how to go where one shouldn't be able. He drove his shoulder into Yori and the dish slipped. "We can take it!" he shouted.<br />
+      Brohn lunged. Rell didn't see him; she felt the tug at Yori's elbow and the change in Kade's breath and the way the field puckered where a body moved fast. She didn't think. She brought the tool around and smashed Brohn's wrist with the faith of a mechanic that all problems answer to leverage. His knife clattered away. He screamed once and the ship ate the sound so it wouldn't get into the walls.<br />
+      "Stop," Yori said through her teeth. She wasn't talking to anyone human anymore. The glyphs under her hand wrote panic in mathematics. "Stop, stop—"<br />
+      Three more drones dropped. Kade took one. The second found the dish's cracked seam and went for it like a lover. Yori drove her palm into its eye, and the machine rewarded her with a fist of current. Her hand buckled. She didn't let go. The third landed on Kade's shoulder and put a needle into the seam of his clavicle armor. He shot it off the way a man swats a mosquito and then he sat down without agreeing to.<br />
+      Rell felt the slope flatten under her hands. The bottle sat. Not sleeping. Breathing shallow.<br />
+      "Hold," she whispered. "Hold hold hold."<br />
+      "Twenty-eight," Yori gasped. "Mask thinning."<br />
+      Brohn moved like a cornered animal willing to die for the wrong reason. He slipped under Kade's slack arm and dove for the iris. "Take it!" he cried. The nearest petal glittered. It wasn't a threat. It was a response.<br />
+      Kade shot him. Not an execution. A denial. The round hit Brohn two inches left of his breastbone and he folded around it like he'd been taught that shape long ago. He looked surprised. Then he looked angry with himself, which Rell wished she didn't see.<br />
+      The ship reeled, gently, and then began to remember itself.<br />
+      The hall they'd come down shifted in the way distances do in dreams. Longer. The floor's preference for down became firmer. The not-light in the ceiling changed its mind about which color explained the world. Cooling ducts sang as auxiliaries came up—systems that did not need the bottle to run for long. Fusion spines doing old animal tricks.<br />
+      "Twenty-four," Yori said. "I can blind teeth or hold Rell's hand. Not both."<br />
+      "Help me," Rell said. She opened the return a fraction more and the math forgave her impertinence with a soft exhale. The bottle lay still. She could not keep it there. She could only ask until it got bored.<br />
+      Kade pushed himself back up into a crouch. He bared his teeth at the hall and the hall didn't care. Two more drones came—a pair this time, learning. He killed one and regretted it because it taught the second something about how he moved.<br />
+      "Twenty," Yori said. Blood dripped from her nose and she didn't swipe at it. "We won't make it to the cut if we leave now."<br />
+      "We aren't leaving," Kade said.<br />
+      "Then die faster," Yori said, almost gently, like a nurse who has stopped lying. "The blackout's almost done."<br />
+      Rell tightened the choke. The bottle's hum dipped and trembled. She felt the moment, a hair-thin line where she could pull the pin of the world and watch it unwind slow, gentle, done.<br />
+      "Now," she said, not a command, a plea.<br />
+      A seam in the ceiling sighed open and poured six spiders in a neat line. Kade killed two. The third got his thigh and made that leg wrong for standing. He fired anyway. The fourth put a dart into Yori's shoulder and the dish fell. She grabbed it with her damaged hand and screamed openly. The fifth landed on Brohn where he lay and did something to his chest that made a wet little pop. The sixth came for Rell and she lifted the tool and—Kade shot it before it reached her.<br />
+      The ship exhaled differently then, like it had made a decision. The pressure in the room swelled. The hum rose by half a hair. The console under Rell's palm hardened. The glyphs under Yori's fingers smoothed into the kind of language computers use when they're done pretending to be polite.<br />
+      "Fifteen," Yori said. "It's back. It sees us."<br />
+      Kade looked at Rell like you look at a friend across a crowded room right before you decide to hit the man in front of you with a bottle. He nodded, once. Rell nodded back. She let go.<br />
+      They went. They left the converter room with the converter watching them with no eyes and a memory of warmth in the clamshell where a sun had been. They moved down the hall Holl had not mapped and which now changed length depending on whether you believed it.<br />
+      They moved poorly. Kade walked backward and fired in little, clean pairs into joints. Yori held the dish under one arm like a dying bird and stabbed at a panel with her opposite hand to make doors want to open. Rell led, which she hated, because she could smell where hot air was going and hot air meant exits.<br />
+      They dropped into a vent that breathed heat out like a mouth. Stars hung beyond like cold coins. The planet a dirty marble lower right.<br />
+      The ship's security came to the lip like ants to sugar.<br />
+      Kade stood in the mouth of the vent and made himself a wall. He had a round left in the mag and it belonged to something that got too near Yori's face. He spent it. The next mag took too long. He still got it in. He still got three more spiders. He learned too late that the fourth had a second mouth.<br />
+      "Out," Rell said. She saw the cut hull in her mind and the shuttle clinging like a limpet.<br />
+      "Three," Yori said, out of numbers.<br />
+      They slid. The vent threw them into a service cavity and the service cavity tried to digest them and then spat them into a seam. Rell made a door with a crowbar and a bad temper. The hull outside was cold in a way that made her knuckles ache. The shuttle was there like a dog who had never learned betrayal.<br />
+      They went in. Kade didn't, not because he chose not to. He'd held the vent lip too long. He slid as the field turned slick and the ship decided that this part of the room was now a throat. Rell reached for him without looking. His hand touched hers. He didn't take it. He let go with a little shake of the head, the way he did when a plan had to be worse to be better. He turned back toward the vent and shot once more and then the field pushed a way no human joint can say yes to.<br />
+      Rell made no noise. Her throat was out of air.<br />
+      Yori crawled in a straight line. Rell dragged her the last half meter and buckled them both with a strap that had been decorative, then not, then decorative again. Rell took the pilot sling because there was no one else left to be gentle. She tore them free.<br />
+      The ship turned its face without turning. A field brushed the shuttle like a hand deciding whether to hold or crush. The shuttle shuddered, skipped. Rell threaded it through spaces that were not holes until they were.<br />
+      The sky took them back like a mother that doesn't remember the names of her children.<br />
+      They burned. They broke. They held. Pieces left in a long tail that older men would point to later and say they saw a meteor that afternoon and it was the prettiest thing they'd ever seen.<br />
+      The lake arrived. They hit it. Water went up and then down. The shuttle breathed in water and did not like it and made opinions known. Rell beat on a panel with the heel of her hand until it agreed to be a door. The door opened onto brown light and people on the shore with their pants wet to the thigh.<br />
+      Yori sat up, then lay back down. Her lips were too white. She stitched her own shoulder with a sewing kit because med kits had all gone away to other emergencies last winter. Rell tried to help. Yori said no. Rell held her wrist anyway.<br />
+      Rell looked up.<br />
+      The Warden hung like a rule in the clean sky, shield lines bright now, small thoughts crawling along its ribs. It turned a fraction, a ripple in the skin. It had been hungry when it came. It was hungrier now that it remembered its own name.<br />
+      She thought about the clamshell empty around the space where they had almost won. She thought about Brohn's face when he realized death was not a card trick. She thought about Kade's hand telling hers no. She thought about a little boy who would not be in a yard.<br />
+      Yori squeezed her wrist back. "We almost," she said. The ship breathed in.<br />
+      The world held its breath.<br />
+      Rell closed her eyes. Not to pray. Just to see one clean thing: the slope done right, the bottle laid down, the way the ship would have cooled if not for…if not for people.<br />
+      The Warden exhaled.<br />
+      Light fell.<br />
+<br />
+      It didn't fall everywhere. Empires never waste. The first cut trimmed the sky above the municipal grid, turning it to glass the color of a fresh bruise. The second walked the rail yards in a straight line. The third inhaled a town Rell had never visited and never would now.<br />
+      Rell held Yori's hand through the first bright, then the second. She thought about getting up and didn't. Her body had decided the only honest posture left was sitting in cold water and watching. All the bravest choices had already been used up that day.<br />
+      After a time, the air smelled different, like struck rock and wet iron.<br />
+      The Warden shifted its orbit a hair, the way a predator shifts weight to a new leg. It would eat until no one called this place anything but its own word for resource. Then it would leave, cleaner inside, the way all good machines do, and drift to the next line in a ledger written by a dead man.<br />
+      Yori turned her head, slow. "If we had taken it," she said, voice hardly a voice, a line of metal humming, "do you think we could have…?"<br />
+      "No," Rell said. It was a kindness and a cruelty both. "We would have brought it home wrong."<br />
+      Yori nodded once, carefully, as if the world might come off if she moved too quickly. "I wish we had died up there," she said, very simply.<br />
+      "We did," Rell said.<br />
+      The lake held only a dull smear of the sky, as if even water didn't want to recognize what hung above it.<br />
+      Rell's forearm was tacky where Kade's blood had dried. When she washed her sleeve later, it would turn a lighter brown and then settle there, an honest stain. Yori's dish was cracked in a new place across the old scar, making an X. Rell pushed it greedily under her own jacket because you learn to keep things.<br />
+      Above them, the ship's lights pulsed in a rhythm like the sleep of something that does not dream.<br />
+      The fourth fire fell then, far across the horizon. The sound came late, and the ground answered.<br />
+      Rell shut her eyes again, not for prayer. Just to do one thing she could still own: decide when to see.<br />
+      When she opened them, the sky had become the color of a star.<br />
+      She stood, because somebody had to be the one to stand first. She helped Yori up and they took a step toward the shore. On another day, with a bottle safely folded and a planet not being eaten, someone would have clapped. Today, there was only water and ash and the old word hanging above them.<br />
+      Rell tilted her head back until her neck hurt and addressed the ship in the language she had always used for machines: the plain truth said without ceremony.<br />
+      "You win," she said.<br />
+      The Warden did not answer. It did not have to. It did its job.<br />
+      They walked out of the lake. The water pulled at their boots and then let go. Behind them, the shuttle knocked against a stone, settled, and became part of the shore. Ahead of them, a city began to end.<br />
+      Rell did not imagine the blue sky she'd seen in her eye. She carried it differently now, not as a picture but as an obligation disguised as a memory. She would die soon—today, tomorrow, when the ship's sweep reached this basin—but the thing about obligations is they survive the people who made them, the way rust keeps eating whether anyone watches or not.<br />
+      She squeezed Yori's hand. Yori squeezed back.<br />
+      They kept walking until the ground shivered under their feet and the world changed shade.<br />
+      Somewhere else, miles away, a man in a doorway lifted his son to his shoulders so the boy could see the bright line tracing the sky. The boy laughed, because he was naive and it was beautiful. The man watched without speaking for a long time, because he was not naive anymore and he knew names for beautiful things that had teeth.<br />
+      The ship turned again. Its shadow moved. The lake caught some light and threw it back up in a spray of white nobody would remember.<br />
+<br />
+    </div>
+  </body>
+</html>
