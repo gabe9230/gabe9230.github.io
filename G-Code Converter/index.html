@@ -465,7 +465,7 @@ function generateGCode() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `program_${new Date().toISOString().slice(0, 10)}.nc`;
+        a.download = `program_${new Date().toISOString().slice(0, 10)}.txt`;
         a.click();
         URL.revokeObjectURL(url);
       };

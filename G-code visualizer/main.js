@@ -3,12 +3,12 @@ const RAPID_COLOR = 0x3ba1ff;
 const CUT_COLOR = 0xff5533;
 const STOCK_COLOR = 0x888888;
 const TOOL_DEFAULT_DIAMETER = 0.5;
-const MAX_VOXELS_PER_AXIS = 1024;
+const MAX_VOXELS_PER_AXIS = 16384;
 const MIN_VOXELS_PER_AXIS = 1;
 const MAX_TOTAL_VOXELS = 16000000;
-const FINE_VOXEL_SIZE_MM = 0.1;
-const COARSE_VOXEL_SIZE_MM = 10;
-const FINE_MARGIN_MM = 1;
+const FINE_VOXEL_SIZE_MM = 0.01;
+const COARSE_VOXEL_SIZE_MM = 1;
+const FINE_MARGIN_MM = 0.1;
 
 function createEmptyBounds() {
     return {
@@ -124,24 +124,52 @@ function disposeMaterial(material) {
 
 class VoxelStock {
     constructor(bounds, resolution) {
-        this.bounds = bounds;
-        this.resolution = {
+        const baseResolution = {
             x: Math.max(1, Math.floor(resolution.x)),
             y: Math.max(1, Math.floor(resolution.y)),
             z: Math.max(1, Math.floor(resolution.z))
         };
 
-        const size = boundsDimensions(bounds);
+        const rawSize = boundsDimensions(bounds);
+        const baseSize = {
+            x: rawSize.x > 0 ? rawSize.x : 1,
+            y: rawSize.y > 0 ? rawSize.y : 1,
+            z: rawSize.z > 0 ? rawSize.z : 1
+        };
+
+        const baseCell = {
+            x: baseSize.x / baseResolution.x,
+            y: baseSize.y / baseResolution.y,
+            z: baseSize.z / baseResolution.z
+        };
+        const cubeSize = Math.max(baseCell.x, baseCell.y, baseCell.z);
+
+        this.resolution = {
+            x: Math.max(1, Math.ceil(baseSize.x / cubeSize)),
+            y: Math.max(1, Math.ceil(baseSize.y / cubeSize)),
+            z: Math.max(1, Math.ceil(baseSize.z / cubeSize))
+        };
+
         this.size = {
-            x: size.x > 0 ? size.x : 1,
-            y: size.y > 0 ? size.y : 1,
-            z: size.z > 0 ? size.z : 1
+            x: this.resolution.x * cubeSize,
+            y: this.resolution.y * cubeSize,
+            z: this.resolution.z * cubeSize
+        };
+
+        const center = boundsCenter(bounds);
+        this.bounds = {
+            minX: center.x - this.size.x * 0.5,
+            maxX: center.x + this.size.x * 0.5,
+            minY: center.y - this.size.y * 0.5,
+            maxY: center.y + this.size.y * 0.5,
+            minZ: center.z - this.size.z * 0.5,
+            maxZ: center.z + this.size.z * 0.5
         };
 
         this.cellSize = {
-            x: this.size.x / this.resolution.x,
-            y: this.size.y / this.resolution.y,
-            z: this.size.z / this.resolution.z
+            x: cubeSize,
+            y: cubeSize,
+            z: cubeSize
         };
 
         this.cellDiagonal = Math.sqrt(
@@ -681,15 +709,15 @@ class GCodeViewer {
             this.fineStock = new VoxelStock(fineEnvelope, fineResolution);
 
             const fineDistinct =
-                fineEnvelope.minX > coarseEnvelope.minX ||
-                fineEnvelope.maxX < coarseEnvelope.maxX ||
-                fineEnvelope.minY > coarseEnvelope.minY ||
-                fineEnvelope.maxY < coarseEnvelope.maxY ||
-                fineEnvelope.minZ > coarseEnvelope.minZ ||
-                fineEnvelope.maxZ < coarseEnvelope.maxZ;
+                this.fineStock.bounds.minX > this.coarseStock.bounds.minX ||
+                this.fineStock.bounds.maxX < this.coarseStock.bounds.maxX ||
+                this.fineStock.bounds.minY > this.coarseStock.bounds.minY ||
+                this.fineStock.bounds.maxY < this.coarseStock.bounds.maxY ||
+                this.fineStock.bounds.minZ > this.coarseStock.bounds.minZ ||
+                this.fineStock.bounds.maxZ < this.coarseStock.bounds.maxZ;
 
             if (fineDistinct) {
-                this.coarseStock.clearRegion(fineEnvelope);
+                this.coarseStock.clearRegion(this.fineStock.bounds);
             } else {
                 includeCoarseMesh = false;
             }
@@ -708,7 +736,7 @@ class GCodeViewer {
                 this.stockGroup.add(fineMesh);
             }
 
-            const fineOutline = this.buildStockOutline(fineEnvelope, 0xff8844, 0.18);
+            const fineOutline = this.buildStockOutline(this.fineStock.bounds, 0xff8844, 0.18);
             if (fineOutline) {
                 this.stockGroup.add(fineOutline);
             }
@@ -722,7 +750,7 @@ class GCodeViewer {
             }
         }
 
-        const coarseOutline = this.buildStockOutline(coarseEnvelope, 0x555555, 0.12);
+        const coarseOutline = this.buildStockOutline(this.coarseStock.bounds, 0x555555, 0.12);
         if (coarseOutline) {
             this.stockGroup.add(coarseOutline);
         }
