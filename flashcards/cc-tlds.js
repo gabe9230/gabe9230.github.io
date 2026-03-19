@@ -477,8 +477,8 @@ export const CC_TLDS = [
     "nameDisplay": "Gabon"
   },
   {
-    "code": "GB",
-    "tld": ".gb",
+    "code": "UK",
+    "tld": ".uk",
     "source": "IANA Root Zone Database",
     "nameDisplay": "United Kingdom",
     "aliases": [
