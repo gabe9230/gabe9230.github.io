@@ -4,6 +4,8 @@ const APP_STATE_VERSION = 1
 const DEFAULT_DAILY_GOAL_MS = 3 * 60 * 1000
 const STORAGE_KEY = 'root-recall-state-v1'
 const BACKUP_PREFIX = 'CCTLD1:'
+const SWIPE_COMMIT_DISTANCE = 110
+const SWIPE_COMMIT_RATIO = 0.24
 const REVIEW_LADDER = [1, 3, 7, 14, 30, 45, 75, 120, 180]
 const ROUTE_TITLES = {
   today: 'Today',
@@ -45,7 +47,7 @@ const uiState = {
   study: {
     studyMode: null,
     currentUnit: null,
-    revealed: false,
+    hasSeenGestureHint: false,
     turn: 0,
     recentKeys: [],
     sessionQueue: [],
@@ -54,6 +56,14 @@ const uiState = {
 
 let appState = loadAppState()
 let studyClockStartedAt = null
+const studySwipe = {
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  deltaX: 0,
+  isDragging: false,
+  isAnimating: false,
+}
 
 if (!root) {
   throw new Error('App root not found')
@@ -126,6 +136,18 @@ function formatRelativeDue(dueAt, now = new Date()) {
   }
 
   return `Due in ${Math.max(1, Math.round(diffHours / 24))}d`
+}
+
+function getModeLabel(mode) {
+  if (mode === 'code_to_country') {
+    return 'Code to Country'
+  }
+
+  if (mode === 'country_to_code') {
+    return 'Country to Code'
+  }
+
+  return 'Mixed'
 }
 
 function getRankTitle(percentMastered) {
@@ -271,6 +293,16 @@ function reviewUnit(progress, knew, now = new Date()) {
   }
 }
 
+function shuffleArray(items) {
+  const next = [...items]
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    ;[next[index], next[swapIndex]] = [next[swapIndex], next[index]]
+  }
+
+  return next
+}
+
 function toStudyUnit(card, mode) {
   if (mode === 'code_to_country') {
     return {
@@ -279,7 +311,8 @@ function toStudyUnit(card, mode) {
       mode,
       prompt: card.tld,
       answer: card.nameDisplay,
-      cue: 'Which country or territory uses this ccTLD?',
+      cue: 'Recall the country or territory',
+      directionLabel: getModeLabel(mode),
       secondary: card.nameIsoShort ?? '',
     }
   }
@@ -290,7 +323,8 @@ function toStudyUnit(card, mode) {
     mode,
     prompt: card.nameDisplay,
     answer: card.tld,
-    cue: 'Which ccTLD matches this country or territory?',
+    cue: 'Recall the ccTLD',
+    directionLabel: getModeLabel(mode),
     secondary: card.nameIsoShort && card.nameIsoShort !== card.nameDisplay ? card.nameIsoShort : '',
   }
 }
@@ -337,36 +371,177 @@ function scoreDueUnit(progress, recentKeys, now) {
 }
 
 function scoreNewUnit(unit, recentKeys) {
-  return 30 - getRecentPenalty(unit.key, recentKeys) + (unit.mode === 'country_to_code' ? 2 : 0)
+  return 26 - getRecentPenalty(unit.key, recentKeys)
+}
+
+function scoreQueuedUnit(entry, recentKeys, turn) {
+  return 150 + (entry.priority ?? 0) * 40 + Math.max(0, turn - entry.availableAtTurn) * 8 - getRecentPenalty(entry.key, recentKeys)
+}
+
+function scoreLearningUnit(progress, recentKeys, now) {
+  const hoursSinceReview = progress.lastReviewedAt
+    ? Math.max(0, (now.getTime() - new Date(progress.lastReviewedAt).getTime()) / (60 * 60 * 1000))
+    : 12
+
+  return (
+    44 +
+    progress.lapseCount * 10 +
+    Math.max(0, 4 - progress.successStreak) * 8 +
+    Math.max(0, 8 - progress.intervalDays) +
+    Math.min(18, hoursSinceReview) -
+    getRecentPenalty(progress.key, recentKeys)
+  )
+}
+
+function scoreRefresherUnit(progress, recentKeys, now) {
+  const dueInDays = progress.dueAt
+    ? Math.max(0, (new Date(progress.dueAt).getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+    : 5
+
+  return 12 + Math.min(8, progress.successStreak * 2) + Math.max(0, 10 - dueInDays) - getRecentPenalty(progress.key, recentKeys)
+}
+
+function queueSessionReview(queue, entry) {
+  const existing = queue.find((item) => item.key === entry.key)
+  if (!existing) {
+    return [...queue, entry]
+  }
+
+  return queue.map((item) =>
+    item.key === entry.key
+      ? {
+          ...item,
+          availableAtTurn: Math.min(item.availableAtTurn, entry.availableAtTurn),
+          priority: Math.max(item.priority ?? 0, entry.priority ?? 0),
+        }
+      : item,
+  )
+}
+
+function scheduleSessionFollowUp(queue, unit, nextProgress, knew, nextTurn) {
+  const withoutCurrent = queue.filter((entry) => entry.key !== unit.key)
+
+  if (!knew) {
+    return queueSessionReview(withoutCurrent, {
+      key: unit.key,
+      availableAtTurn: nextTurn + 2,
+      priority: 3,
+    })
+  }
+
+  if (nextProgress.successStreak <= 2) {
+    return queueSessionReview(withoutCurrent, {
+      key: unit.key,
+      availableAtTurn: nextTurn + 3 + nextProgress.successStreak * 2,
+      priority: 1,
+    })
+  }
+
+  if (!isUnitMastered(nextProgress) && Math.random() < 0.35) {
+    return queueSessionReview(withoutCurrent, {
+      key: unit.key,
+      availableAtTurn: nextTurn + 7 + nextProgress.successStreak,
+      priority: 1,
+    })
+  }
+
+  if (isUnitMastered(nextProgress) && Math.random() < 0.12) {
+    return queueSessionReview(withoutCurrent, {
+      key: unit.key,
+      availableAtTurn: nextTurn + 10 + Math.floor(Math.random() * 6),
+      priority: 0,
+    })
+  }
+
+  return withoutCurrent
 }
 
 function pickNextStudyUnit({ cards, state, studyMode, sessionQueue, turn, recentKeys, now = new Date() }) {
-  const units = buildStudyUnits(cards, studyMode)
-  const queuedKeys = sessionQueue.filter((entry) => entry.availableAtTurn <= turn).map((entry) => entry.key)
-  const queuedUnits = units.filter((unit) => queuedKeys.includes(unit.key))
-  if (queuedUnits.length > 0) {
-    return queuedUnits[0]
+  const units = shuffleArray(buildStudyUnits(cards, studyMode))
+  const unitMap = new Map(units.map((unit) => [unit.key, unit]))
+  const queuedOptions = sessionQueue
+    .filter((entry) => entry.availableAtTurn <= turn)
+    .map((entry) => {
+      const unit = unitMap.get(entry.key)
+      if (!unit) {
+        return null
+      }
+
+      return {
+        item: unit,
+        score: scoreQueuedUnit(entry, recentKeys, turn),
+        priority: entry.priority ?? 0,
+      }
+    })
+    .filter(Boolean)
+
+  const urgentQueuedOptions = queuedOptions.filter((entry) => entry.priority >= 2)
+  if (urgentQueuedOptions.length > 0) {
+    return pickWeighted(urgentQueuedOptions)
   }
 
-  const dueOptions = units
-    .map((unit) => ({ unit, progress: ensureUnitProgress(state, unit.code, unit.mode) }))
+  const unitProgress = units.map((unit) => ({
+    unit,
+    progress: ensureUnitProgress(state, unit.code, unit.mode),
+  }))
+
+  const dueOptions = unitProgress
     .filter(({ progress }) => isUnitSeen(progress) && isUnitDue(progress, now))
     .map(({ unit, progress }) => ({ item: unit, score: scoreDueUnit(progress, recentKeys, now) }))
-    .sort((left, right) => right.score - left.score)
-    .slice(0, 12)
 
   const duePick = pickWeighted(dueOptions)
   if (duePick) {
     return duePick
   }
 
-  const newOptions = units
-    .filter((unit) => !isUnitSeen(ensureUnitProgress(state, unit.code, unit.mode)))
-    .map((unit) => ({ item: unit, score: scoreNewUnit(unit, recentKeys) }))
-    .sort((left, right) => right.score - left.score)
-    .slice(0, 20)
+  const learningOptions = unitProgress
+    .filter(({ progress }) => isUnitSeen(progress) && !isUnitDue(progress, now) && !isUnitMastered(progress))
+    .map(({ unit, progress }) => ({ item: unit, score: scoreLearningUnit(progress, recentKeys, now) }))
 
-  return pickWeighted(newOptions)
+  const newOptions = unitProgress
+    .filter(({ progress }) => !isUnitSeen(progress))
+    .map(({ unit }) => ({ item: unit, score: scoreNewUnit(unit, recentKeys) }))
+
+  const scheduledRefreshers = queuedOptions
+    .filter((entry) => entry.priority < 2)
+    .map(({ item, score }) => ({
+      item,
+      score: 20 + score * 0.12,
+    }))
+
+  const scheduledRefresherKeys = new Set(scheduledRefreshers.map((entry) => entry.item.key))
+  const refresherOptions = [
+    ...scheduledRefreshers,
+    ...unitProgress
+      .filter(
+        ({ unit, progress }) =>
+          isUnitSeen(progress) &&
+          !isUnitDue(progress, now) &&
+          progress.successStreak > 0 &&
+          !scheduledRefresherKeys.has(unit.key),
+      )
+      .map(({ unit, progress }) => ({ item: unit, score: scoreRefresherUnit(progress, recentKeys, now) })),
+  ]
+
+  const category = pickWeighted([
+    ...(learningOptions.length > 0 ? [{ item: 'learning', score: 12 }] : []),
+    ...(newOptions.length > 0 ? [{ item: 'new', score: learningOptions.length > 0 ? 8 : 14 }] : []),
+    ...(refresherOptions.length > 0 ? [{ item: 'refresh', score: 2 + Math.min(3, Math.floor(turn / 12)) }] : []),
+  ])
+
+  if (category === 'learning') {
+    return pickWeighted(learningOptions)
+  }
+
+  if (category === 'refresh') {
+    return pickWeighted(refresherOptions)
+  }
+
+  if (category === 'new') {
+    return pickWeighted(newOptions)
+  }
+
+  return unitProgress.find(({ progress }) => !isUnitSeen(progress))?.unit ?? null
 }
 
 function getStreaks(activity, today = new Date()) {
@@ -549,14 +724,17 @@ function mutateAppState(mutator, options = {}) {
   appState = mutator(appState)
   appState.updatedAt = options.updatedAt ?? new Date().toISOString()
   saveAppState()
-  renderApp()
+  if (!options.skipRender) {
+    renderApp()
+  }
 }
 
 function applyReview(card, mode, knew, now = new Date()) {
+  let nextProgress = createUnitProgress(getUnitKey(card.code, mode), mode)
   mutateAppState((state) => {
     const key = getUnitKey(card.code, mode)
     const current = state.units[key] ?? createUnitProgress(key, mode)
-    const nextProgress = reviewUnit(current, knew, now)
+    nextProgress = reviewUnit(current, knew, now)
     const dayKey = toDayKey(now)
     const today = state.dailyActivity[dayKey] ?? { cards: 0, ms: 0 }
 
@@ -574,7 +752,9 @@ function applyReview(card, mode, knew, now = new Date()) {
         },
       },
     }
-  }, { updatedAt: now.toISOString() })
+  }, { updatedAt: now.toISOString(), skipRender: true })
+
+  return nextProgress
 }
 
 function applyStudyTime(ms, now = new Date()) {
@@ -613,9 +793,9 @@ function resetProgress() {
   appState = createEmptyAppState()
   saveAppState()
   uiState.study = {
-    studyMode: appState.settings.preferredMode,
+    studyMode: 'mixed',
     currentUnit: null,
-    revealed: false,
+    hasSeenGestureHint: false,
     turn: 0,
     recentKeys: [],
     sessionQueue: [],
@@ -626,7 +806,7 @@ function resetProgress() {
 
 function ensureStudyState() {
   if (!uiState.study.studyMode) {
-    uiState.study.studyMode = appState.settings.preferredMode
+    uiState.study.studyMode = 'mixed'
   }
 
   if (uiState.route !== 'study') {
@@ -642,46 +822,35 @@ function ensureStudyState() {
       turn: uiState.study.turn,
       recentKeys: uiState.study.recentKeys,
     })
-    uiState.study.revealed = false
   }
 }
 
 function setStudyMode(nextMode) {
   uiState.study.studyMode = nextMode
   uiState.study.currentUnit = null
-  uiState.study.revealed = false
   updateSettings({ preferredMode: nextMode })
-}
-
-function revealCurrentCard() {
-  if (!uiState.study.currentUnit || uiState.study.revealed) {
-    return
-  }
-
-  uiState.study.revealed = true
-  renderApp()
 }
 
 function gradeCurrentCard(knew) {
   const currentUnit = uiState.study.currentUnit
-  if (!currentUnit || !uiState.study.revealed) {
+  if (!currentUnit) {
     return
   }
 
   const now = new Date()
   const nextTurn = uiState.study.turn + 1
-  applyReview(currentUnit, currentUnit.mode, knew, now)
+  const nextProgress = applyReview(currentUnit, currentUnit.mode, knew, now)
   uiState.study.turn = nextTurn
   uiState.study.recentKeys = [...uiState.study.recentKeys.slice(-7), currentUnit.key]
-  uiState.study.sessionQueue = uiState.study.sessionQueue.filter((entry) => entry.key !== currentUnit.key)
-  if (!knew) {
-    uiState.study.sessionQueue.push({
-      key: currentUnit.key,
-      availableAtTurn: nextTurn + 2,
-    })
-  }
+  uiState.study.sessionQueue = scheduleSessionFollowUp(
+    uiState.study.sessionQueue,
+    currentUnit,
+    nextProgress,
+    knew,
+    nextTurn,
+  )
   uiState.study.currentUnit = null
-  uiState.study.revealed = false
+  uiState.study.hasSeenGestureHint = true
   renderApp()
 }
 
@@ -705,6 +874,134 @@ function syncStudyClock() {
   if (!studyClockStartedAt) {
     studyClockStartedAt = Date.now()
   }
+}
+
+function resetStudySwipeStyles(swipeZone) {
+  swipeZone.style.setProperty('--swipe-x', '0px')
+  swipeZone.style.setProperty('--swipe-rotation', '0deg')
+  swipeZone.style.setProperty('--swipe-left-opacity', '0')
+  swipeZone.style.setProperty('--swipe-right-opacity', '0')
+  swipeZone.classList.remove('is-dragging', 'is-throwing-left', 'is-throwing-right')
+}
+
+function applyStudySwipeStyles(swipeZone, deltaX) {
+  const width = swipeZone.offsetWidth || 1
+  const progress = Math.min(1, Math.abs(deltaX) / Math.max(SWIPE_COMMIT_DISTANCE, width * SWIPE_COMMIT_RATIO))
+  swipeZone.style.setProperty('--swipe-x', `${deltaX}px`)
+  swipeZone.style.setProperty('--swipe-rotation', `${deltaX * 0.045}deg`)
+  swipeZone.style.setProperty('--swipe-left-opacity', deltaX < 0 ? `${progress}` : '0')
+  swipeZone.style.setProperty('--swipe-right-opacity', deltaX > 0 ? `${progress}` : '0')
+}
+
+function finishStudySwipeGesture(swipeZone, pointerId) {
+  if (pointerId !== null && swipeZone.hasPointerCapture?.(pointerId)) {
+    swipeZone.releasePointerCapture(pointerId)
+  }
+
+  swipeZone.classList.remove('is-dragging')
+  studySwipe.pointerId = null
+  studySwipe.deltaX = 0
+  studySwipe.isDragging = false
+}
+
+function triggerStudyDecision(knew, swipeZone = document.querySelector('[data-swipe-zone="true"]')) {
+  if (!uiState.study.currentUnit || studySwipe.isAnimating) {
+    return
+  }
+
+  if (!swipeZone || appState.settings.reduceMotion) {
+    gradeCurrentCard(knew)
+    return
+  }
+
+  const width = swipeZone.offsetWidth || 320
+  const targetX = (knew ? 1 : -1) * Math.max(360, width * 1.15)
+  studySwipe.isAnimating = true
+  swipeZone.classList.add(knew ? 'is-throwing-right' : 'is-throwing-left')
+  applyStudySwipeStyles(swipeZone, targetX)
+
+  let finished = false
+  const complete = () => {
+    if (finished) {
+      return
+    }
+
+    finished = true
+    studySwipe.isAnimating = false
+    gradeCurrentCard(knew)
+  }
+
+  swipeZone.addEventListener('transitionend', complete, { once: true })
+  window.setTimeout(complete, 320)
+}
+
+function bindStudySwipe(swipeZone) {
+  resetStudySwipeStyles(swipeZone)
+  studySwipe.pointerId = null
+  studySwipe.deltaX = 0
+  studySwipe.isDragging = false
+
+  swipeZone.addEventListener('pointerdown', (event) => {
+    if (studySwipe.isAnimating || !uiState.study.currentUnit || event.button !== 0) {
+      return
+    }
+
+    studySwipe.pointerId = event.pointerId
+    studySwipe.startX = event.clientX
+    studySwipe.startY = event.clientY
+    studySwipe.deltaX = 0
+    studySwipe.isDragging = false
+  })
+
+  swipeZone.addEventListener('pointermove', (event) => {
+    if (event.pointerId !== studySwipe.pointerId || studySwipe.isAnimating) {
+      return
+    }
+
+    const deltaX = event.clientX - studySwipe.startX
+    const deltaY = event.clientY - studySwipe.startY
+    if (!studySwipe.isDragging) {
+      if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+        return
+      }
+
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        finishStudySwipeGesture(swipeZone, event.pointerId)
+        return
+      }
+
+      studySwipe.isDragging = true
+      swipeZone.classList.add('is-dragging')
+      swipeZone.setPointerCapture?.(event.pointerId)
+    }
+
+    event.preventDefault()
+    studySwipe.deltaX = deltaX
+    applyStudySwipeStyles(swipeZone, deltaX)
+  })
+
+  const releaseSwipe = (event) => {
+    if (event.pointerId !== studySwipe.pointerId) {
+      return
+    }
+
+    const deltaX = studySwipe.deltaX
+    const width = swipeZone.offsetWidth || 1
+    const threshold = Math.max(SWIPE_COMMIT_DISTANCE, width * SWIPE_COMMIT_RATIO)
+    const knew = deltaX > 0
+    const shouldCommit = studySwipe.isDragging && Math.abs(deltaX) >= threshold
+
+    finishStudySwipeGesture(swipeZone, event.pointerId)
+    if (shouldCommit) {
+      triggerStudyDecision(knew, swipeZone)
+      return
+    }
+
+    resetStudySwipeStyles(swipeZone)
+  }
+
+  swipeZone.addEventListener('pointerup', releaseSwipe)
+  swipeZone.addEventListener('pointercancel', releaseSwipe)
 }
 
 function renderStatCard(label, value, accent = '') {
@@ -868,6 +1165,68 @@ function renderStudyScreen(snapshot) {
   `
 }
 
+function renderStudyScreenNext(snapshot) {
+  ensureStudyState()
+  const currentUnit = uiState.study.currentUnit
+  const nextDue = getNextDueLabel(appState, uiState.study.studyMode)
+  const modeLabel = getModeLabel(uiState.study.studyMode)
+  const modeSelector = `
+    <article class="panel panel--soft study-panel">
+      <div class="panel__row">
+        <div>
+          <p class="panel__eyebrow">Study mode</p>
+          <h3>${escapeHtml(modeLabel)}</h3>
+        </div>
+        <div class="study-panel__pills">
+          <span class="pill">${snapshot.todayCards} today</span>
+          <span class="pill pill--outline">${snapshot.dueNow} due</span>
+        </div>
+      </div>
+      <div class="segmented">
+        ${['mixed', 'code_to_country', 'country_to_code']
+          .map(
+            (mode) =>
+              `<button class="segmented__option ${uiState.study.studyMode === mode ? 'is-active' : ''}" data-action="set-mode" data-mode="${mode}">${escapeHtml(getModeLabel(mode))}</button>`,
+          )
+          .join('')}
+      </div>
+      <p class="panel__text">Misses come back quickly. Cards you know still resurface as occasional refreshers.</p>
+    </article>
+  `
+
+  return `
+    <section class="screen screen--study">
+      ${
+        currentUnit
+          ? `
+        <article class="study-card" data-swipe-zone="true" data-study-key="${escapeHtml(currentUnit.key)}">
+          <div class="study-card__wash study-card__wash--left"><span>Not yet</span></div>
+          <div class="study-card__wash study-card__wash--right"><span>Know it</span></div>
+          <div class="study-card__body">
+            <p class="study-card__cue">${escapeHtml(currentUnit.cue)}</p>
+            <div class="study-card__prompt">${escapeHtml(currentUnit.prompt)}</div>
+          </div>
+          ${
+            uiState.study.hasSeenGestureHint
+              ? ''
+              : '<p class="study-card__hint study-card__hint--inline">Use arrow keys or swipe</p>'
+          }
+        </article>
+        ${modeSelector}
+      `
+          : `
+        <article class="panel panel--center">
+          <p class="panel__eyebrow">Caught up</p>
+          <h3>No cards are due in this mode right now.</h3>
+          <p class="panel__text">Weak cards already answered today will still loop back sooner. Otherwise the next scheduled review is ${escapeHtml(nextDue)}.</p>
+        </article>
+        ${modeSelector}
+      `
+      }
+    </section>
+  `
+}
+
 function renderProgressScreen(snapshot, rankTitle) {
   const goalProgress = Math.min(100, (snapshot.todayMs / appState.settings.dailyGoalMs) * 100)
   return `
@@ -908,7 +1267,7 @@ function renderProgressScreen(snapshot, rankTitle) {
 
 function renderBrowseResults() {
   const query = uiState.browse.query.trim().toLowerCase()
-  const results = (query ? searchableCards.filter((card) => card.searchText.includes(query)) : searchableCards).slice(0, 60)
+  const results = query ? searchableCards.filter((card) => card.searchText.includes(query)) : searchableCards
   if (results.length === 0) {
     return '<article class="panel panel--center"><h3>No matches</h3><p class="panel__text">Try a broader country name or a different ccTLD.</p></article>'
   }
@@ -1016,9 +1375,7 @@ function renderSettingsScreen() {
           </div>
         </div>
         <div class="list-copy">
-          <p>Space reveals the answer.</p>
-          <p>Right Arrow or swipe right marks Know it.</p>
-          <p>Left Arrow or swipe left marks Don’t know it yet.</p>
+          <p>Use arrow keys or swipe on the study card.</p>
         </div>
       </article>
 
@@ -1100,7 +1457,7 @@ function renderBottomNav() {
 function renderScreen(snapshot, rankTitle) {
   switch (uiState.route) {
     case 'study':
-      return renderStudyScreen(snapshot)
+      return renderStudyScreenNext(snapshot)
     case 'progress':
       return renderProgressScreen(snapshot, rankTitle)
     case 'browse':
@@ -1121,21 +1478,35 @@ function renderApp() {
 
   const snapshot = getProgressSnapshot(appState, CC_TLDS)
   const rankTitle = getRankTitle(snapshot.masteredPercent)
+  const isStudyRoute = uiState.route === 'study'
   root.innerHTML = `
-    <div class="app-shell ${appState.settings.reduceMotion ? 'reduce-motion' : ''}">
+    <div class="app-shell ${appState.settings.reduceMotion ? 'reduce-motion' : ''} ${isStudyRoute ? 'app-shell--study' : ''}">
       <div class="ambient ambient-one"></div>
       <div class="ambient ambient-two"></div>
-      <div class="app-frame">
-        <header class="chrome">
-          <div>
-            <p class="chrome__eyebrow">Root Recall</p>
-            <h1>${escapeHtml(ROUTE_TITLES[uiState.route])}</h1>
-          </div>
-          <div class="chrome__status">
-            <span class="pill pill--outline">Daily ccTLD practice</span>
-            ${uiState.notice ? `<div class="toast">${escapeHtml(uiState.notice)}</div>` : ''}
-          </div>
-        </header>
+      <div class="app-frame ${isStudyRoute ? 'app-frame--study' : ''}">
+        ${
+          isStudyRoute
+            ? `
+          <header class="chrome chrome--study">
+            <div class="chrome__status chrome__status--study">
+              <p class="chrome__eyebrow">Root Recall</p>
+              ${uiState.notice ? `<div class="toast">${escapeHtml(uiState.notice)}</div>` : ''}
+            </div>
+          </header>
+        `
+            : `
+          <header class="chrome">
+            <div>
+              <p class="chrome__eyebrow">Root Recall</p>
+              <h1>${escapeHtml(ROUTE_TITLES[uiState.route])}</h1>
+            </div>
+            <div class="chrome__status">
+              <span class="pill pill--outline">Daily ccTLD practice</span>
+              ${uiState.notice ? `<div class="toast">${escapeHtml(uiState.notice)}</div>` : ''}
+            </div>
+          </header>
+        `
+        }
         <main class="screen-shell">${renderScreen(snapshot, rankTitle)}</main>
         ${renderBottomNav()}
       </div>
@@ -1166,34 +1537,7 @@ function bindRouteSpecificEvents() {
 
   const swipeZone = document.querySelector('[data-swipe-zone="true"]')
   if (swipeZone) {
-    let startX = null
-
-    swipeZone.addEventListener(
-      'touchstart',
-      (event) => {
-        startX = event.changedTouches[0]?.clientX ?? null
-      },
-      { passive: true },
-    )
-
-    swipeZone.addEventListener(
-      'touchend',
-      (event) => {
-        if (!uiState.study.revealed || startX === null) {
-          startX = null
-          return
-        }
-
-        const deltaX = (event.changedTouches[0]?.clientX ?? startX) - startX
-        startX = null
-        if (deltaX >= 48) {
-          gradeCurrentCard(true)
-        } else if (deltaX <= -48) {
-          gradeCurrentCard(false)
-        }
-      },
-      { passive: true },
-    )
+    bindStudySwipe(swipeZone)
   }
 }
 
@@ -1205,6 +1549,9 @@ root.addEventListener('click', async (event) => {
 
   const action = target.dataset.action
   if (action === 'go-study') {
+    if (!uiState.study.currentUnit && uiState.study.turn === 0) {
+      uiState.study.studyMode = 'mixed'
+    }
     window.location.hash = '#/study'
     return
   }
@@ -1221,11 +1568,6 @@ root.addEventListener('click', async (event) => {
 
   if (action === 'set-mode') {
     setStudyMode(target.dataset.mode)
-    return
-  }
-
-  if (action === 'reveal-card') {
-    revealCurrentCard()
     return
   }
 
@@ -1280,9 +1622,9 @@ root.addEventListener('click', async (event) => {
       appState = parseBackupString(importBox?.value ?? '')
       saveAppState()
       uiState.study = {
-        studyMode: appState.settings.preferredMode,
+        studyMode: 'mixed',
         currentUnit: null,
-        revealed: false,
+        hasSeenGestureHint: false,
         turn: 0,
         recentKeys: [],
         sessionQueue: [],
@@ -1318,21 +1660,15 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
-  if (event.code === 'Space') {
-    event.preventDefault()
-    revealCurrentCard()
-    return
-  }
-
   if (event.key === 'ArrowRight') {
     event.preventDefault()
-    gradeCurrentCard(true)
+    triggerStudyDecision(true)
     return
   }
 
   if (event.key === 'ArrowLeft') {
     event.preventDefault()
-    gradeCurrentCard(false)
+    triggerStudyDecision(false)
   }
 })
 
