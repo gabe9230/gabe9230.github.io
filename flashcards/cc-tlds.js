@@ -1434,16 +1434,6 @@ export const CC_TLDS = [
     "nameDisplay": "Uganda"
   },
   {
-    "code": "UK",
-    "tld": ".uk",
-    "source": "IANA Root Zone Database",
-    "nameDisplay": "United Kingdom",
-    "aliases": [
-      "UK",
-      "Great Britain"
-    ]
-  },
-  {
     "code": "US",
     "tld": ".us",
     "source": "IANA Root Zone Database",
