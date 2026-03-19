@@ -2,7 +2,7 @@
   "name": "Root Recall",
   "short_name": "Root Recall",
   "description": "A calm daily flashcard trainer for memorizing active ccTLDs.",
-  "start_url": "./#/",
+  "start_url": "./#/study",
   "display": "standalone",
   "background_color": "#071723",
   "theme_color": "#071723",

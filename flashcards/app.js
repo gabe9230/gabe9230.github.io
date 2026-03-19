@@ -4,9 +4,15 @@ const APP_STATE_VERSION = 1
 const DEFAULT_DAILY_GOAL_MS = 3 * 60 * 1000
 const STORAGE_KEY = 'root-recall-state-v1'
 const BACKUP_PREFIX = 'CCTLD1:'
+const REVIEW_RESULT_DELAY_MS = 1000
+const STUDY_CARD_EXIT_MS = 300
+const STUDY_CARD_GAP_MS = 100
+const STUDY_CARD_ENTER_MS = 300
 const SWIPE_COMMIT_DISTANCE = 110
 const SWIPE_COMMIT_RATIO = 0.24
-const REVIEW_LADDER = [1, 3, 7, 14, 30, 45, 75, 120, 180]
+const SM2_INITIAL_EASE_FACTOR = 2.5
+const SM2_MIN_EASE_FACTOR = 1.3
+const CARD_REPEAT_COOLDOWN = 30
 const ROUTE_TITLES = {
   today: 'Today',
   study: 'Study',
@@ -48,7 +54,12 @@ const uiState = {
     studyMode: null,
     currentUnit: null,
     hasSeenGestureHint: false,
+    reviewFeedback: null,
+    reviewTimeoutId: null,
+    cardTransitionPhase: null,
+    cardTransitionTimeoutId: null,
     turn: 0,
+    recentCodes: [],
     recentKeys: [],
     sessionQueue: [],
   },
@@ -84,7 +95,7 @@ function escapeHtml(value) {
 
 function getRouteFromHash() {
   const raw = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase()
-  return ROUTE_TITLES[raw] ? raw : 'today'
+  return ROUTE_TITLES[raw] ? raw : 'study'
 }
 
 function toDayKey(input = new Date()) {
@@ -209,7 +220,9 @@ function createUnitProgress(key, mode) {
     seenCount: 0,
     successCount: 0,
     lapseCount: 0,
+    repetitionCount: 0,
     successStreak: 0,
+    easeFactor: SM2_INITIAL_EASE_FACTOR,
     intervalDays: 0,
     dueAt: null,
     lastReviewedAt: null,
@@ -251,46 +264,60 @@ function isUnitDue(progress, now = new Date()) {
 }
 
 function isUnitMastered(progress) {
-  return progress.successStreak >= 4 && progress.intervalDays >= 30
+  return progress.repetitionCount >= 4 && progress.intervalDays >= 30
 }
 
-function getNextIntervalDays(currentIntervalDays) {
-  if (currentIntervalDays <= 0) {
-    return REVIEW_LADDER[0]
+function clampEaseFactor(value) {
+  return Math.max(SM2_MIN_EASE_FACTOR, Math.round(value * 100) / 100)
+}
+
+// The UI is binary, so map "know" to a solid SM-2 pass and "don't know" to a failed review.
+function getReviewQuality(knew) {
+  return knew ? 4 : 2
+}
+
+function getNextEaseFactor(currentEaseFactor, quality) {
+  const difficulty = 5 - quality
+  return clampEaseFactor(currentEaseFactor + (0.1 - difficulty * (0.08 + difficulty * 0.02)))
+}
+
+function getNextIntervalDays(progress, quality) {
+  if (quality < 3) {
+    return 1
   }
 
-  const next = REVIEW_LADDER.find((value) => value > currentIntervalDays)
-  return next ?? Math.min(240, Math.round(currentIntervalDays * 1.6))
+  const nextRepetitionCount = progress.repetitionCount + 1
+  if (nextRepetitionCount === 1) {
+    return 1
+  }
+
+  if (nextRepetitionCount === 2) {
+    return 6
+  }
+
+  return Math.max(1, Math.round(progress.intervalDays * progress.easeFactor))
 }
 
 function reviewUnit(progress, knew, now = new Date()) {
-  if (knew) {
-    const intervalDays = getNextIntervalDays(progress.intervalDays)
-    const nextSuccessStreak = progress.successStreak + 1
-    const nextProgress = {
-      ...progress,
-      seenCount: progress.seenCount + 1,
-      successCount: progress.successCount + 1,
-      successStreak: nextSuccessStreak,
-      intervalDays,
-      dueAt: new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000).toISOString(),
-      lastReviewedAt: now.toISOString(),
-      masteredAt: null,
-    }
-    nextProgress.masteredAt = isUnitMastered(nextProgress) ? progress.masteredAt ?? now.toISOString() : null
-    return nextProgress
-  }
-
-  return {
+  const quality = getReviewQuality(knew)
+  const intervalDays = getNextIntervalDays(progress, quality)
+  const repetitionCount = quality < 3 ? 0 : progress.repetitionCount + 1
+  const nextProgress = {
     ...progress,
     seenCount: progress.seenCount + 1,
-    lapseCount: progress.lapseCount + 1,
-    successStreak: 0,
-    intervalDays: 0,
-    dueAt: new Date(now.getTime() + 10 * 60 * 1000).toISOString(),
+    successCount: progress.successCount + (knew ? 1 : 0),
+    lapseCount: progress.lapseCount + (knew ? 0 : 1),
+    repetitionCount,
+    successStreak: knew ? progress.successStreak + 1 : 0,
+    easeFactor: getNextEaseFactor(progress.easeFactor, quality),
+    intervalDays,
+    dueAt: new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000).toISOString(),
     lastReviewedAt: now.toISOString(),
     masteredAt: null,
   }
+
+  nextProgress.masteredAt = isUnitMastered(nextProgress) ? progress.masteredAt ?? now.toISOString() : null
+  return nextProgress
 }
 
 function shuffleArray(items) {
@@ -374,174 +401,43 @@ function scoreNewUnit(unit, recentKeys) {
   return 26 - getRecentPenalty(unit.key, recentKeys)
 }
 
-function scoreQueuedUnit(entry, recentKeys, turn) {
-  return 150 + (entry.priority ?? 0) * 40 + Math.max(0, turn - entry.availableAtTurn) * 8 - getRecentPenalty(entry.key, recentKeys)
-}
-
-function scoreLearningUnit(progress, recentKeys, now) {
-  const hoursSinceReview = progress.lastReviewedAt
-    ? Math.max(0, (now.getTime() - new Date(progress.lastReviewedAt).getTime()) / (60 * 60 * 1000))
-    : 12
-
-  return (
-    44 +
-    progress.lapseCount * 10 +
-    Math.max(0, 4 - progress.successStreak) * 8 +
-    Math.max(0, 8 - progress.intervalDays) +
-    Math.min(18, hoursSinceReview) -
-    getRecentPenalty(progress.key, recentKeys)
-  )
-}
-
-function scoreRefresherUnit(progress, recentKeys, now) {
-  const dueInDays = progress.dueAt
-    ? Math.max(0, (new Date(progress.dueAt).getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
-    : 5
-
-  return 12 + Math.min(8, progress.successStreak * 2) + Math.max(0, 10 - dueInDays) - getRecentPenalty(progress.key, recentKeys)
-}
-
-function queueSessionReview(queue, entry) {
-  const existing = queue.find((item) => item.key === entry.key)
-  if (!existing) {
-    return [...queue, entry]
-  }
-
-  return queue.map((item) =>
-    item.key === entry.key
-      ? {
-          ...item,
-          availableAtTurn: Math.min(item.availableAtTurn, entry.availableAtTurn),
-          priority: Math.max(item.priority ?? 0, entry.priority ?? 0),
-        }
-      : item,
-  )
+function applyCardCooldown(entries, recentCodes) {
+  const blockedCodes = new Set(recentCodes)
+  const cooledEntries = entries.filter((entry) => !blockedCodes.has(entry.item.code))
+  return cooledEntries.length > 0 ? cooledEntries : entries
 }
 
 function scheduleSessionFollowUp(queue, unit, nextProgress, knew, nextTurn) {
-  const withoutCurrent = queue.filter((entry) => entry.key !== unit.key)
-
-  if (!knew) {
-    return queueSessionReview(withoutCurrent, {
-      key: unit.key,
-      availableAtTurn: nextTurn + 2,
-      priority: 3,
-    })
-  }
-
-  if (nextProgress.successStreak <= 2) {
-    return queueSessionReview(withoutCurrent, {
-      key: unit.key,
-      availableAtTurn: nextTurn + 3 + nextProgress.successStreak * 2,
-      priority: 1,
-    })
-  }
-
-  if (!isUnitMastered(nextProgress) && Math.random() < 0.35) {
-    return queueSessionReview(withoutCurrent, {
-      key: unit.key,
-      availableAtTurn: nextTurn + 7 + nextProgress.successStreak,
-      priority: 1,
-    })
-  }
-
-  if (isUnitMastered(nextProgress) && Math.random() < 0.12) {
-    return queueSessionReview(withoutCurrent, {
-      key: unit.key,
-      availableAtTurn: nextTurn + 10 + Math.floor(Math.random() * 6),
-      priority: 0,
-    })
-  }
-
-  return withoutCurrent
+  return queue.filter((entry) => entry.key !== unit.key)
 }
 
-function pickNextStudyUnit({ cards, state, studyMode, sessionQueue, turn, recentKeys, now = new Date() }) {
+function pickNextStudyUnit({ cards, state, studyMode, recentCodes, recentKeys, now = new Date() }) {
   const units = shuffleArray(buildStudyUnits(cards, studyMode))
-  const unitMap = new Map(units.map((unit) => [unit.key, unit]))
-  const queuedOptions = sessionQueue
-    .filter((entry) => entry.availableAtTurn <= turn)
-    .map((entry) => {
-      const unit = unitMap.get(entry.key)
-      if (!unit) {
-        return null
-      }
-
-      return {
-        item: unit,
-        score: scoreQueuedUnit(entry, recentKeys, turn),
-        priority: entry.priority ?? 0,
-      }
-    })
-    .filter(Boolean)
-
-  const urgentQueuedOptions = queuedOptions.filter((entry) => entry.priority >= 2)
-  if (urgentQueuedOptions.length > 0) {
-    return pickWeighted(urgentQueuedOptions)
-  }
-
   const unitProgress = units.map((unit) => ({
     unit,
     progress: ensureUnitProgress(state, unit.code, unit.mode),
   }))
 
-  const dueOptions = unitProgress
+  const dueOptions = applyCardCooldown(
+    unitProgress
     .filter(({ progress }) => isUnitSeen(progress) && isUnitDue(progress, now))
-    .map(({ unit, progress }) => ({ item: unit, score: scoreDueUnit(progress, recentKeys, now) }))
+    .map(({ unit, progress }) => ({ item: unit, score: scoreDueUnit(progress, recentKeys, now) })),
+    recentCodes,
+  )
 
   const duePick = pickWeighted(dueOptions)
   if (duePick) {
     return duePick
   }
 
-  const learningOptions = unitProgress
-    .filter(({ progress }) => isUnitSeen(progress) && !isUnitDue(progress, now) && !isUnitMastered(progress))
-    .map(({ unit, progress }) => ({ item: unit, score: scoreLearningUnit(progress, recentKeys, now) }))
-
-  const newOptions = unitProgress
+  const newOptions = applyCardCooldown(
+    unitProgress
     .filter(({ progress }) => !isUnitSeen(progress))
-    .map(({ unit }) => ({ item: unit, score: scoreNewUnit(unit, recentKeys) }))
+    .map(({ unit }) => ({ item: unit, score: scoreNewUnit(unit, recentKeys) })),
+    recentCodes,
+  )
 
-  const scheduledRefreshers = queuedOptions
-    .filter((entry) => entry.priority < 2)
-    .map(({ item, score }) => ({
-      item,
-      score: 20 + score * 0.12,
-    }))
-
-  const scheduledRefresherKeys = new Set(scheduledRefreshers.map((entry) => entry.item.key))
-  const refresherOptions = [
-    ...scheduledRefreshers,
-    ...unitProgress
-      .filter(
-        ({ unit, progress }) =>
-          isUnitSeen(progress) &&
-          !isUnitDue(progress, now) &&
-          progress.successStreak > 0 &&
-          !scheduledRefresherKeys.has(unit.key),
-      )
-      .map(({ unit, progress }) => ({ item: unit, score: scoreRefresherUnit(progress, recentKeys, now) })),
-  ]
-
-  const category = pickWeighted([
-    ...(learningOptions.length > 0 ? [{ item: 'learning', score: 12 }] : []),
-    ...(newOptions.length > 0 ? [{ item: 'new', score: learningOptions.length > 0 ? 8 : 14 }] : []),
-    ...(refresherOptions.length > 0 ? [{ item: 'refresh', score: 2 + Math.min(3, Math.floor(turn / 12)) }] : []),
-  ])
-
-  if (category === 'learning') {
-    return pickWeighted(learningOptions)
-  }
-
-  if (category === 'refresh') {
-    return pickWeighted(refresherOptions)
-  }
-
-  if (category === 'new') {
-    return pickWeighted(newOptions)
-  }
-
-  return unitProgress.find(({ progress }) => !isUnitSeen(progress))?.unit ?? null
+  return pickWeighted(newOptions)
 }
 
 function getStreaks(activity, today = new Date()) {
@@ -645,7 +541,13 @@ function normalizeAppState(value) {
         seenCount: Number.isFinite(unit.seenCount) ? Math.max(0, unit.seenCount) : 0,
         successCount: Number.isFinite(unit.successCount) ? Math.max(0, unit.successCount) : 0,
         lapseCount: Number.isFinite(unit.lapseCount) ? Math.max(0, unit.lapseCount) : 0,
+        repetitionCount: Number.isFinite(unit.repetitionCount)
+          ? Math.max(0, unit.repetitionCount)
+          : Number.isFinite(unit.successStreak)
+            ? Math.max(0, unit.successStreak)
+            : 0,
         successStreak: Number.isFinite(unit.successStreak) ? Math.max(0, unit.successStreak) : 0,
+        easeFactor: Number.isFinite(unit.easeFactor) ? clampEaseFactor(unit.easeFactor) : SM2_INITIAL_EASE_FACTOR,
         intervalDays: Number.isFinite(unit.intervalDays) ? Math.max(0, unit.intervalDays) : 0,
         dueAt: typeof unit.dueAt === 'string' ? unit.dueAt : null,
         lastReviewedAt: typeof unit.lastReviewedAt === 'string' ? unit.lastReviewedAt : null,
@@ -790,13 +692,20 @@ function updateSettings(patch) {
 }
 
 function resetProgress() {
+  clearStudyReviewTimeout()
+  clearStudyCardTransitionTimeout()
   appState = createEmptyAppState()
   saveAppState()
   uiState.study = {
     studyMode: 'mixed',
     currentUnit: null,
     hasSeenGestureHint: false,
+    reviewFeedback: null,
+    reviewTimeoutId: null,
+    cardTransitionPhase: null,
+    cardTransitionTimeoutId: null,
     turn: 0,
+    recentCodes: [],
     recentKeys: [],
     sessionQueue: [],
   }
@@ -813,25 +722,36 @@ function ensureStudyState() {
     return
   }
 
+  if (uiState.study.cardTransitionPhase === 'gap') {
+    return
+  }
+
   if (!uiState.study.currentUnit) {
     uiState.study.currentUnit = pickNextStudyUnit({
       cards: CC_TLDS,
       state: appState,
       studyMode: uiState.study.studyMode,
-      sessionQueue: uiState.study.sessionQueue,
-      turn: uiState.study.turn,
+      recentCodes: uiState.study.recentCodes,
       recentKeys: uiState.study.recentKeys,
     })
+
+    if (uiState.study.currentUnit && !uiState.study.cardTransitionPhase && !appState.settings.reduceMotion) {
+      setStudyCardTransitionPhase('enter', STUDY_CARD_ENTER_MS)
+    }
   }
 }
 
 function setStudyMode(nextMode) {
+  clearStudyReviewTimeout()
+  clearStudyCardTransitionTimeout()
   uiState.study.studyMode = nextMode
   uiState.study.currentUnit = null
+  uiState.study.reviewFeedback = null
+  uiState.study.cardTransitionPhase = null
   updateSettings({ preferredMode: nextMode })
 }
 
-function gradeCurrentCard(knew) {
+function gradeCurrentCard(knew, options = {}) {
   const currentUnit = uiState.study.currentUnit
   if (!currentUnit) {
     return
@@ -841,6 +761,7 @@ function gradeCurrentCard(knew) {
   const nextTurn = uiState.study.turn + 1
   const nextProgress = applyReview(currentUnit, currentUnit.mode, knew, now)
   uiState.study.turn = nextTurn
+  uiState.study.recentCodes = [...uiState.study.recentCodes.slice(-(CARD_REPEAT_COOLDOWN - 1)), currentUnit.code]
   uiState.study.recentKeys = [...uiState.study.recentKeys.slice(-7), currentUnit.key]
   uiState.study.sessionQueue = scheduleSessionFollowUp(
     uiState.study.sessionQueue,
@@ -851,7 +772,11 @@ function gradeCurrentCard(knew) {
   )
   uiState.study.currentUnit = null
   uiState.study.hasSeenGestureHint = true
-  renderApp()
+  uiState.study.reviewFeedback = null
+  setStudyCardTransitionPhase(options.withEntryTransition ? 'enter' : null, options.withEntryTransition ? STUDY_CARD_ENTER_MS : 0)
+  if (!options.skipRender) {
+    renderApp()
+  }
 }
 
 function flushStudyClock() {
@@ -874,6 +799,82 @@ function syncStudyClock() {
   if (!studyClockStartedAt) {
     studyClockStartedAt = Date.now()
   }
+}
+
+function clearStudyReviewTimeout() {
+  if (uiState.study.reviewTimeoutId) {
+    window.clearTimeout(uiState.study.reviewTimeoutId)
+    uiState.study.reviewTimeoutId = null
+  }
+}
+
+function clearStudyCardTransitionTimeout() {
+  if (uiState.study.cardTransitionTimeoutId) {
+    window.clearTimeout(uiState.study.cardTransitionTimeoutId)
+    uiState.study.cardTransitionTimeoutId = null
+  }
+}
+
+function setStudyCardTransitionPhase(phase, durationMs = 0) {
+  clearStudyCardTransitionTimeout()
+  uiState.study.cardTransitionPhase = phase
+
+  if (phase && durationMs > 0) {
+    uiState.study.cardTransitionTimeoutId = window.setTimeout(() => {
+      uiState.study.cardTransitionTimeoutId = null
+      if (uiState.study.cardTransitionPhase === phase) {
+        uiState.study.cardTransitionPhase = null
+        renderApp()
+      }
+    }, durationMs)
+  }
+}
+
+function beginStudyReviewFeedback(knew) {
+  const currentUnit = uiState.study.currentUnit
+  if (!currentUnit || uiState.study.reviewFeedback) {
+    return
+  }
+
+  uiState.study.reviewFeedback = {
+    key: currentUnit.key,
+    knew,
+  }
+  uiState.study.hasSeenGestureHint = true
+  clearStudyReviewTimeout()
+  renderApp()
+
+  uiState.study.reviewTimeoutId = window.setTimeout(() => {
+    uiState.study.reviewTimeoutId = null
+    advanceStudyCard(knew)
+  }, REVIEW_RESULT_DELAY_MS)
+}
+
+function advanceStudyCard(knew) {
+  if (!uiState.study.currentUnit || uiState.study.cardTransitionPhase) {
+    return
+  }
+
+  if (appState.settings.reduceMotion) {
+    gradeCurrentCard(knew)
+    return
+  }
+
+  setStudyCardTransitionPhase('exit')
+  renderApp()
+
+  uiState.study.cardTransitionTimeoutId = window.setTimeout(() => {
+    uiState.study.cardTransitionTimeoutId = null
+    gradeCurrentCard(knew, { skipRender: true })
+    setStudyCardTransitionPhase('gap')
+    renderApp()
+
+    uiState.study.cardTransitionTimeoutId = window.setTimeout(() => {
+      uiState.study.cardTransitionTimeoutId = null
+      setStudyCardTransitionPhase('enter', STUDY_CARD_ENTER_MS)
+      renderApp()
+    }, STUDY_CARD_GAP_MS)
+  }, STUDY_CARD_EXIT_MS)
 }
 
 function resetStudySwipeStyles(swipeZone) {
@@ -905,17 +906,17 @@ function finishStudySwipeGesture(swipeZone, pointerId) {
 }
 
 function triggerStudyDecision(knew, swipeZone = document.querySelector('[data-swipe-zone="true"]')) {
-  if (!uiState.study.currentUnit || studySwipe.isAnimating) {
+  if (!uiState.study.currentUnit || studySwipe.isAnimating || uiState.study.reviewFeedback || uiState.study.cardTransitionPhase) {
     return
   }
 
   if (!swipeZone || appState.settings.reduceMotion) {
-    gradeCurrentCard(knew)
+    beginStudyReviewFeedback(knew)
     return
   }
 
   const width = swipeZone.offsetWidth || 320
-  const targetX = (knew ? 1 : -1) * Math.max(360, width * 1.15)
+  const targetX = (knew ? 1 : -1) * Math.max(48, width * 0.12)
   studySwipe.isAnimating = true
   swipeZone.classList.add(knew ? 'is-throwing-right' : 'is-throwing-left')
   applyStudySwipeStyles(swipeZone, targetX)
@@ -928,7 +929,7 @@ function triggerStudyDecision(knew, swipeZone = document.querySelector('[data-sw
 
     finished = true
     studySwipe.isAnimating = false
-    gradeCurrentCard(knew)
+    beginStudyReviewFeedback(knew)
   }
 
   swipeZone.addEventListener('transitionend', complete, { once: true })
@@ -942,7 +943,7 @@ function bindStudySwipe(swipeZone) {
   studySwipe.isDragging = false
 
   swipeZone.addEventListener('pointerdown', (event) => {
-    if (studySwipe.isAnimating || !uiState.study.currentUnit || event.button !== 0) {
+    if (studySwipe.isAnimating || uiState.study.reviewFeedback || uiState.study.cardTransitionPhase || !uiState.study.currentUnit || event.button !== 0) {
       return
     }
 
@@ -1169,58 +1170,48 @@ function renderStudyScreenNext(snapshot) {
   ensureStudyState()
   const currentUnit = uiState.study.currentUnit
   const nextDue = getNextDueLabel(appState, uiState.study.studyMode)
-  const modeLabel = getModeLabel(uiState.study.studyMode)
-  const modeSelector = `
-    <article class="panel panel--soft study-panel">
-      <div class="panel__row">
-        <div>
-          <p class="panel__eyebrow">Study mode</p>
-          <h3>${escapeHtml(modeLabel)}</h3>
-        </div>
-        <div class="study-panel__pills">
-          <span class="pill">${snapshot.todayCards} today</span>
-          <span class="pill pill--outline">${snapshot.dueNow} due</span>
-        </div>
-      </div>
-      <div class="segmented">
-        ${['mixed', 'code_to_country', 'country_to_code']
-          .map(
-            (mode) =>
-              `<button class="segmented__option ${uiState.study.studyMode === mode ? 'is-active' : ''}" data-action="set-mode" data-mode="${mode}">${escapeHtml(getModeLabel(mode))}</button>`,
-          )
-          .join('')}
-      </div>
-      <p class="panel__text">Misses come back quickly. Cards you know still resurface as occasional refreshers.</p>
-    </article>
-  `
+  const reviewFeedback =
+    currentUnit && uiState.study.reviewFeedback?.key === currentUnit.key ? uiState.study.reviewFeedback : null
+  const transitionClass = uiState.study.cardTransitionPhase ? ` is-transition-${uiState.study.cardTransitionPhase}` : ''
+  const isGap = uiState.study.cardTransitionPhase === 'gap' && !currentUnit
 
   return `
     <section class="screen screen--study">
       ${
         currentUnit
           ? `
-        <article class="study-card" data-swipe-zone="true" data-study-key="${escapeHtml(currentUnit.key)}">
+        <article class="study-card ${reviewFeedback ? `is-result-${reviewFeedback.knew ? 'know' : 'dont'}` : ''}${transitionClass}" data-swipe-zone="true" data-study-key="${escapeHtml(currentUnit.key)}">
           <div class="study-card__wash study-card__wash--left"><span>Not yet</span></div>
           <div class="study-card__wash study-card__wash--right"><span>Know it</span></div>
           <div class="study-card__body">
-            <p class="study-card__cue">${escapeHtml(currentUnit.cue)}</p>
-            <div class="study-card__prompt">${escapeHtml(currentUnit.prompt)}</div>
+            ${
+              reviewFeedback
+                ? `
+              <p class="study-card__cue">Correct answer</p>
+              <div class="study-card__prompt study-card__prompt--answer">${escapeHtml(currentUnit.answer)}</div>
+              ${currentUnit.secondary ? `<p class="study-card__secondary">${escapeHtml(currentUnit.secondary)}</p>` : ''}
+            `
+                : `
+              <p class="study-card__cue">${escapeHtml(currentUnit.cue)}</p>
+              <div class="study-card__prompt">${escapeHtml(currentUnit.prompt)}</div>
+            `
+            }
           </div>
           ${
-            uiState.study.hasSeenGestureHint
+            uiState.study.hasSeenGestureHint || reviewFeedback
               ? ''
               : '<p class="study-card__hint study-card__hint--inline">Use arrow keys or swipe</p>'
           }
         </article>
-        ${modeSelector}
       `
+          : isGap
+            ? '<article class="study-card study-card--ghost is-transition-gap" aria-hidden="true"></article>'
           : `
         <article class="panel panel--center">
           <p class="panel__eyebrow">Caught up</p>
           <h3>No cards are due in this mode right now.</h3>
           <p class="panel__text">Weak cards already answered today will still loop back sooner. Otherwise the next scheduled review is ${escapeHtml(nextDue)}.</p>
         </article>
-        ${modeSelector}
       `
       }
     </section>
@@ -1365,6 +1356,23 @@ function renderSettingsScreen() {
           <span>Reduce motion</span>
           <input id="reduce-motion-toggle" type="checkbox" ${appState.settings.reduceMotion ? 'checked' : ''} />
         </label>
+      </article>
+
+      <article class="panel panel--soft">
+        <div class="panel__row">
+          <div>
+            <p class="panel__eyebrow">Study mode</p>
+            <h3>${escapeHtml(getModeLabel(uiState.study.studyMode ?? appState.settings.preferredMode))}</h3>
+          </div>
+        </div>
+        <div class="segmented">
+          ${['mixed', 'code_to_country', 'country_to_code']
+            .map(
+              (mode) =>
+                `<button class="segmented__option ${uiState.study.studyMode === mode ? 'is-active' : ''}" data-action="set-mode" data-mode="${mode}">${escapeHtml(getModeLabel(mode))}</button>`,
+            )
+            .join('')}
+        </div>
       </article>
 
       <article class="panel panel--soft">
@@ -1621,11 +1629,18 @@ root.addEventListener('click', async (event) => {
     try {
       appState = parseBackupString(importBox?.value ?? '')
       saveAppState()
+      clearStudyReviewTimeout()
+      clearStudyCardTransitionTimeout()
       uiState.study = {
         studyMode: 'mixed',
         currentUnit: null,
         hasSeenGestureHint: false,
+        reviewFeedback: null,
+        reviewTimeoutId: null,
+        cardTransitionPhase: null,
+        cardTransitionTimeoutId: null,
         turn: 0,
+        recentCodes: [],
         recentKeys: [],
         sessionQueue: [],
       }
@@ -1646,6 +1661,8 @@ root.addEventListener('click', async (event) => {
 })
 
 window.addEventListener('hashchange', () => {
+  clearStudyReviewTimeout()
+  clearStudyCardTransitionTimeout()
   flushStudyClock()
   renderApp()
 })
@@ -1674,6 +1691,8 @@ window.addEventListener('keydown', (event) => {
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
+    clearStudyReviewTimeout()
+    clearStudyCardTransitionTimeout()
     flushStudyClock()
     studyClockStartedAt = null
   } else {
@@ -1682,6 +1701,8 @@ document.addEventListener('visibilitychange', () => {
 })
 
 window.addEventListener('pagehide', () => {
+  clearStudyReviewTimeout()
+  clearStudyCardTransitionTimeout()
   flushStudyClock()
   studyClockStartedAt = null
 })
