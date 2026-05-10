@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suika Clone</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="vendor/matter.js"></script>
+    <script defer src="game.js"></script>
+</head>
+<body>
+    <canvas id="ambientCanvas" aria-hidden="true"></canvas>
+
+    <div class="content">
+        <header class="site-header">
+            <div class="container">
+                <nav class="top-nav" aria-label="Game">
+                    <a class="logo" href="#">Gabriel H</a>
+                    <div class="nav-links">
+                        <span>Suika Clone</span>
+                        <button class="btn compact" id="restartTop" type="button">Restart</button>
+                    </div>
+                </nav>
+            </div>
+        </header>
+
+        <main class="app-shell">
+            <section class="game-section" aria-label="Suika game">
+                <div class="game-layout">
+                    <aside class="hud-panel" aria-label="Game stats">
+                        <div class="hud-block primary-score">
+                            <span class="hud-label">Score</span>
+                            <strong id="scoreValue">0</strong>
+                        </div>
+                        <div class="hud-row">
+                            <div class="hud-block">
+                                <span class="hud-label">Best</span>
+                                <strong id="bestValue">0</strong>
+                            </div>
+                            <div class="hud-block">
+                                <span class="hud-label">Largest</span>
+                                <strong id="largestValue">-</strong>
+                            </div>
+                        </div>
+                        <div class="hud-block points-block">
+                            <span class="hud-label">Points</span>
+                            <strong id="pointsValue">0</strong>
+                        </div>
+                        <div class="next-panel">
+                            <span class="hud-label">Next</span>
+                            <canvas id="nextCanvas" width="96" height="96" aria-label="Next fruit"></canvas>
+                        </div>
+                        <button class="btn" id="restartButton" type="button">Restart Game</button>
+                    </aside>
+
+                    <div class="board-frame">
+                        <canvas id="gameCanvas" width="520" height="780" aria-label="Playable Suika game board"></canvas>
+                        <p class="canvas-status" id="canvasStatus" role="alert" hidden></p>
+                        <div class="board-actions">
+                            <button class="btn" id="jiggleButton" type="button">Jiggle</button>
+                            <button class="btn" id="removeButton" type="button">Remove</button>
+                            <span id="abilityStatus">Jiggle 100 Points | Remove 50 Points</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
