@@ -9,12 +9,19 @@
     const LOSE_Y = 84 * (WORLD.height / 960);
     const DROP_COOLDOWN = 520;
     const FIXED_STEP = 1000 / 60;
+    const GRAVITY_SCALE = 0.0014375;
     const STORAGE_KEY = "gabriel-suika-clone-best";
     const POINTS_STORAGE_KEY = "gabriel-suika-clone-points";
     const LEGACY_META_STORAGE_KEY = "gabriel-suika-clone-meta";
     const SCORE_TO_POINTS_RATE = 10;
     const JIGGLE_COST = 100;
     const REMOVE_COST = 50;
+    const FRUIT_COLLISION_SIDES = 64;
+    const FRUIT_FRICTION = 0.0042;
+    const FRUIT_RESTITUTION = 0.15;
+    const FRUIT_FRICTION_AIR = 0.0007;
+    const FRUIT_ANGULAR_FRICTION_AIR = FRUIT_FRICTION_AIR * 1.4;
+    const FRUIT_EXTRA_ANGULAR_DAMPING = FRUIT_ANGULAR_FRICTION_AIR - FRUIT_FRICTION_AIR;
 
     const sourceRadii = [24, 32, 40, 56, 64, 72, 84, 96, 128, 160, 192];
     const sourceScores = [1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66];
@@ -91,6 +98,7 @@
     let gameDpr = 1;
     let nextDpr = 1;
     let activeAbility = null;
+    let touchDropPointerId = null;
 
     const activeFruits = new Set();
     const pendingMerges = [];
@@ -164,7 +172,7 @@
         ({ Engine, Composite, Bodies, Body, Events, Sleeping } = MatterApi);
         engine = Engine.create({ enableSleeping: true });
         engine.gravity.y = 1;
-        engine.gravity.scale = 0.00115;
+        engine.gravity.scale = GRAVITY_SCALE;
 
         Events.on(engine, "collisionStart", onCollisionStart);
 
@@ -189,6 +197,7 @@
     function bindInput() {
         dom.gameCanvas.addEventListener("pointermove", function (event) {
             if (activeAbility === "remove") return;
+            if (event.pointerType === "touch" && touchDropPointerId !== event.pointerId) return;
 
             setDropX(clientToWorldX(event.clientX));
         });
@@ -203,8 +212,34 @@
             }
 
             setDropX(point.x);
+            if (event.pointerType === "touch") {
+                touchDropPointerId = event.pointerId;
+                if (dom.gameCanvas.setPointerCapture) {
+                    dom.gameCanvas.setPointerCapture(event.pointerId);
+                }
+                return;
+            }
+
             dropFruit();
         }, { passive: false });
+
+        dom.gameCanvas.addEventListener("pointerup", function (event) {
+            if (event.pointerType !== "touch" || touchDropPointerId !== event.pointerId) return;
+
+            event.preventDefault();
+            touchDropPointerId = null;
+            setDropX(clientToWorldX(event.clientX));
+            dropFruit();
+            if (dom.gameCanvas.hasPointerCapture && dom.gameCanvas.hasPointerCapture(event.pointerId)) {
+                dom.gameCanvas.releasePointerCapture(event.pointerId);
+            }
+        }, { passive: false });
+
+        dom.gameCanvas.addEventListener("pointercancel", function (event) {
+            if (event.pointerId === touchDropPointerId) {
+                touchDropPointerId = null;
+            }
+        });
 
         window.addEventListener("keydown", function (event) {
             if (event.key === "ArrowLeft") {
@@ -511,13 +546,13 @@
         const fruit = fruits[level];
         const body = Bodies.circle(x, y, fruit.radius, {
             label: "fruit",
-            friction: 0.006,
+            friction: FRUIT_FRICTION,
             frictionStatic: 0.006,
-            frictionAir: 0.001,
-            restitution: 0.1,
+            frictionAir: FRUIT_FRICTION_AIR,
+            restitution: FRUIT_RESTITUTION,
             density: 0.001,
             slop: 0.03
-        });
+        }, FRUIT_COLLISION_SIDES);
 
         body.plugin.fruit = {
             level,
@@ -659,6 +694,17 @@
         updateHud();
     }
 
+    function applyFruitAngularFriction(delta) {
+        const damping = Math.max(0, 1 - FRUIT_EXTRA_ANGULAR_DAMPING * (delta / FIXED_STEP));
+
+        activeFruits.forEach(function (body) {
+            const data = getFruitData(body);
+            if (!data || body.isSleeping) return;
+
+            Body.setAngularVelocity(body, body.angularVelocity * damping);
+        });
+    }
+
     function frame(now) {
         if (!lastFrameTime) lastFrameTime = now;
         const elapsed = Math.min(now - lastFrameTime, 80);
@@ -668,6 +714,7 @@
             accumulator += elapsed;
             while (accumulator >= FIXED_STEP) {
                 Engine.update(engine, FIXED_STEP);
+                applyFruitAngularFriction(FIXED_STEP);
                 processMerges();
                 accumulator -= FIXED_STEP;
             }
