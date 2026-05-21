@@ -584,7 +584,7 @@ function handleDecision(key) {
                     pushLine('Wrong decision (-$30)')
                 }
             } else {
-                window.location.replace('../Arcade/index.html');
+                window.location.replace('../index.html');
             }
         } else {
             // key === 'n'
