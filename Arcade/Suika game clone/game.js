@@ -22,6 +22,8 @@
     const FRUIT_FRICTION_AIR = 0.0007;
     const FRUIT_ANGULAR_FRICTION_AIR = FRUIT_FRICTION_AIR * 1.4;
     const FRUIT_EXTRA_ANGULAR_DAMPING = FRUIT_ANGULAR_FRICTION_AIR - FRUIT_FRICTION_AIR;
+    const WATERMELON_JUICE_PARTICLES = 44;
+    const WATERMELON_JUICE_GRAVITY = 760;
 
     const sourceRadii = [24, 32, 40, 56, 64, 72, 84, 96, 128, 160, 192];
     const sourceScores = [1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66];
@@ -102,7 +104,9 @@
 
     const activeFruits = new Set();
     const pendingMerges = [];
+    const pendingWatermelonPops = [];
     const popEffects = [];
+    const juiceParticles = [];
 
     function loadImage(src) {
         const image = new Image();
@@ -312,7 +316,9 @@
 
         activeFruits.clear();
         pendingMerges.length = 0;
+        pendingWatermelonPops.length = 0;
         popEffects.length = 0;
+        juiceParticles.length = 0;
         score = 0;
         unconvertedScore = 0;
         largestLevel = -1;
@@ -580,12 +586,16 @@
 
             if (!fruitA || !fruitB) continue;
             if (fruitA.level !== fruitB.level) continue;
-            if (fruitA.level >= fruits.length - 1) continue;
             if (bodyA.plugin.mergeLocked || bodyB.plugin.mergeLocked) continue;
 
             bodyA.plugin.mergeLocked = true;
             bodyB.plugin.mergeLocked = true;
-            pendingMerges.push({ bodyA, bodyB, level: fruitA.level });
+
+            if (fruitA.level >= fruits.length - 1) {
+                pendingWatermelonPops.push({ bodyA, bodyB, level: fruitA.level });
+            } else {
+                pendingMerges.push({ bodyA, bodyB, level: fruitA.level });
+            }
         }
     }
 
@@ -637,6 +647,37 @@
         }
     }
 
+    function processWatermelonPops() {
+        if (pendingWatermelonPops.length === 0) return;
+
+        const pops = pendingWatermelonPops.splice(0, pendingWatermelonPops.length);
+        for (const pop of pops) {
+            const bodyA = pop.bodyA;
+            const bodyB = pop.bodyB;
+            if (!activeFruits.has(bodyA) || !activeFruits.has(bodyB)) continue;
+
+            const dataA = getFruitData(bodyA);
+            const dataB = getFruitData(bodyB);
+            if (!dataA || !dataB || dataA.level !== dataB.level) continue;
+            if (dataA.level < fruits.length - 1) continue;
+
+            const scoreValue = fruits[dataA.level].score;
+            spawnPop(bodyA.position.x, bodyA.position.y, dataA.radius);
+            spawnPop(bodyB.position.x, bodyB.position.y, dataB.radius);
+            spawnWatermelonJuice(bodyA.position.x, bodyA.position.y, dataA.radius);
+            spawnWatermelonJuice(bodyB.position.x, bodyB.position.y, dataB.radius);
+            playAudio(sounds.pops[dataA.level]);
+
+            removeFruit(bodyA);
+            removeFruit(bodyB);
+            addScore(scoreValue);
+            wakeAllFruitPhysics();
+            dangerSince = null;
+            updateHud();
+            drawNextFruit();
+        }
+    }
+
     function removeFruit(body) {
         activeFruits.delete(body);
         Composite.remove(engine.world, body);
@@ -668,6 +709,27 @@
             bornAt: performance.now(),
             duration: 170
         });
+    }
+
+    function spawnWatermelonJuice(x, y, radius) {
+        const now = performance.now();
+
+        for (let index = 0; index < WATERMELON_JUICE_PARTICLES; index += 1) {
+            const angle = (index / WATERMELON_JUICE_PARTICLES) * Math.PI * 2 + (Math.random() - 0.5) * 0.45;
+            const speed = 220 + Math.random() * 320;
+            const startDistance = radius * (0.22 + Math.random() * 0.38);
+            const particleRadius = 1.4 + Math.random() * 2.8;
+
+            juiceParticles.push({
+                x: x + Math.cos(angle) * startDistance,
+                y: y + Math.sin(angle) * startDistance,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 110 - Math.random() * 140,
+                radius: particleRadius,
+                bornAt: now,
+                life: 3.2 + Math.random() * 0.8
+            });
+        }
     }
 
     function updateGameOver(now) {
@@ -720,6 +782,7 @@
             while (accumulator >= FIXED_STEP) {
                 Engine.update(engine, FIXED_STEP);
                 applyFruitAngularFriction(FIXED_STEP);
+                processWatermelonPops();
                 processMerges();
                 accumulator -= FIXED_STEP;
             }
@@ -736,6 +799,7 @@
         drawDropPreview(now);
         drawFruits();
         drawPopEffects(now);
+        drawWatermelonJuice(now);
         drawGameOverOverlay();
     }
 
@@ -841,6 +905,36 @@
                 ctx.drawImage(popImage, -size / 2, -size / 2, size, size);
             }
 
+            ctx.restore();
+        }
+    }
+
+    function drawWatermelonJuice(now) {
+        for (let index = juiceParticles.length - 1; index >= 0; index -= 1) {
+            const particle = juiceParticles[index];
+            const elapsed = (now - particle.bornAt) / 1000;
+            const progress = elapsed / particle.life;
+            const x = particle.x + particle.vx * elapsed;
+            const y = particle.y + particle.vy * elapsed + 0.5 * WATERMELON_JUICE_GRAVITY * elapsed * elapsed;
+
+            if (
+                progress >= 1 ||
+                y - particle.radius > WORLD.height + 80 ||
+                x + particle.radius < -90 ||
+                x - particle.radius > WORLD.width + 90
+            ) {
+                juiceParticles.splice(index, 1);
+                continue;
+            }
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, 1 - progress * 0.65);
+            ctx.fillStyle = "#ff1010";
+            ctx.shadowColor = "rgba(255, 0, 0, 0.45)";
+            ctx.shadowBlur = 5;
+            ctx.beginPath();
+            ctx.arc(x, y, particle.radius, 0, Math.PI * 2);
+            ctx.fill();
             ctx.restore();
         }
     }
