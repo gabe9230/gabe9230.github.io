@@ -434,6 +434,11 @@
         }
     }
 
+    function removeScore(points) {
+        score = Math.max(0, score - points);
+        unconvertedScore = Math.max(0, unconvertedScore - points);
+    }
+
     function canJiggle() {
         return !gameOver && pointBalance >= JIGGLE_COST && activeFruits.size > 0;
     }
@@ -513,7 +518,7 @@
 
         pointBalance -= REMOVE_COST;
         savePointBalance();
-        addScore(fruits[data.level].score);
+        removeScore(fruits[data.level].score);
         spawnPop(body.position.x, body.position.y, data.radius);
         playAudio(sounds.pops[data.level]);
         removeFruit(body);
