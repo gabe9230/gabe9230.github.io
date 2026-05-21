@@ -26,6 +26,7 @@
                     <button id="mode-add" class="btn">Add Node</button>
                     <button id="mode-connect" class="btn ghost">Connect Muscle</button>
                     <button id="mode-bone" class="btn ghost">Connect Bone</button>
+                    <button id="mode-remove-link" class="btn ghost">Remove Link</button>
                     <button id="mode-anchor" class="btn ghost">Toggle Anchor</button>
                     <button id="mode-delete" class="btn ghost">Delete Node</button>
                     <button id="clear-build" class="btn ghost">Clear Design</button>
@@ -55,7 +56,7 @@
                     </div>
                 </div>
 
-                <p><strong>Tips:</strong> drag nodes to reposition. Double-click a node to toggle its anchor state without changing modes. Use Connect Bone for rigid struts and Delete Node mode to remove mistakes.</p>
+                <p><strong>Tips:</strong> drag nodes to reposition. Double-click a node to toggle its anchor state without changing modes. Use Connect Bone for rigid struts, Remove Link for muscles or bones, and Delete Node for node mistakes.</p>
 
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -78,10 +79,9 @@
 
                 <div class="control-row">
                     <button id="run-evolution" class="btn">Run Evolution</button>
+                    <button id="start-race" class="btn ghost" disabled>Start Race</button>
                     <button id="stop-evolution" class="btn ghost">Stop</button>
                     <button id="toggle-ghosts" class="btn ghost" aria-pressed="false">Show All Ghosts</button>
-                    <button id="export-creature" class="btn ghost">Export Blueprint</button>
-                    <button id="import-creature" class="btn ghost">Import Blueprint</button>
                 </div>
 
                 <div class="log" id="log" aria-live="polite">

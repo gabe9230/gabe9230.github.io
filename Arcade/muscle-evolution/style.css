@@ -90,6 +90,14 @@ header h1 {
     border-color: var(--accent);
 }
 
+.btn:disabled,
+.btn:disabled:hover {
+    cursor: not-allowed;
+    opacity: 0.48;
+    transform: none;
+    box-shadow: none;
+}
+
 main {
     padding: 36px clamp(18px, 4vw, 48px) 56px;
 }
@@ -184,8 +192,11 @@ main {
 }
 
 .chip.bone {
-    background: rgba(86, 156, 230, 0.35);
-    border-color: rgba(86, 156, 230, 0.75);
+    width: 38px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(86, 156, 230, 0.72);
+    border: none;
 }
 
 .chip.muscle {

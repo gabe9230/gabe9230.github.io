@@ -11,15 +11,15 @@
         add: document.getElementById("mode-add"),
         connect: document.getElementById("mode-connect"),
         connectBone: document.getElementById("mode-bone"),
+        removeLink: document.getElementById("mode-remove-link"),
         anchor: document.getElementById("mode-anchor"),
         delete: document.getElementById("mode-delete"),
     };
 
     const clearButton = document.getElementById("clear-build");
     const runButton = document.getElementById("run-evolution");
+    const startRaceButton = document.getElementById("start-race");
     const stopButton = document.getElementById("stop-evolution");
-    const exportButton = document.getElementById("export-creature");
-    const importButton = document.getElementById("import-creature");
     const toggleGhostsButton = document.getElementById("toggle-ghosts");
 
     const nodeCountEl = document.getElementById("node-count");
@@ -59,6 +59,7 @@
         dragOffset: { x: 0, y: 0 },
         pendingConnection: null,
         hoverNode: null,
+        hoverLink: null,
         isDraggingCanvas: false,
     };
 
@@ -73,11 +74,13 @@
     // ---------- Evolution state ----------
     const evolution = {
         running: false,
+        racing: false,
         stopRequested: false,
         bestDistance: 0,
         generation: 0,
         populationSize: 50,
         maxGenerations: 28,
+        trainedChampion: null,
         latestLog: [],
     };
 
@@ -241,6 +244,21 @@
         muscleCountEl.textContent = String(muscleCount);
     }
 
+    function updateRaceButton() {
+        if (!startRaceButton) return;
+        startRaceButton.disabled = !evolution.trainedChampion || evolution.running || evolution.racing;
+    }
+
+    function clearTrainedChampion() {
+        evolution.trainedChampion = null;
+        updateRaceButton();
+    }
+
+    function invalidateTrainedChampion() {
+        if (evolution.running || evolution.racing) return;
+        clearTrainedChampion();
+    }
+
     function setStatus(text) {
         statusLine.textContent = text;
     }
@@ -253,14 +271,17 @@
                 ? "Connect Muscle"
                 : mode === "connectBone"
                     ? "Connect Bone"
-                    : mode === "anchor"
-                        ? "Toggle Anchor"
-                        : "Delete Node";
+                    : mode === "removeLink"
+                        ? "Remove Link"
+                        : mode === "anchor"
+                            ? "Toggle Anchor"
+                            : "Delete Node";
         Object.entries(modeButtons).forEach(([key, btn]) => {
             if (key === mode) btn.classList.add("active-mode");
             else btn.classList.remove("active-mode");
         });
         if (mode !== "connect" && mode !== "connectBone") builder.pendingConnection = null;
+        if (mode !== "removeLink") builder.hoverLink = null;
         drawBuilder();
     }
 
@@ -331,6 +352,7 @@
             y: clampBuildY(y),
             fixed: false,
         });
+        invalidateTrainedChampion();
         updateCounts();
         drawBuilder();
     }
@@ -345,6 +367,7 @@
                 a: link.a > index ? link.a - 1 : link.a,
                 b: link.b > index ? link.b - 1 : link.b,
             }));
+        invalidateTrainedChampion();
         updateCounts();
         drawBuilder();
     }
@@ -367,6 +390,7 @@
         const dy = b.y - a.y;
         const rest = Math.max(1, Math.sqrt(dx * dx + dy * dy));
         builder.links.push({ a: aIndex, b: bIndex, rest, type });
+        invalidateTrainedChampion();
         updateCounts();
         drawBuilder();
     }
@@ -383,7 +407,55 @@
         const node = builder.nodes[index];
         if (!node) return;
         node.fixed = !node.fixed;
+        invalidateTrainedChampion();
         drawBuilder();
+    }
+
+    function distanceToSegment(px, py, ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        const lengthSq = dx * dx + dy * dy;
+        if (lengthSq === 0) return Math.hypot(px - ax, py - ay);
+
+        const t = clamp(((px - ax) * dx + (py - ay) * dy) / lengthSq, 0, 1);
+        const nearestX = ax + dx * t;
+        const nearestY = ay + dy * t;
+        return Math.hypot(px - nearestX, py - nearestY);
+    }
+
+    function linkAtScreenPosition(sx, sy) {
+        const hitDistance = Math.max(10, getMuscleScreenWidth() * 2);
+        let selectedIndex = null;
+        let selectedDistance = Infinity;
+
+        for (let index = builder.links.length - 1; index >= 0; index -= 1) {
+            const link = builder.links[index];
+            const a = builder.nodes[link.a];
+            const b = builder.nodes[link.b];
+            if (!a || !b) continue;
+
+            const aScreen = worldToScreen(a.x, a.y);
+            const bScreen = worldToScreen(b.x, b.y);
+            const distance = distanceToSegment(sx, sy, aScreen.x, aScreen.y, bScreen.x, bScreen.y);
+            if (distance <= hitDistance && distance < selectedDistance) {
+                selectedIndex = index;
+                selectedDistance = distance;
+            }
+        }
+
+        return selectedIndex;
+    }
+
+    function removeLinkAt(index) {
+        if (index < 0 || index >= builder.links.length) return;
+
+        const [removed] = builder.links.splice(index, 1);
+        builder.hoverLink = null;
+        builder.pendingConnection = null;
+        invalidateTrainedChampion();
+        updateCounts();
+        drawBuilder();
+        addLog(`${removed.type === "bone" ? "Bone" : "Muscle"} link removed.`);
     }
 
     function nodeAtScreenPosition(sx, sy) {
@@ -428,7 +500,9 @@
         bones.forEach((link) => {
             const aScreen = worldToScreen(builder.nodes[link.a].x, builder.nodes[link.a].y);
             const bScreen = worldToScreen(builder.nodes[link.b].x, builder.nodes[link.b].y);
+            const linkIndex = builder.links.indexOf(link);
             const boneHighlight =
+                builder.hoverLink === linkIndex ||
                 builder.pendingConnection !== null &&
                 (link.a === builder.pendingConnection || link.b === builder.pendingConnection);
             ctx.strokeStyle = boneHighlight ? "rgba(255, 214, 102, 0.85)" : "rgba(86, 156, 230, 0.85)";
@@ -442,7 +516,9 @@
         muscles.forEach((link) => {
             const aScreen = worldToScreen(builder.nodes[link.a].x, builder.nodes[link.a].y);
             const bScreen = worldToScreen(builder.nodes[link.b].x, builder.nodes[link.b].y);
+            const linkIndex = builder.links.indexOf(link);
             const highlight =
+                builder.hoverLink === linkIndex ||
                 builder.pendingConnection !== null &&
                 (link.a === builder.pendingConnection || link.b === builder.pendingConnection);
             ctx.strokeStyle = highlight ? "rgba(255, 214, 102, 0.85)" : "rgba(255, 107, 107, 0.78)";
@@ -484,7 +560,9 @@
         builder.dragging = null;
         builder.dragOffset = { x: 0, y: 0 };
         builder.hoverNode = null;
+        builder.hoverLink = null;
         builder.isDraggingCanvas = false;
+        clearTrainedChampion();
         updateCounts();
         bestDistanceEl.textContent = "0.00 m";
         generationEl.textContent = "-";
@@ -511,6 +589,14 @@
             builder.isDraggingCanvas = true;
             builder.dragOffset.x = sx;
             builder.dragOffset.y = sy;
+            return;
+        }
+
+        if (builder.mode === "removeLink") {
+            const linkIndex = linkAtScreenPosition(sx, sy);
+            if (linkIndex !== null) {
+                removeLinkAt(linkIndex);
+            }
             return;
         }
 
@@ -561,6 +647,7 @@
             return;
         }
         builder.hoverNode = nodeAtScreenPosition(sx, sy);
+        builder.hoverLink = builder.mode === "removeLink" ? linkAtScreenPosition(sx, sy) : null;
         drawBuilder();
     });
 
@@ -601,6 +688,9 @@
     if (modeButtons.connectBone) {
         modeButtons.connectBone.addEventListener("click", () => setMode("connectBone"));
     }
+    if (modeButtons.removeLink) {
+        modeButtons.removeLink.addEventListener("click", () => setMode("removeLink"));
+    }
     modeButtons.anchor.addEventListener("click", () => setMode("anchor"));
     modeButtons.delete.addEventListener("click", () => setMode("delete"));
     clearButton.addEventListener("click", resetBuilder);
@@ -615,86 +705,6 @@
             );
         });
     }
-
-    // ---------- Export / Import ----------
-    exportButton.addEventListener("click", async () => {
-        const blueprint = blueprintFromBuilder();
-        if (!blueprint) return;
-        const payload = JSON.stringify(blueprint);
-        try {
-            await navigator.clipboard.writeText(payload);
-            addLog("Blueprint copied to clipboard.");
-        } catch {
-            addLog("Clipboard blocked. JSON opened in prompt - copy it manually.");
-            window.prompt("Creature blueprint JSON:", payload);
-        }
-    });
-
-    importButton.addEventListener("click", () => {
-        const text = window.prompt("Paste blueprint JSON:");
-        if (!text) return;
-        try {
-            const data = JSON.parse(text);
-            if (!Array.isArray(data.nodes)) {
-                throw new Error("Invalid blueprint.");
-            }
-            resetBuilder();
-            data.nodes.slice(0, MAX_NODES).forEach((n) => {
-                builder.nodes.push({
-                    x: clampBuildX(n.x ?? DEFAULT_CAMERA_X),
-                    y: clampBuildY(n.y ?? DEFAULT_CAMERA_Y),
-                    fixed: !!n.fixed,
-                });
-            });
-
-            const importedLinks = [];
-            const linksArray = Array.isArray(data.links) ? data.links : [];
-            if (linksArray.length) {
-                linksArray.forEach((link) => {
-                    if (
-                        typeof link.a === "number" &&
-                        typeof link.b === "number" &&
-                        typeof link.rest === "number" &&
-                        typeof link.type === "string"
-                    ) {
-                        if (link.a < builder.nodes.length && link.b < builder.nodes.length) {
-                            importedLinks.push({
-                                a: link.a,
-                                b: link.b,
-                                rest: link.rest,
-                                type: link.type === "bone" ? "bone" : "muscle",
-                            });
-                        }
-                    }
-                });
-            } else {
-                const muscles = Array.isArray(data.muscles) ? data.muscles : [];
-                muscles.forEach((m) => {
-                    if (typeof m.a === "number" && typeof m.b === "number" && typeof m.rest === "number") {
-                        if (m.a < builder.nodes.length && m.b < builder.nodes.length) {
-                            importedLinks.push({ a: m.a, b: m.b, rest: m.rest, type: "muscle" });
-                        }
-                    }
-                });
-
-                const bones = Array.isArray(data.bones) ? data.bones : [];
-                bones.forEach((m) => {
-                    if (typeof m.a === "number" && typeof m.b === "number" && typeof m.rest === "number") {
-                        if (m.a < builder.nodes.length && m.b < builder.nodes.length) {
-                            importedLinks.push({ a: m.a, b: m.b, rest: m.rest, type: "bone" });
-                        }
-                    }
-                });
-            }
-
-            builder.links = importedLinks;
-            updateCounts();
-            drawBuilder();
-            addLog("Blueprint imported.");
-        } catch (err) {
-            addLog(`Import failed: ${err.message}`);
-        }
-    });
 
     // ---------- Evolution engine ----------
     const PIXELS_PER_METER = 90;
@@ -741,6 +751,18 @@
             b1: new Float32Array(genome.b1),
             w2: new Float32Array(genome.w2),
             b2: new Float32Array(genome.b2),
+        };
+    }
+
+    function cloneBlueprint(blueprint) {
+        return {
+            nodes: blueprint.nodes.map((node) => ({ ...node })),
+            muscles: blueprint.muscles.map((muscle) => ({ ...muscle })),
+            bones: blueprint.bones.map((bone) => ({ ...bone })),
+            links: blueprint.links.map((link) => ({ ...link })),
+            count: blueprint.count,
+            muscleCount: blueprint.muscleCount,
+            bounds: { ...blueprint.bounds },
         };
     }
 
@@ -985,11 +1007,60 @@
         generationEl.textContent = String(generation);
     }
 
+    function rememberChampion(blueprint, scoredEntry, generation) {
+        if (!scoredEntry) return;
+        if (
+            evolution.trainedChampion &&
+            scoredEntry.score.distance < evolution.trainedChampion.distance
+        ) {
+            return;
+        }
+
+        evolution.trainedChampion = {
+            blueprint: cloneBlueprint(blueprint),
+            genome: cloneGenome(scoredEntry.genome),
+            distance: scoredEntry.score.distance,
+            generation,
+        };
+        updateRaceButton();
+    }
+
+    function createRaceIndividual(blueprint, genome) {
+        const creature = instantiateCreature(blueprint);
+        const nodes = creature.nodes;
+        const centerX = nodes.reduce((acc, n) => acc + n.x, 0) / nodes.length;
+        return {
+            genome,
+            nodes,
+            muscles: creature.muscles,
+            bones: creature.bones,
+            hidden: new Float32Array(genome.hiddenSize),
+            inputs: new Float32Array(genome.inputSize),
+            controlCountdown: 0,
+            startX: centerX,
+        };
+    }
+
+    function stepIndividual(individual, simTime) {
+        if (individual.controlCountdown <= 0) {
+            fillInputs(individual.inputs, individual.nodes, simTime, individual.startX);
+            const outputs = forwardNetwork(individual.genome, individual.inputs, individual.hidden);
+            for (let i = 0; i < individual.muscles.length; i++) {
+                individual.muscles[i].contracted = outputs[i] > 0.5;
+            }
+            individual.controlCountdown = CONTROL_INTERVAL;
+        }
+        physicsStep(individual.nodes, individual.muscles, individual.bones || []);
+        individual.controlCountdown -= 1;
+    }
+
     function runEvolutionLoop(blueprint) {
         evolution.running = true;
         evolution.stopRequested = false;
         evolution.bestDistance = 0;
         evolution.generation = 0;
+        clearTrainedChampion();
+        updateRaceButton();
         const inputSize = FEATURES_PER_NODE * MAX_SENSOR_NODES + 5;
         const hiddenSize = Math.max(12, Math.round(blueprint.muscleCount * 1.5));
         const outputSize = blueprint.muscleCount;
@@ -1001,6 +1072,7 @@
                 evolution.running = false;
                 setStatus("Evolution stopped.");
                 addLog("Evolution paused by user.");
+                updateRaceButton();
                 drawBuilder();
                 return;
             }
@@ -1008,6 +1080,7 @@
                 evolution.running = false;
                 setStatus("Reached generation cap. You can run again to continue evolving.");
                 addLog("Generation cap reached. Adjust design or run again for more training.");
+                updateRaceButton();
                 drawBuilder();
                 return;
             }
@@ -1018,6 +1091,7 @@
             scored.sort((a, b) => b.score.distance - a.score.distance);
             const best = scored[0];
             updateStats(best.score.distance, evolution.generation);
+            rememberChampion(blueprint, best, evolution.generation);
             addLog(`Gen ${evolution.generation}: best ${best.score.distance.toFixed(2)} m (stability ${best.score.stability.toFixed(2)}). Eval time ${elapsed.toFixed(0)} ms.`);
 
             await visualizeGeneration(blueprint, scored);
@@ -1025,10 +1099,12 @@
                 evolution.running = false;
                 setStatus("Evolution stopped.");
                 addLog("Evolution paused by user.");
+                updateRaceButton();
                 drawBuilder();
                 return;
             }
             population = breedNextGeneration(scored, evolution.populationSize, 0.45);
+            updateRaceButton();
             requestAnimationFrame(loop);
         };
         requestAnimationFrame(loop);
@@ -1040,21 +1116,7 @@
         const limit = Math.min(scored.length, showAll ? 50 : 1);
         const selection = scored.slice(0, limit);
         setStatus(showAll ? `Visualising top ${limit} genomes...` : "Visualising best genome...");
-        const individuals = selection.map(({ genome }) => {
-            const creature = instantiateCreature(blueprint);
-            const nodes = creature.nodes;
-            const centerX = nodes.reduce((acc, n) => acc + n.x, 0) / nodes.length;
-            return {
-                genome,
-                nodes,
-                muscles: creature.muscles,
-                bones: creature.bones,
-                hidden: new Float32Array(genome.hiddenSize),
-                inputs: new Float32Array(genome.inputSize),
-                controlCountdown: 0,
-                startX: centerX,
-            };
-        });
+        const individuals = selection.map(({ genome }) => createRaceIndividual(blueprint, genome));
         view.mode = "run";
         view.targetZoom = RUN_ZOOM;
         view.cameraX = COURSE_LENGTH / 2;
@@ -1078,16 +1140,7 @@
                 ) {
                     const simTime = step * DT;
                     individuals.forEach((ind) => {
-                        if (ind.controlCountdown <= 0) {
-                            fillInputs(ind.inputs, ind.nodes, simTime, ind.startX);
-                            const outputs = forwardNetwork(ind.genome, ind.inputs, ind.hidden);
-                            for (let i = 0; i < ind.muscles.length; i++) {
-                                ind.muscles[i].contracted = outputs[i] > 0.5;
-                            }
-                            ind.controlCountdown = CONTROL_INTERVAL;
-                        }
-                        physicsStep(ind.nodes, ind.muscles, ind.bones || []);
-                        ind.controlCountdown -= 1;
+                        stepIndividual(ind, simTime);
                     });
                     step += 1;
                 }
@@ -1151,10 +1204,84 @@
         drawMiniMap(individuals);
     }
 
+    function startRace() {
+        if (evolution.running) {
+            addLog("Evolution is still training. Stop or wait before starting a race.");
+            return;
+        }
+        if (evolution.racing) {
+            addLog("Race already running.");
+            return;
+        }
+        if (!evolution.trainedChampion) {
+            addLog("Train a creature first, then start a race.");
+            updateRaceButton();
+            return;
+        }
+
+        const champion = evolution.trainedChampion;
+        const individual = createRaceIndividual(champion.blueprint, champion.genome);
+        const maxSteps = Math.floor(SIM_DURATION / DT);
+        let step = 0;
+        let accumulator = 0;
+        let lastFrameTime = 0;
+
+        evolution.racing = true;
+        evolution.stopRequested = false;
+        updateRaceButton();
+        view.mode = "run";
+        view.targetZoom = RUN_ZOOM;
+        view.cameraX = COURSE_LENGTH / 2;
+        view.cameraY = RUN_CAMERA_Y;
+        setStatus(`Racing generation ${champion.generation} champion at 1x speed...`);
+        addLog(`Starting 1x race with generation ${champion.generation} champion.`);
+
+        const frame = (now) => {
+            if (!lastFrameTime) lastFrameTime = now;
+            const elapsedSeconds = Math.min((now - lastFrameTime) / 1000, 0.08);
+            lastFrameTime = now;
+            accumulator += elapsedSeconds;
+
+            while (accumulator >= DT && step < maxSteps && !evolution.stopRequested) {
+                stepIndividual(individual, step * DT);
+                step += 1;
+                accumulator -= DT;
+            }
+
+            renderIndividuals([individual], 1, false);
+
+            if (evolution.stopRequested) {
+                evolution.racing = false;
+                setStatus("Race stopped.");
+                addLog("Race stopped by user.");
+                updateRaceButton();
+                return;
+            }
+
+            if (step >= maxSteps) {
+                const averageX = individual.nodes.reduce((acc, n) => acc + n.x, 0) / individual.nodes.length;
+                const distanceMeters = (averageX - individual.startX) / PIXELS_PER_METER;
+                evolution.racing = false;
+                setStatus(`Race complete: ${distanceMeters.toFixed(2)} m.`);
+                addLog(`Race complete: ${distanceMeters.toFixed(2)} m at 1x speed.`);
+                updateRaceButton();
+                return;
+            }
+
+            requestAnimationFrame(frame);
+        };
+
+        requestAnimationFrame(frame);
+    }
+
     // ---------- Run / stop ----------
     runButton.addEventListener("click", () => {
         if (evolution.running) {
             addLog("Evolution already running. Hit stop if you want to rebuild.");
+            return;
+        }
+        if (evolution.racing) {
+            addLog("Race already running. Stop it before training again.");
             return;
         }
         const blueprint = blueprintFromBuilder();
@@ -1170,14 +1297,16 @@
         runEvolutionLoop(blueprint);
     });
 
+    startRaceButton.addEventListener("click", startRace);
+
     stopButton.addEventListener("click", () => {
-        if (!evolution.running) {
-            addLog("No evolution in progress.");
+        if (!evolution.running && !evolution.racing) {
+            addLog("No evolution or race in progress.");
             return;
         }
         evolution.stopRequested = true;
-        setStatus("Stopping after current generation...");
-        addLog("Stop requested. Finishing current evaluation.");
+        setStatus(evolution.racing ? "Stopping race..." : "Stopping after current generation...");
+        addLog(evolution.racing ? "Stop requested. Ending race." : "Stop requested. Finishing current evaluation.");
     });
 
     // ---------- Init ----------
@@ -1185,6 +1314,7 @@
     drawBuilder();
     addLog("Ready. Add nodes, connect muscles or bones, then run evolution.");
     updateGhostToggleUI();
+    updateRaceButton();
     setMode("add");
 
 })();
