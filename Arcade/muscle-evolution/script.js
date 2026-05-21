@@ -38,7 +38,7 @@
     const BUILDER_MARGIN = 30;
     const SIM_SCALE = 0.2;
     const SIM_NODE_RADIUS = DESIGN_NODE_RADIUS * SIM_SCALE;
-    const FRAMES_PER_STEP = 10; // 10% speed
+    const VISUAL_STEPS_PER_FRAME = 12;
     const MUSCLE_SCREEN_WIDTH = 6;
     const NODE_SCREEN_RADIUS = MUSCLE_SCREEN_WIDTH;
     const COURSE_LENGTH = 1200;
@@ -587,9 +587,11 @@
 
     function pointerToCanvas(event) {
         const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / (rect.width || canvas.width);
+        const scaleY = canvas.height / (rect.height || canvas.height);
         return {
-            x: (event.clientX - rect.left),
-            y: (event.clientY - rect.top),
+            x: (event.clientX - rect.left) * scaleX,
+            y: (event.clientY - rect.top) * scaleY,
         };
     }
 
@@ -1061,7 +1063,6 @@
         const maxSteps = Math.floor(SIM_DURATION / DT);
         const alpha = showAll ? 1 / 50 : 1;
         let step = 0;
-        let frameCount = 0;
 
         return new Promise((resolve) => {
             const animate = () => {
@@ -1070,7 +1071,11 @@
                     resolve();
                     return;
                 }
-                if (frameCount % FRAMES_PER_STEP === 0) {
+                for (
+                    let frameStep = 0;
+                    frameStep < VISUAL_STEPS_PER_FRAME && step < maxSteps;
+                    frameStep += 1
+                ) {
                     const simTime = step * DT;
                     individuals.forEach((ind) => {
                         if (ind.controlCountdown <= 0) {
@@ -1087,7 +1092,6 @@
                     step += 1;
                 }
                 renderIndividuals(individuals, alpha, showAll);
-                frameCount += 1;
                 requestAnimationFrame(animate);
             };
             animate();

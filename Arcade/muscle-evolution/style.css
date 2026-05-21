@@ -206,10 +206,11 @@ main {
 
 .mini-map {
     position: absolute;
-    top: 18px;
-    left: 18px;
-    width: 200px;
-    height: 120px;
+    top: clamp(8px, 1.8vw, 18px);
+    left: clamp(8px, 1.8vw, 18px);
+    width: clamp(96px, 16vw, 200px);
+    height: auto;
+    aspect-ratio: 5 / 3;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: rgba(4, 7, 16, 0.82);
@@ -228,6 +229,7 @@ canvas {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding-top: 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--muted);
@@ -314,6 +316,11 @@ canvas {
 
     .control-row .btn {
         width: 100%;
+    }
+
+    .status-bar {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }
 
