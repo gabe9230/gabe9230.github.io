@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Ivory Cradle - Elysian Twilight Story Hub</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0d0d;
+        --card: #1a1a1d;
+        --fg: #eaeaea;
+        --accent: #ff6b6b;
+        --radius: 4px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.7;
+        padding: 10px;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.04) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.04) 50%,
+            rgba(255, 255, 255, 0.04) 75%,
+            transparent 75%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(255, 107, 107, 0.05) 0%,
+            transparent 70%
+          );
+        background-size: 40px 40px, 100% 100%;
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 1% auto 0;
+        background: var(--card);
+        padding: 10px;
+        border-radius: var(--radius);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+      }
+
+      .btn-wrap {
+        display: inline-block;
+        padding: 4px 6px;
+        border: 2px solid var(--accent);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      h1 {
+        text-align: center;
+        color: var(--accent);
+        margin-bottom: 20px;
+      }
+
+      .story-text {
+        max-width: 900px;
+        padding: clamp(18px, 4vw, 42px);
+      }
+
+      .story-text h2 {
+        color: #fff;
+        font-size: clamp(2rem, 5vw, 3.25rem);
+        line-height: 1.1;
+        margin-bottom: 0.75rem;
+      }
+
+      .story-text .byline {
+        color: rgba(255, 255, 255, 0.72);
+        margin-bottom: 0.35rem;
+      }
+
+      .story-text .setting {
+        color: rgba(255, 255, 255, 0.78);
+        margin-bottom: 2rem;
+      }
+
+      .story-text p {
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 1.15rem;
+      }
+
+      .story-text .transmission {
+        border-left: 2px solid var(--accent);
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+        margin: 1.25rem 0 1.5rem;
+        padding-left: 1rem;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 8px;
+        }
+
+        .story-text {
+          padding: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div>
+        <a href="../index.html" class="btn-wrap">Back</a>
+      </div>
+      <h1>Elysian Twilight Story Hub</h1>
+    </div>
+    <div class="container story-text">
+      <h2>The Ivory Cradle</h2>
+      <p class="byline">by Gabriel H</p>
+      <p class="setting">Set ~9 years after the collapse of the Elysian Empire.</p>
+      <p>Lord Caelis Veyr had been kind before kindness became weakness.</p>
+      <p>That was what people said, at least, when they thought he could not hear them. They said it in servant corridors, in hangar galleries, in the long heated passages of the Saint Orison where old brass railings still carried the polish of a better century. They said it like an apology. Like a flaw that had survived too long.</p>
+      <p>The Saint Orison drifted above Virell’s fourth moon with its running lights dimmed and its banners bright. House Veyr’s sigil—a white hand over a black sun—hung from the command dais in luminous thread, too formal for a war, too clean for the age that had inherited it.</p>
+      <p>Below them, the moon turned slowly. Grey stone. Old craters. Abandoned comms towers. No cities worth shelling and no farmland worth stealing. Just a refueling lattice, three broken drydocks, and a jump corridor that cut clean toward the inner claim.</p>
+      <p>That made it valuable.</p>
+      <p>Everything valuable had become a graveyard with paperwork.</p>
+      <p>“A courier from His Highness,” Lady Merant said.</p>
+      <p>Caelis turned from the viewport.</p>
+      <p>Merant stood beside the signal plinth with both hands clasped behind her back. She had served his father before she served him, and still wore the old imperial officer’s coat with the House Veyr pin fastened over the place where an imperial crest had once been. The cloth beneath it had faded around the metal.</p>
+      <p>Caelis sometimes wondered whether she wore it that way on purpose.</p>
+      <p>“Read it,” he said.</p>
+      <p>The plinth opened with a quiet click. Blue text folded upward in the air.</p>
+      <p class="transmission">TO LORD CAELIS VEYR,<br />
+        HOUSE VEYR IS RECEIVED WITH GRATITUDE.<br />
+        THE PRINCE REMEMBERS LOYALTY.<br />
+        THE PRINCE REWARDS CONSTANCY.<br />
+        HOLD VIRELL CORRIDOR UNTIL RELIEF ARRIVES.<br />
+        FOR THE THRONE. FOR ORDER. FOR MARIANA’S PEACE.</p>
+      <p>Merant did not look at him when she finished.</p>
+      <p>No one did.</p>
+      <p>The bridge held its silence with professional care. Officers bent over consoles. Ratings checked ranges that had already been checked. A weapons lieutenant whispered to a drone cluster and pretended it needed him. Everyone had seen the last line.</p>
+      <p>For Mariana’s peace.</p>
+      <p>The dead Empress had become a phrase people used to move guns.</p>
+      <p>Caelis looked back at the moon.</p>
+      <p>He remembered Mariana from a court procession, twelve years ago, before the succession broke the Empire open and taught every House the cruel mathematics of survival. He had been twenty-three and new to his father’s title. She had passed him in a hall of white stone and living trees, small under a crown that seemed too heavy for any human neck. She had noticed the child behind him first.</p>
+      <p>A kitchen boy. Eight, perhaps. Lost. Crying silently because palace guards frightened him more than being lost did.</p>
+      <p>Mariana had stopped the procession.</p>
+      <p>Not slowed. Stopped.</p>
+      <p>The whole machine of empire had halted because a child had nowhere to stand. She had asked his name, put one hand on his shoulder, and ordered a chamberlain to find his mother.</p>
+      <p>Caelis had remembered that longer than he remembered her face.</p>
+      <p>Now her name came sealed in Prince Adrian’s ciphers, attached to a corridor defense order, as if grief itself could be requisitioned.</p>
+      <p>“Reply,” Caelis said.</p>
+      <p>Merant’s jaw moved once. “Lord?”</p>
+      <p>“House Veyr receives command. House Veyr holds. Our lives and arms to Prince Adrian, rightful heir of Elysium.”</p>
+      <p>The words came easily.</p>
+      <p>Merant entered them. The plinth accepted the oath, compressed it, blessed it with encryption, and threw it into the dark.</p>
+      <p>It was done then.</p>
+      <p>House Veyr belonged to the Prince.</p>
+      <p>Not loosely. Not politely. Not in the old noble way, where loyalty came wrapped in exceptions and private letters. He had given the formal pledge. The one that bound ships, vassals, estates, marriage lines, debt houses, and every child born under the white hand until the war decided whether oaths meant anything.</p>
+      <p>Somewhere far away, in whatever palace or bunker Prince Adrian had turned into a throne, a clerk would mark House Veyr in the loyalist columns.</p>
+      <p>Caelis tried to feel proud.</p>
+      <p>Instead, he felt the ship breathe around him.</p>
+      <p>The Saint Orison was an old vessel, built before the collapse for ceremony as much as combat. A capital ship by courtesy and mass, with broad armor belts, reliquary halls, and enough reactor depth to light a city through winter. It had been made for imperial review lines, not knife-fights above dead moons. But war did not ask what a thing had been made for. War only asked what it could survive.</p>
+      <p>“Contacts,” the tactical officer said.</p>
+      <p>The bridge changed without moving.</p>
+      <p>Holo panes sharpened. Crew voices thinned. The low choir of the ship’s drives adjusted half a note downward as combat governors took authority away from human comfort.</p>
+      <p>Merant stepped to Caelis’s right.</p>
+      <p>“Count?”</p>
+      <p>“Sixteen confirmed. Twenty probable. Mixed signature. Princess’s colors on three. Noble auxiliaries on the rest.” Caelis looked at the tactical bloom. Red flecks seeped into the edge of the projection like blood dropped into water.</p>
+      <p>“They came early,” Merant said.</p>
+      <p>He touched the command rail. The metal was warm. He had always disliked that. Ships of this size should have felt cold and remote, like law. Instead, the Orison felt alive in small domestic ways. Warm rails. Breathing vents. Doors that hesitated when someone limped. A chapel lift that still played music if you stepped into it alone.</p>
+      <p>His father had loved the ship. His grandfather had died aboard it. His mother had ordered the eastern observation blister converted into a schoolroom during the famine years so the vassal children could learn under stars.</p>
+      <p>Caelis had made his pledge from its bridge.</p>
+      <p>“Fleet order,” he said. “Screen ships forward. Keep the tenders behind our main line. No pursuit past the lattice shadow. We are here to hold.”</p>
+      <p>The weapons lieutenant paused. “My lord, if they break—”</p>
+      <p>“If they break, they may leave.”</p>
+      <p>The lieutenant swallowed the objection. “Yes, my lord.”</p>
+      <p>Merant said nothing, which meant she disagreed.</p>
+      <p>Caelis knew the silence of the disagreement. He had heard it from every serious person left alive. Mercy preserved enemies. Mercy was a luxury purchased by the victorious and misremembered by the dead.</p>
+      <p>He did not have an answer that fit inside a briefing.</p>
+      <p>He only had a preference for fewer widows.</p>
+      <p>The Princess’s fleet came in without ceremony.</p>
+      <p>No grand transmission. No denunciation. No old imperial music cast across open channels. Just hard-burn signatures flaring in the black, drives cutting and relighting as they spread into attack geometry.</p>
+      <p>They were not pirates. That almost made it worse.</p>
+      <p>Pirates came ugly, loud, hungry. These came in discipline. Their destroyers moved like knives turning around a single wrist. Their frigates held distance. Their capital ship, if it could be called that, was an old grain hauler rebuilt around spinal guns and stubbornness. Someone had welded ceramor plate across its cargo ribs until it looked like a ribcage filled with hatred. Caelis admired it despite himself.</p>
+      <p>“What is her name?”</p>
+      <p>The tactical officer checked. “Transponder says Lark Ascendant. Former civil registry. Now under Princess Juniper’s provisional navy.”</p>
+      <p>A lark, Caelis thought.</p>
+      <p>Of course.</p>
+      <p>“Range to first exchange?”</p>
+      <p>“Seventy seconds.”</p>
+      <p>The bridge lights dimmed another shade.</p>
+      <p>Someone in the lower crew pit whispered a prayer to Saint Aramea, patron of lost causes and last stands. Someone else told him to shut up.</p>
+      <p>Caelis opened fleetwide.</p>
+      <p>For a moment, his own face looked back at him from a dozen small repeater panes: pale, narrow, dark-eyed, too young still in the wrong light. He had his mother’s face and his father’s posture. Neither had saved him from this.</p>
+      <p>“This is Lord Caelis Veyr to all ships under my command,” he said. “The force ahead has chosen passage through a corridor entrusted to us. We will deny that passage. Fire only on marked combatants. Accept surrender where it is offered. Rescue pods are not targets. Disabled ships are not targets unless they continue firing.”</p>
+      <p>Merant’s expression did not change. That was discipline. The other officers were less skilled. He saw the flickers. Disagreement. Frustration. Fear.</p>
+      <p>He continued anyway.</p>
+      <p>“We serve the Prince because the Empire cannot survive another century of knives in the dark. We serve because order, even wounded, is better than hunger cloaked in a veil of formality. Hold formation. Trust your captains. Do not become less human because the age has made it convenient.”</p>
+      <p>He closed the channel.</p>
+      <p>No one applauded. That was good. Applause would have made it theatre.</p>
+      <p>The first salvo crossed the dark between fleets. It looked slow until it arrived.</p>
+      <p>The Princess’s forward destroyers fired in staggered pairs, Spinal cannons throwing white lines through the expanse faster than thought. The Orison’s shields caught three and bent them into sheets of pale fire. A fourth slipped wide and opened one of House Veyr’s frigates from bow to midline. The ship vented atmosphere in a silver plume that glittered with bodies, tools, frost, and things too small for sensors to name.</p>
+      <p>Caelis watched the icon blink yellow.</p>
+      <p>“Frigate Aster Mercy reports hull breach,” the tactical officer said. “Still under command. Still firing.”</p>
+      <p>“Tell Captain Olan to withdraw behind us.”</p>
+      <p>“He refuses.”</p>
+      <p>“Tell him his lord did not ask.”</p>
+      <p>The message went.</p>
+      <p>The Aster Mercy withdrew, limping, still angry, still thirsty.</p>
+      <p>Then the Saint Orison answered.</p>
+      <p>Its dorsal batteries spoke in sequence, not as cannons but as statements. The whole ship shuddered around Caelis, deep and dignified, the way an old judge might clear his throat before condemning a man to death. Slugs crossed the projection in blue-white ticks. One struck a Princess frigate through the engine block. The stern vanished. The bow kept going for several seconds, graceful and silent, before its reactor safeties strangled the core and left it tumbling dark.</p>
+      <p>“Enemy frigate disabled,” Merant said.</p>
+      <p>The battle folded inward after that.</p>
+      <p>Not chaos. Chaos was a civilian word for systems they could not read. This was pattern under pressure. Thrust, fire, correction, damage, silence. Ships slid behind the old refueling lattice and used it as partial cover until the lattice broke apart and became a storm of spinning metal. Missiles bloomed, lost lock, found heat, died against point-defense nets in brief flowers. Drones spilled from carrier bays in glittering shoals and vanished by the hundred where flak curtains found them.</p>
+      <p>The Lark Ascendant took punishment badly and kept coming.</p>
+      <p>Caelis watched it absorb two direct hits that should have cracked its spine. Both times, armor blew away in burning petals. Both times, the ship corrected, vented, and pushed forward. It did not have the quiet elegance of an imperial ship. It had something else. Something poorer and harder to kill.</p>
+      <p>“Enemy flagship is making for the tenders,” Merant said.</p>
+      <p>“I see it.”</p>
+      <p>“If she reaches them, we lose fuel stores.”</p>
+      <p>“I see it.”</p>
+      <p>Caelis gripped the rail.</p>
+      <p>The tenders were not warships. They carried fuel, medfoam, replacement coils, spare shielding elements, hydroponic bricks, children of crew families who had nowhere safer to go. In another age, no one would have brought children near a corridor fight. In this one, leaving them behind was often worse.</p>
+      <p>The Lark burned straight for them.</p>
+      <p>Bold, then.</p>
+      <p>Or desperate.</p>
+      <p>“Bring us across her path,” Caelis said.</p>
+      <p>The helmsman looked back once.</p>
+      <p>“My lord, that puts us inside their spinal arc.”</p>
+      <p>“Yes.”</p>
+      <p>The Saint Orison turned.</p>
+      <p>Slowly at first, then with the sickening authority of mass under command. Gravity tugged wrong for a moment. Somewhere deep below, old compensators complained in tones that made the bridge floor tremble. The moon rolled across the viewport. Stars moved. The Lark Ascendant swung into the center of the tactical bloom.</p>
+      <p>“She’s charging main gun,” the weapons lieutenant said.</p>
+      <p>“Brace all decks.”</p>
+      <p>Merant turned toward him. “We can still let the tenders scatter.”</p>
+      <p>“They won’t clear in time.” “Then we should not spend the flagship for them.”</p>
+      <p>Caelis looked at her.</p>
+      <p>Merant did not flinch. She had never been cruel. That made her harder to dismiss.</p>
+      <p>“My lord,” she said quietly, “your life is not only yours anymore.”</p>
+      <p>“I know,” Caelis said.</p>
+      <p>He did. That was the whole wound.</p>
+      <p>The Lark fired.</p>
+      <p>Light struck the Saint Orison just below the forward Dormitory.</p>
+      <p>For one white second the bridge became a negative image of itself. Faces hollowed. Bones showed through hands. Every screen died and came back screaming. The ship lurched, not like a vessel struck from without but like a body discovering an organ had been removed.</p>
+      <p>Damage reports arrived in layers.</p>
+      <p>Forward Dormitory gone.</p>
+      <p>School blister gone.</p>
+      <p>Portside armor peeled down to the fourth belt.</p>
+      <p>Two hundred dead.</p>
+      <p>No.</p>
+      <p>Three hundred.</p>
+      <p>No.</p>
+      <p>Still counting.</p>
+      <p>Caelis’s ears rang. Something warm ran from his nose to his upper lip. The command rail had burned his palm where shield feedback made the metal briefly honest.</p>
+      <p>“Return fire,” Merant said.</p>
+      <p>The weapons lieutenant waited for Caelis.</p>
+      <p>He almost told them no. Not from mercy. From shock. From the childlike belief that if he did not answer the wound, the wound might go away.</p>
+      <p>Then the tactical panel showed the tenders behind them, still intact.</p>
+      <p>“Disable her,” Caelis said. His voice sounded far away. “Do not breach the core.”</p>
+      <p>The Saint Orison fired.</p>
+      <p>The first salvo cut through the Lark’s forward armor. The second found the spinal housing. The third broke something structural. The rebel flagship bent around the impact, a tiny ugly motion that made every officer on the bridge understand that thousands of people had just felt the ship under them change shape.</p>
+      <p>The Lark Ascendant stopped accelerating.</p>
+      <p>Its guns went quiet one by one.</p>
+      <p>Escape pods began to seed outward.</p>
+      <p>“Cease fire,” Caelis said.</p>
+      <p>This time no one hesitated.</p>
+      <p>The battle did not end all at once. Battles never did. They died the way storms die, unevenly, with violence still falling in places after the sky has cleared elsewhere. A destroyer refused surrender and was cut in half by three ships that had not heard Caelis’s order or had decided not to. A Princess gunboat rammed the refueling lattice and turned the last of it into a bright mechanical rain.</p>
+      <p>Then, finally, the corridor belonged to silence once more.</p>
+      <p>The bridge smelled of overheated insulation and blood.</p>
+      <p>Caelis stood with one hand wrapped in a medic’s temporary skinseal while casualty names crawled beside the tactical display. The list moved too quickly to read and too slowly to forgive.</p>
+      <p>“Enemy force defeated,” Merant said. “Survivors scattered. Six hostile ships disabled but recoverable. Three destroyed. Four escaped into low burn.”</p>
+      <p>“Our losses?”</p>
+      <p>She told him.</p>
+      <p>He accepted the number the way a man accepts a blade: by going still around it.</p>
+      <p>“Rescue operations,” he said. “All ships. Theirs and ours.” “My lord—”</p>
+      <p>“All ships.”</p>
+      <p>Merant held his gaze for a moment. Then nodded to comms.</p>
+      <p>Orders went out into the dark.</p>
+      <p>The Saint Orison began to gather the living from the wreckage.</p>
+      <p>Caelis watched the broken shape of the Lark Ascendant turn slowly above the moon, its hull split open in three places, its internal lights flickering like candles inside a ribcage.</p>
+      <p>He should have hated it.</p>
+      <p>He did not.</p>
+      <p>That was going to become a problem.</p>
+      <p>The first pod came aboard at 1610 shiptime.</p>
+      <p>It was not one of theirs.</p>
+      <p>That mattered less than it should have.</p>
+      <p>The pod entered through the starboard recovery cradle with half its guidance skin burned away and one human heartbeat inside it. The cradle arms closed around the little craft with old hydraulic gentleness. Medics cut the hatch. Air hissed. A girl in a grey vac-suit fell out into their hands, no older than seventeen, her visor cracked and one sleeve stiff with frozen blood.</p>
+      <p>She tried to fight them.</p>
+      <p>Not well. Not with strength. More from the insult of being alive among enemies.</p>
+      <p>“Easy,” the chief medic said.</p>
+      <p>The girl struck him with two fingers and missed his face by a full handspan. Then she sagged.</p>
+      <p>Caelis watched from the cradle gantry.</p>
+      <p>He had come down because he needed to see what his orders looked like after they left his mouth. That was a habit his father had called theatrical and his mother had called necessary. He had never known which of them was right.</p>
+      <p>The recovery bay was too bright. White panels. Red warning strips. Yellow cradle arms moving through vacuum fog. Bodies came in tagged by ship and priority, then lost all politics under blood pressure and oxygen debt. House Veyr. Princess Juniper. Unknown auxiliary. Civilian contractor. Dead. Living. Dying. It became harder to hate people when they arrived sealed in cracked pods and making small frightened sounds.</p>
+      <p>Merant stood behind him.</p>
+      <p>“You shouldn’t be here,” she said at last.</p>
+      <p>“No,” Caelis said. “Probably not.”</p>
+      <p>A medic saw him and stiffened.</p>
+      <p>“My lord.”</p>
+      <p>“Work,” Caelis said.</p>
+      <p>The medic nodded.</p>
+      <p>More pods came. Then suit beacons. Then a shuttle from the Aster Mercy dragging a net of survivors across six kilometers of wreckage.</p>
+      <p>The Lark Ascendant kept turning outside the bay shield.</p>
+      <p>She had not died properly. That was becoming an inconvenience.</p>
+      <p>Her reactor was cold, but not dead. Her drives were gone. Her spinal gun was slag from breech to muzzle. Sections of her outer hull had peeled back from internal pressure, exposing chambers never meant to look at stars. But her central data spine still pulsed. Slow. Damaged. Alive.</p>
+      <p>Every few minutes, her emergency bands spat a new cluster of signal fragments into local space.</p>
+      <p>Most were useless. Medical alerts. Air loss maps. A machine repeating that deck nine was unsafe as if anyone left on deck nine had the luxury of agreeing.</p>
+      <p>Then came the one that made Merant look up.</p>
+      <p>The signal plinth in the recovery gallery flickered.</p>
+      <p class="transmission">LARK ASCENDANT / ARCHIVE VAULT STILL ACTIVE<br />
+        COMMAND AUTHORITY DEGRADED<br />
+        IMPERIAL FORMAT DETECTED<br />
+        BLACK-SEAL CACHE DETECTED<br />
+        REQUEST RECOVERY UNDER SUCCESSION EVIDENCE PROTOCOL</p>
+      <p>The bay noise seemed to retreat from Caelis in layers. Merant stepped forward. “That is enemy intelligence.”</p>
+      <p>“It is a request for recovery.”</p>
+      <p>“It is a trap.”</p>
+      <p>“Possibly.”</p>
+      <p>“It is also not our concern.”</p>
+      <p>Caelis looked through the bay shield at the broken rebel ship. Its exposed chambers glowed faintly, small lights in a dead animal’s chest.</p>
+      <p>“An imperial black-seal cache on a Princess ship is everyone’s concern.”</p>
+      <p>Merant’s voice lowered. “My lord. You pledged this House.”</p>
+      <p>“I remember.”</p>
+      <p>“Then remember what follows. Enemy data goes to Prince Adrian’s command. Unopened. Uncopied. Untouched.”</p>
+      <p>Caelis looked at the signal again.</p>
+      <p>Succession Evidence Protocol.</p>
+      <p>Not Juniperite. Not rebel. Imperial.</p>
+      <p>Old imperial.</p>
+      <p>The kind of protocol built for crimes so dangerous that evidence itself needed armor.</p>
+      <p>“Prepare a boarding team,” he said.</p>
+      <p>Merant did not move.</p>
+      <p>“My lord.”</p>
+      <p>He turned.</p>
+      <p>For the first time that day, her discipline cracked enough to let anger show through.</p>
+      <p>“We have wounded in every bay. Three compartments open to vacuum. The forward dormitory is gone. Your people are still being cut out of their own ship. And you want to board the enemy flagship because a damaged archive promises drama?”</p>
+      <p>Caelis accepted the hit because it was accurate. “Yes.”</p>
+      <p>“No.”</p>
+      <p>The officers near them went very still.</p>
+      <p>Merant had said the word too simply to pretend it was advice.</p>
+      <p>Caelis studied her face. There were new lines in it since morning. Soot at the edge of one cheek. Blood on her cuff, not hers. She had carried his father’s body from a burning bridge once. He had been twelve. He had never stopped seeing her as the kind of person who could move through fire because rules required it.</p>
+      <p>“Lady Merant,” he said softly.</p>
+      <p>She closed her eyes once.</p>
+      <p>Then bowed.</p>
+      <p>“Yes, my lord.”</p>
+      <p>It cost her something to say it.</p>
+      <p>That cost him something too.</p>
+      <p>They crossed in a cutter named Humble Petition.</p>
+      <p>Caelis hated the name less after the first minute in vacuum.</p>
+      <p>The cutter had once been a ceremonial barge used to ferry lesser nobles between palace docks without making them share air with cargo. War had stripped out the silk seats and installed magnetic clamps, breaching saws, rescue winches, medfoam racks, two point-defense blisters, and a pilot who treated the controls like an ex-lover.</p>
+      <p>The wreckage field turned slowly around them.</p>
+      <p>It was not beautiful.</p>
+      <p>People liked to say battles in space were beautiful because distance edited them into something beautiful. Up close, there was only matter with context removed. A door. A shoe. A cracked shield vane. A coil assembly spinning end over end. A hand frozen open.</p>
+      <p>Caelis saw the white hand of House Veyr painted on a shard of armor.</p>
+      <p>Then, half a kilometer farther, the Princess’s grey lily. They looked equally absurd without hulls to belong to.</p>
+      <p>The cutter’s pilot threaded them through the debris with small bursts of thrust. No one spoke over the comm except to name hazards. Merant had insisted on coming. Caelis had not wasted time objecting.</p>
+      <p>There were six others in the boarding party: two marines, two medics, a data adept named Solenne, and an engineer called Pahr who had the calm, miserable expression of a man expecting to die in a preventable structural collapse.</p>
+      <p>The Lark Ascendant grew until it filled the forward glass.</p>
+      <p>Up close, the rebuilt grain hauler looked less like a warship than an argument made in metal. Civilian curves under welded armor. Cargo ribs turned into gun braces. Old registry marks half-buried beneath grey. Someone had painted a line of tiny yellow birds along the starboard hull, one for each battle survived. There were thirty-seven of them.</p>
+      <p>The last three had been scorched away.</p>
+      <p>“She’s venting from the port split,” Pahr said. “Central spine may still be pressurized. Maybe.”</p>
+      <p>“Maybe is doing a lot of work,” one marine said.</p>
+      <p>“Maybe always does.”</p>
+      <p>The cutter clamped to the Lark near a service gate that had once been an auxiliary cargo lock. Magnets struck hull with a dull contact that moved through Caelis’s teeth. The breaching saw began to sing.</p>
+      <p>Caelis watched sparks scatter into vacuum.</p>
+      <p>Merant opened a private line.</p>
+      <p>“I need to say one thing before we enter.”</p>
+      <p>“Say it.”</p>
+      <p>“If we find operational intelligence, it goes to command. If we find propaganda, we mark it as such. If we find bait, we leave. If we find anything that causes you to doubt your pledge, you will remember that doubt is what enemy archives are designed to create.”</p>
+      <p>Caelis looked at her through his visor. The helmet made her face narrower, harder, older.</p>
+      <p>“And if we find truth?”</p>
+      <p>Merant did not answer quickly. “That would depend on who wrote it.”</p>
+      <p>The saw finished its circle.</p>
+      <p>Pahr kicked the cut plate inward and the dead ship received them.</p>
+      <p>Inside the Lark, gravity came and went like an old man forgetting his own sentence.</p>
+      <p>The lock opened into a cargo artery converted to barracks. Hammocks had been welded to storage rails. Ammunition crates were strapped beneath old grain augers. A child’s drawing had been taped beside a pressure door: a grey ship with yellow birds flying around it, firing red lines at a black crown.</p>
+      <p>One of the marines stared at it too long.</p>
+      <p>Then they moved.</p>
+      <p>The corridor lights were dying in order. Not all at once. One after another, each giving up after the last had taught it how. Their suit lamps cut cones through drifting coolant mist. The walls were wet where condensation had formed and frozen and thawed again under failing thermal control.</p>
+      <p>“Air is bad,” Pahr said. “Don’t trust the seals.”</p>
+      <p>No one had planned to.</p>
+      <p>They found the first survivors in a mess compartment.</p>
+      <p>Three alive. Seven dead. The living had sealed themselves behind a table and a portable shield projector that flickered whenever anyone breathed too close. A man with a burned face raised a sidearm when House Veyr armor entered.</p>
+      <p>Caelis lifted both hands.</p>
+      <p>“Medical team,” he said over open comm. “We are recovering survivors.”</p>
+      <p>The man aimed at him anyway.</p>
+      <p>One of the medics moved past Caelis with a bag in hand, either brave or too busy to be afraid.</p>
+      <p>The man’s arm shook.</p>
+      <p>Then lowered.</p>
+      <p>He started crying only after the medic touched him. Caelis left a rescue beacon and one marine behind. They continued toward the archive vault.</p>
+      <p>The deeper they went, the less improvised the ship became.</p>
+      <p>Civilian ribs gave way to imperial plating. Old plating. Not welded scrap, not rebel salvage, but original Elysian archive architecture installed inside the Lark like a preserved organ. Smooth black panels. Pale gold indexing lines. Doors that did not open by handle or power, but by permission.</p>
+      <p>Solenne stopped before the first sealed hatch.</p>
+      <p>“That is not Rebel hardware,” she said.</p>
+      <p>“I know.”</p>
+      <p>“That is Palace hardware.”</p>
+      <p>“I know.”</p>
+      <p>She looked back at him. “My lord, why does a rebel grain hauler have a Palace archive vault?”</p>
+      <p>Merant answered before he could.</p>
+      <p>“Because rebels steal.”</p>
+      <p>Solenne glanced at the seal. “Not this. Not intact.”</p>
+      <p>The hatch recognized something in Caelis’s blood before he touched it.</p>
+      <p>A thin line of white light opened at eye level.</p>
+      <p class="transmission">VEYR LINEAGE ACCEPTED<br />
+        IMPERIAL SUCCESSION EVIDENCE PROTOCOL<br />
+        WITNESS AUTHORITY: PROVISIONAL</p>
+      <p>No one moved.</p>
+      <p>Caelis heard his own breathing inside the helmet. Too loud. Too close.</p>
+      <p>Merant stepped toward the hatch. “Stop.”</p>
+      <p>He did not.</p>
+      <p>The door opened.</p>
+      <p>The archive beyond was almost untouched.</p>
+      <p>That was the obscene thing. The rest of the Lark Ascendant had been bent, burned, split, and bled through. Here, the air held steady. The lights glowed with cold patience. Data pillars rose from the floor in concentric rings, each wrapped in black glass. At the center stood an imperial memory altar: not religious, despite the name. A device built to preserve testimony beyond tampering, beyond regime change, beyond convenient death.</p>
+      <p>A dead woman sat beside it.</p>
+      <p>She wore grey over an old imperial archivist’s undersuit. Her hair had floated upward in the weak gravity and frozen there in a dark fan. One hand was still locked around the altar’s manual release.</p>
+      <p>There was a hole through her abdomen.</p>
+      <p>Small.</p>
+      <p>Precise.</p>
+      <p>Solenne moved to the altar. “She triggered it manually.”</p>
+      <p>Caelis looked at the woman’s face.</p>
+      <p>There was no drama in it. No final expression arranged for history. Just exhaustion, pain, and the faint indignity of dying while trying to finish work.</p>
+      <p>“Can you read it?” he asked.</p>
+      <p>Solenne swallowed. “It is already reading us.”</p>
+      <p>The altar woke.</p>
+      <p>Not brightly. Not with spectacle. A circle of pale light rose from the floor and formed a field around them. The data pillars began to turn.</p>
+      <p>Then Empress Mariana appeared.</p>
+      <p>Not as a statue. Not as a portrait. As a recording, damaged by compression and age, seated at a desk Caelis recognized from public addresses during the famine years. She wore no crown. Her hair was bound simply. Her face was older than memory had kept it.</p>
+      <p>She looked frightened.</p>
+      <p>That was the first wrong thing.</p>
+      <p>Empresses were permitted sorrow, dignity, mercy, command. They were not permitted fear. Not in public record. Not in anything meant to survive. The recording glitched once.</p>
+      <p>Then Mariana spoke.</p>
+      <p>“If this archive has opened under succession evidence protocol, then I am either dead or removed from lawful power. I have ordered this cache distributed to protected channels in the event that the High Council’s continuity monitors are disabled or falsified.”</p>
+      <p>Merant’s hand closed around the grip of her sidearm.</p>
+      <p>Caelis saw it.</p>
+      <p>So did she.</p>
+      <p>Neither spoke.</p>
+      <p>Mariana continued.</p>
+      <p>“Prince Adrian has moved outside lawful authority. I do not make this accusation lightly. On the ninth day of the winter session, I received evidence that he had entered private compact with Houses Veridan, Calse, and Dravik to force emergency succession before the eastern audit could conclude.”</p>
+      <p>The image flickered. For a moment Mariana’s face split into bands of light and returned.</p>
+      <p>“He believes the Empire will not survive softness. He believes Juniper will surrender too much authority to the Council. He believes I am preserving a corpse because I cannot bear to bury it. Perhaps he is right in some of those judgments. But he has chosen murder as remedy.”</p>
+      <p>The room felt smaller.</p>
+      <p>No one breathed correctly.</p>
+      <p>The altar shifted. New panes opened around Mariana’s image.</p>
+      <p>Audio.</p>
+      <p>Security logs.</p>
+      <p>Medical telemetry.</p>
+      <p>Private command chains.</p>
+      <p>A corridor outside the Empress’s private observatory.</p>
+      <p>A masked guard unit entering under Prince Adrian’s emergency seal.</p>
+      <p>Merant whispered, “No.” Not denial exactly.</p>
+      <p>Something more fragile.</p>
+      <p>Mariana’s voice continued over the images.</p>
+      <p>“If I die by sudden illness, transport accident, reactor fault, security breach, medical complication, or self-harm, understand that those causes are to be presumed false until examined by independent authority. My son Adrian has already attempted to isolate my physicians. He has already replaced two palace shield officers. He has already—”</p>
+      <p>The recording broke.</p>
+      <p>Another file opened.</p>
+      <p>A man’s voice this time.</p>
+      <p>Younger. Controlled. Familiar from broadcasts.</p>
+      <p>Prince Adrian.</p>
+      <p>“Make it painless if possible. Public grief must remain useful. I will not have her mutilated.”</p>
+      <p>Another voice answered. “And the Princess?”</p>
+      <p>“Not yet.”</p>
+      <p>Static.</p>
+      <p>Then Adrian again.</p>
+      <p>“She must look guilty before she dies.”</p>
+      <p>Solenne stepped back from the altar as if it had become hot.</p>
+      <p>The archive continued to unfold.</p>
+      <p>There was too much.</p>
+      <p>That was the horror of it. Not one confession. Not one convenient villain’s speech. Systems. Access chains. Payment records. Medical substitutions. Orders routed through dead adjutants. False shield outages. A mourning address drafted fourteen hours before Mariana’s death.</p>
+      <p>Caelis stared at the file header.</p>
+      <p class="transmission">FUNERAL ADDRESS / PRINCE ADRIAN / DRAFT 6<br />
+        CREATED: 14:22:09 BEFORE CONFIRMED IMPERIAL DEATH</p>
+      <p>He felt something open inside him with the quiet of a door no one should have unlocked.</p>
+      <p>For Mariana’s peace.</p>
+      <p>The phrase returned to him from the courier message, still blue, still formal, still clean.</p>
+      <p>For Mariana’s peace.</p>
+      <p>He had pledged his House to her murderer in her name.</p>
+      <p>He had brought ships.</p>
+      <p>He had spent lives.</p>
+      <p>He had put children in tenders behind his line because he believed the Prince was the lesser wound.</p>
+      <p>He had looked at the Princess’s fleet and seen hunger cloaked in formality.</p>
+      <p>A sound came from somewhere.</p>
+      <p>It took him a moment to understand it was his own breath.</p>
+      <p>Merant reached for the altar controls.</p>
+      <p>Solenne caught her wrist.</p>
+      <p>“Don’t.”</p>
+      <p>Merant looked at her with such cold fury that the data adept almost let go.</p>
+      <p>“Release me.”</p>
+      <p>“No, my lady.”</p>
+      <p>“That is an order.”</p>
+      <p>“No,” Caelis said.</p>
+      <p>Both women turned.</p>
+      <p>His voice had not been loud. It had barely been a voice at all.</p>
+      <p>Merant’s face changed when she saw him.</p>
+      <p>“My lord.” Caelis looked at the Empress’s frozen image. Mariana sat at her desk, fear held in both hands and made into duty.</p>
+      <p>He thought of the kitchen boy.</p>
+      <p>He thought of the school blister gone from his own ship.</p>
+      <p>He thought of the Lark Ascendant driving toward the tenders, not because it hated, but because it needed fuel and time and perhaps because someone aboard had carried this archive and understood that some truths are heavier than mercy.</p>
+      <p>He thought of the dead archivist with her hand still locked around the release.</p>
+      <p>“What was her name?” he asked.</p>
+      <p>Solenne checked the local tag. “Archivist Liora Sen. Imperial Archives, continuity division. Listed missing during the first succession purge.”</p>
+      <p>“First,” Caelis said.</p>
+      <p>The word tasted like ash.</p>
+      <p>Merant stepped closer. “Caelis.”</p>
+      <p>She had not used his name on duty in nine years.</p>
+      <p>That almost broke him.</p>
+      <p>Almost.</p>
+      <p>“We have to seal this,” she said. “Think. If this leaves the room, House Veyr is dead. Not defeated. Dead. Every cousin. Every vassal. Every child under your protection. Adrian will not forgive public betrayal.”</p>
+      <p>“He killed his mother.”</p>
+      <p>“And the Princess’s side will use that fact to kill thousands more.”</p>
+      <p>“They were already killing thousands.”</p>
+      <p>“Yes,” Merant said. “That is what succession wars do.”</p>
+      <p>Caelis turned toward her.</p>
+      <p>“No,” he said. “That is what people do when they decide inevitability absolves them.”</p>
+      <p>She flinched as if struck. He regretted it immediately.</p>
+      <p>The archive kept turning around them, indifferent to courage, treason, love, and the small emotional weather of human beings discovering they have served the wrong master.</p>
+      <p>Pahr’s voice came over the team channel.</p>
+      <p>“Structural warning. The Lark’s midline is going. We have maybe twelve minutes before this section separates.”</p>
+      <p>Merant did not look away from Caelis.</p>
+      <p>“Then we leave,” she said. “With nothing.”</p>
+      <p>Caelis looked at the altar.</p>
+      <p>“No.”</p>
+      <p>Solenne was already moving, fingers trembling over the black glass controls. “I can copy it. Not all. Enough. Authentication chains, Mariana’s primary testimony, Adrian voiceprint, funeral draft, palace access logs.”</p>
+      <p>“How long?”</p>
+      <p>“Seven minutes if the altar cooperates.”</p>
+      <p>“Do it,” Caelis said.</p>
+      <p>Solenne did it.</p>
+      <p>Merant stood beside him in the pale archive light.</p>
+      <p>For a moment, she looked old enough to have served every empire that had ever failed.</p>
+      <p>“Kindness,” she said quietly, “does not save people from consequences.”</p>
+      <p>Caelis watched Mariana’s face blur and reform above the altar.</p>
+      <p>“No,” he said. “But neither does obedience.”</p>
+      <p>The dead ship groaned around them.</p>
+      <p>Not metaphorically. Not in the poetic way ships seemed to complain when stressed.</p>
+      <p>This was structural. A long, low, animal sound moved through the hull of the Lark Ascendant as broken armor shifted and whole decks remembered they were no longer attached to enough of a ship. Dust fell upward. Then sideways. The gravity flickered off and came back angry.</p>
+      <p>The dead archivist lifted half a centimeter from the floor, tethered by one stiff hand still locked to the altar.</p>
+      <p>Caelis caught the edge of a data pillar.</p>
+      <p>Merant caught him.</p>
+      <p>Neither commented.</p>
+      <p>“Copy at thirty percent,” Solenne said.</p>
+      <p>The lights failed.</p>
+      <p>For two seconds there was nothing but suit lamps and breathing.</p>
+      <p>Then the archive came back in emergency red.</p>
+      <p>Mariana’s image returned with half her face missing.</p>
+      <p>“I am sorry,” the recording said, from some later fragment. “If this is the inheritance I leave you, then I have failed in ways history may not have time to name. But truth must survive even when law does not.”</p>
+      <p>Caelis closed his eyes.</p>
+      <p>The ship groaned again.</p>
+      <p>This time, something far away tore loose and struck the hull with a force that rang through the archive like a bell.</p>
+      <p>Pahr’s voice sharpened. “Nine minutes became five.”</p>
+      <p>“Copy at fifty-eight,” Solenne said.</p>
+      <p>“Make it faster.”</p>
+      <p>“I am not negotiating with a terminal, Pahr.”</p>
+      <p>“Try.”</p>
+      <p>Caelis opened his eyes.</p>
+      <p>Mariana was looking past him now, caught forever in a recording made for strangers and traitors and children not yet born. “Let it be known,” she said, “that I did not name Adrian heir. Let it be known that no succession issued under coercion, murder, or concealment carries imperial legitimacy. Let it be known that Juniper—”</p>
+      <p>The file broke into static.</p>
+      <p>Then another panel opened.</p>
+      <p>Princess Juniper, younger, hair loose, eyes red, standing in what looked like a cargo hold.</p>
+      <p>“This is Liora Sen’s copy,” Juniper said. “I don’t know who will receive it. I don’t know if anyone will. Adrian controls the formal archives. He controls most of the court channels. He controls the grief. So we carry the truth in pieces and hope one piece survives.”</p>
+      <p>The recording ended.</p>
+      <p>Someone said something Caelis could not hear.</p>
+      <p>Juniper looked back.</p>
+      <p>No plea.</p>
+      <p>No curse.</p>
+      <p>Just exhaustion and command.</p>
+      <p>“Copy complete enough,” Solenne said. “Full authentication not complete, but enough to verify against independent noble keys.”</p>
+      <p>“Take it,” Caelis said.</p>
+      <p>The altar ejected a black sliver no larger than a child’s finger.</p>
+      <p>Solenne caught it like a relic.</p>
+      <p>The archive door behind them buckled inward.</p>
+      <p>Not opened.</p>
+      <p>Buckled.</p>
+      <p>The marine outside shouted once. The rest became static.</p>
+      <p>Pahr came through the door backward, firing into the corridor. “We have boarders.”</p>
+      <p>Merant drew her sidearm. “Princess?”</p>
+      <p>“No,” Pahr said. “Ours.” Caelis stared at him.</p>
+      <p>Pahr’s visor was cracked. “One of the rescue teams. House Veyr armor. They saw the seal. They’re trying to secure the archive under loyalist protocol.”</p>
+      <p>Merant looked at Caelis.</p>
+      <p>There it was.</p>
+      <p>The war, arriving inside the room before he had time to become noble about it.</p>
+      <p>“Order them back,” she said.</p>
+      <p>Caelis opened command channel.</p>
+      <p>“This is Lord Veyr. All House personnel aboard the Lark Ascendant, stand down from archive seizure. Repeat, stand down. Rescue priority remains in effect.”</p>
+      <p>For half a breath, the channel held.</p>
+      <p>Then a captain he recognized answered.</p>
+      <p>“Lord Veyr, loyalist protocol requires immediate containment of succession-sensitive enemy material.”</p>
+      <p>“I am countermanding that protocol.”</p>
+      <p>“My lord, I cannot accept that order unless confirmed by Lady Merant or fleet command.”</p>
+      <p>Caelis looked at Merant.</p>
+      <p>She looked back.</p>
+      <p>Her face was unreadable.</p>
+      <p>Then she opened her own channel.</p>
+      <p>“This is Lady Merant,” she said. “Lord Veyr’s order stands. Any personnel advancing on the archive are acting against House command.”</p>
+      <p>Silence.</p>
+      <p>Then gunfire hit the outer wall.</p>
+      <p>Not much. A burst. Warning or disagreement.</p>
+      <p>It did not matter. The first shot had been fired by their own people.</p>
+      <p>Something in Caelis settled.</p>
+      <p>Not calmly.</p>
+      <p>Permanently.</p>
+      <p>“Solenne,” he said. “Get the archive to the cutter.”</p>
+      <p>“What about you?”</p>
+      <p>“I am coming.”</p>
+      <p>He turned to Merant. “Or trying to.”</p>
+      <p>Pahr fired again. One of the marines dragged the dead archivist away from the altar path with unnecessary care. Caelis noticed. He would remember that later if there was a later.</p>
+      <p>They moved toward the door as the Lark Ascendant continued to die around them.</p>
+      <p>Behind him, Mariana’s damaged image flickered one last time above the altar.</p>
+      <p>Then the archive lights went out.</p>
+      <p>They did not leave cleanly.</p>
+      <p>The ship’s interior plating had warped outward from old impact heat, leaving spaces where suit sensors lied about thickness. One of the loyalist boarders fired through the smoke and struck a data pillar behind Solenne. Black glass burst into fragments that spun weightless until the emergency gravity remembered them and threw them all down at once.</p>
+      <p>Solenne ducked too late.</p>
+      <p>A shard cut across her visor and left a red line over her cheek.</p>
+      <p>“Move,” Merant said.</p>
+      <p>She did not shout. She had never needed volume to make people obey.</p>
+      <p>The remaining marine took point. His name was Javic, though Caelis had only learned it in the cutter because the man had checked everyone’s seal integrity twice without being asked. Javic fired in short controlled bursts through the broken hatch, then crossed the doorway low and hard. His shoulder hit one of the loyalist boarders before the man could decide whether to shoot his lord. They went down together.</p>
+      <p>The boarder wore House Veyr white over combat grey. Caelis knew the armor mark: Third Security Deck, command reserve. Not a mutineer by nature. Not a traitor by desire. A man doing what the age had taught him to call duty.</p>
+      <p>Javic pinned him against the deck.</p>
+      <p>“Stand down,” Caelis said.</p>
+      <p>The boarder’s helmet turned toward him.</p>
+      <p>“My lord, please step away from the enemy archive.”</p>
+      <p>The word please made it worse.</p>
+      <p>Caelis raised his sidearm.</p>
+      <p>It felt too light.</p>
+      <p>“I have given you an order.”</p>
+      <p>“Fleet command will decide.”</p>
+      <p>“I am fleet command.”</p>
+      <p>“Not for this.”</p>
+      <p>Merant shot the man in the thigh.</p>
+      <p>The round punched through the joint webbing and locked the leg in a hard spasm. He screamed once, more in surprise than pain. Javic tore the rifle from his hands.</p>
+      <p>Caelis looked at Merant.</p>
+      <p>She did not look back.</p>
+      <p>“Alive,” she said. “You were taking too long.”</p>
+      <p>They moved.</p>
+      <p>The corridor beyond the archive sloped downward though the ship maps insisted it was level. The Lark Ascendant had begun to fold along some deep structural memory. Every deck plate carried a delayed tremor, like the ship was receiving bad news from its own spine one compartment at a time. Pahr led them through an equipment bay because the direct route had filled with vacuum and fragments of men. His suit projected a line across Caelis’s visor: amber, then red, then amber again. The path changed whenever another section failed.</p>
+      <p>Behind them, loyalist fire followed in disciplined pairs.</p>
+      <p>Not wild. Not panicked.</p>
+      <p>That was almost comforting. They were not being hunted by zealots. They were being hunted by professionals who thought they were preventing a security breach.</p>
+      <p>Solenne stumbled once and caught herself against Caelis’s arm. The black archive sliver was sealed inside a hardened case at her chest.</p>
+      <p>“If they hit this,” she said, breathing hard, “we lose the only copy.”</p>
+      <p>“Then keep it behind me.”</p>
+      <p>“That is not how ballistics works, my lord.”</p>
+      <p>“It is how rank works.”</p>
+      <p>She gave a short breath that might have been a laugh if there had been time.</p>
+      <p>Merant glanced back. “Do not encourage him.”</p>
+      <p>The ship rolled.</p>
+      <p>Not physically. Not entirely. Gravity changed direction for half a second and every body in the corridor became cargo. Caelis struck the ceiling, then the wall, then the deck. Pain flashed through his burned hand. Javic’s rifle spun away. One of the medics hit a bulkhead visor-first and did not get up.</p>
+      <p>“Status,” Merant said.</p>
+      <p>The medic’s suit answered for him.</p>
+      <p class="transmission">IMPACT TRAUMA<br />
+        CERVICAL FAILURE PROBABLE<br />
+        LIFE SIGNS PRESENT<br />
+        MOTOR RESPONSE ABSENT</p>
+      <p>Caelis reached for him.</p>
+      <p>Pahr grabbed his arm. “No.”</p>
+      <p>“He’s alive.” “He’s not leaving if we all die here.”</p>
+      <p>Caelis pulled against him once.</p>
+      <p>Pahr held.</p>
+      <p>The engineer’s voice went flat. “My lord. You can order me to waste ten seconds. I will do it. But call it what it is.”</p>
+      <p>Caelis looked at the medic.</p>
+      <p>The man’s eyes were open behind the cracked visor. His mouth moved once. No sound came through.</p>
+      <p>Merant knelt, put a beacon against his chest, and keyed it active.</p>
+      <p>“Recovery teams will see him if the section holds,” she said.</p>
+      <p>They left him there.</p>
+      <p>The cutter was gone.</p>
+      <p>For three seconds, no one spoke.</p>
+      <p>Then the pilot came over shortband.</p>
+      <p>“Clamp failed when the hull shifted. I had to break off or get folded into the port split. I am holding two hundred meters off your position. Your hatch is no longer operable.”</p>
+      <p>Pahr laughed once.</p>
+      <p>It was not amusement. It was a pressure leak.</p>
+      <p>Merant looked toward the jagged opening where the service gate had been. Beyond it: wreckage, stars, the grey curve of Virell’s moon, and the Saint Orison in the distance, wounded and lit along one side by repair arcs.</p>
+      <p>“Options,” Caelis said.</p>
+      <p>Pahr checked the local structure map. “The cargo launch tubes are three compartments over. If any survived, we can fire ourselves out in rescue shells.”</p>
+      <p>“Toward the cutter?”</p>
+      <p>“Toward something. The tube was built for grain capsules, not people.” Javic recovered his rifle and checked the magazine. “Boarders behind us.”</p>
+      <p>“How many?”</p>
+      <p>“Enough.”</p>
+      <p>The loyalist team rounded the far corner.</p>
+      <p>They did not fire at once.</p>
+      <p>Captain Deren stood at their front. Caelis recognized him properly now. Fifty years old. Veteran of three suppression campaigns, two escorts, and the evacuation of Caltryn Station. A hard man, but not a stupid one. Blood had frozen along the seam of his left pauldron.</p>
+      <p>He raised one hand.</p>
+      <p>“My lord,” Deren said over open comm. “Step aside from the data adept. No one else has to die.”</p>
+      <p>Caelis stood in the broken service gate with the dead ship open behind him.</p>
+      <p>Deren’s voice remained steady. “The archive is enemy-origin data carrying a succession destabilization flag. Loyalist protocol requires seizure and quarantine. You know this.”</p>
+      <p>“I have reviewed the contents.”</p>
+      <p>“Then you are contaminated by hostile material.”</p>
+      <p>Merant shifted beside Caelis.</p>
+      <p>Deren noticed.</p>
+      <p>“Lady Merant,” he said. “You know the law.”</p>
+      <p>“I know too many laws,” she said.</p>
+      <p>“Then help me save him.”</p>
+      <p>That landed.</p>
+      <p>Not loudly. Not theatrically. But Caelis felt it move through the corridor.</p>
+      <p>Deren was not trying to overthrow him. That would have been easier to answer. He was trying to preserve the version of Caelis that had existed before the archive opened. The lord who could still serve Adrian. The House that could still survive by being useful and obedient.</p>
+      <p>Caelis wished he hated him. He could not spare the energy.</p>
+      <p>“Captain,” Caelis said, “Prince Adrian murdered Empress Mariana.”</p>
+      <p>Deren did not respond.</p>
+      <p>The boarders behind him did. Small movements. Weight shifts. One helmet turning toward another.</p>
+      <p>Caelis continued.</p>
+      <p>“We have Mariana’s testimony. Palace logs. Adrian’s authorization chain. Drafted mourning address before her death was confirmed. Voiceprint from a private kill order.”</p>
+      <p>Deren’s rifle did not move. “Enemy fabrication.”</p>
+      <p>“I thought so too.”</p>
+      <p>“Then hold to that.”</p>
+      <p>“No.”</p>
+      <p>Deren’s voice sharpened. “You are being used.”</p>
+      <p>“Yes,” Caelis said.</p>
+      <p>That stopped him.</p>
+      <p>Caelis took one step forward.</p>
+      <p>“We all are. That is not an argument. That is the condition. The only remaining question is whether we choose the lie that has already killed us.”</p>
+      <p>Deren’s answer was almost immediate.</p>
+      <p>“House Veyr cannot defect.”</p>
+      <p>“House Veyr already pledged to a false heir.”</p>
+      <p>“House Veyr pledged to order.”</p>
+      <p>“Order built on murder is not order. It is hunger veiled by formality.”</p>
+      <p>Merant looked at him then. Not warning. Not approval. Something more measured.</p>
+      <p>Deren lowered his hand.</p>
+      <p>“I am sorry, my lord.” “So am I.”</p>
+      <p>Pahr blew the corridor.</p>
+      <p>He had not asked permission. That was why it worked.</p>
+      <p>The charge was not large; probably a breaching puck stripped from the cutter kit. It cut the overhead coolant line and turned the space between them into white vapor and metal splinters. Javic fired through the fog. Merant grabbed Caelis by the back of his suit and dragged him toward the cargo tubes with enough force to make rank irrelevant.</p>
+      <p>They ran.</p>
+      <p>Behind them, Deren’s people returned fire.</p>
+      <p>One round struck Javic in the back. His armor caught enough of it that he stayed upright for four more steps. The fifth failed. He went down at the cargo junction, rolled, and fired from the floor until his weapon locked open.</p>
+      <p>“Go,” he said.</p>
+      <p>Caelis stopped.</p>
+      <p>Javic looked up at him through a visor gone half-black with damage.</p>
+      <p>“My lord. Don’t make this sentimental.”</p>
+      <p>Caelis hated him for that.</p>
+      <p>Then obeyed him.</p>
+      <p>The cargo tube chamber was a long cylindrical room with six launch cradles mounted around a central feed rail. Two were crushed. One was missing. One had a dead shell jammed halfway into the breach. Two remained intact enough for optimism, which meant intact enough for desperation.</p>
+      <p>Pahr slammed the first shell controls awake.</p>
+      <p>The console blinked in agricultural green.</p>
+      <p class="transmission">BULK CARGO LAUNCH SYSTEM<br />
+        CONTENT TYPE: DRY GRAIN<br />
+        HUMAN OCCUPANCY NOT RECOMMENDED</p>
+      <p>“No one asked,” Pahr said. Solenne climbed into the first shell with the archive case clutched to her chest. Merant shoved the wounded medic’s emergency oxygen pack in after her, then sealed the cradle.</p>
+      <p>“Destination?” Solenne asked.</p>
+      <p>“The cutter will chase you,” Pahr said.</p>
+      <p>“That is not a destination.”</p>
+      <p>“We will make it one.”</p>
+      <p>He fired the shell.</p>
+      <p>The launch tube kicked like an artillery piece. The whole chamber shook. A green icon flashed into vacuum and vanished from local sensors.</p>
+      <p>Pahr turned to the second shell.</p>
+      <p>“Three people maximum if we want to avoid acceleration trauma”</p>
+      <p>Caelis looked toward the corridor.</p>
+      <p>Javic’s rifle sounded once.</p>
+      <p>Then twice.</p>
+      <p>Then stopped.</p>
+      <p>Merant saw the decision forming and killed it before he could dignify it.</p>
+      <p>“No.”</p>
+      <p>“He bought us time.”</p>
+      <p>“He bought the archive time.”</p>
+      <p>“He is still—”</p>
+      <p>“He is finished,” Merant said. “And if you go back, he will have spent himself badly.”</p>
+      <p>Pahr opened the second shell.</p>
+      <p>“Argue inside the tube.”</p>
+      <p>The corridor filled with loyalist movement. Caelis entered the shell last. Pahr strapped in opposite him. Merant took the center brace, sidearm still in hand. The space smelled like dust, machine oil, and whatever grain had last passed through here before people taught the system worse cargo.</p>
+      <p>Deren appeared at the chamber entrance.</p>
+      <p>His armor was scored. One arm hung wrong. His rifle was gone. He had a pistol.</p>
+      <p>For a moment, through smoke and failing light, he looked less like an enemy than a tired man at the end of a very long administrative error.</p>
+      <p>“Caelis,” he said.</p>
+      <p>Merant raised her weapon.</p>
+      <p>Caelis put a hand on her wrist.</p>
+      <p>Deren did not shoot.</p>
+      <p>He looked past them at the sealed cargo shell. At the empty launch cradle. At the control still blinking transfer status.</p>
+      <p>He understood.</p>
+      <p>The archive was already gone.</p>
+      <p>His shoulders lowered by a fraction.</p>
+      <p>“Was it true?” he asked.</p>
+      <p>Caelis held his gaze.</p>
+      <p>“Yes.”</p>
+      <p>Deren stood very still.</p>
+      <p>Behind him, the broken ship made another structural sound. Closer this time. Final in character, if not yet in fact.</p>
+      <p>Deren’s pistol lowered.</p>
+      <p>Not much.</p>
+      <p>Enough.</p>
+      <p>“Then run properly,” he said.</p>
+      <p>Merant fired the launch control from inside the shell. The door snapped shut before Caelis could answer.</p>
+      <p>Acceleration hit like a hard hand.</p>
+      <p>For several seconds there was no lord, no House, no Prince, no Empress, no moral clarity. Only pressure. Bone. Breath trying to become a solid object. The old grain shell punched out of the Lark Ascendant and into the wreckage field with three living bodies strapped inside a machine that did not approve of them.</p>
+      <p>Caelis blacked out for part of it.</p>
+      <p>Not long.</p>
+      <p>Long enough to dream of nothing.</p>
+      <p>When his vision returned, the shell was tumbling. The tiny internal display flashed orientation errors in green farm-script. Pahr was swearing with technical precision. Merant had blood floating in little beads inside her helmet. Her eyes were open.</p>
+      <p>“Archive?” Caelis asked.</p>
+      <p>“Already clear,” Pahr said. “First shell beacon is moving. Cutter has it.”</p>
+      <p>That should have been relief.</p>
+      <p>Instead, Caelis looked through the shell’s cracked external feed.</p>
+      <p>The Lark Ascendant was breaking apart.</p>
+      <p>The central spine split along a glowing seam. Atmosphere vented in one final silver sheet. The archive section separated first, then folded inward as if crushed by an invisible fist. The old grain hauler’s painted birds vanished one by one under rolling fire.</p>
+      <p>Somewhere inside it, Javic remained.</p>
+      <p>The wounded medic.</p>
+      <p>Captain Deren, perhaps.</p>
+      <p>The dead archivist.</p>
+      <p>All the people who had become evidence, delay, consequence, or debris depending on who was writing the report.</p>
+      <p>The Lark’s reactor did not explode. Its safeties held. It simply went dark in sections until only heat remained.</p>
+      <p>Caelis watched until Pahr killed the feed. “Don’t,” Caelis said.</p>
+      <p>Pahr turned it back on.</p>
+      <p>No one spoke after that.</p>
+      <p>The cutter caught them eight minutes later.</p>
+      <p>It was not gentle, but it was alive.</p>
+      <p>The Saint Orison received them under blackout protocol.</p>
+      <p>Not by Caelis’s order.</p>
+      <p>By Merant’s.</p>
+      <p>That told him she had already chosen more than she was ready to say.</p>
+      <p>The cutter bay was half-empty now. Rescue teams had returned. Damage crews had priority. The recovered survivors from the Lark were being held under guard in medical compartments, which was better than being spaced and worse than being free.</p>
+      <p>Solenne stood beside the cutter ramp with the archive case in both hands.</p>
+      <p>She had not given it to anyone.</p>
+      <p>That meant she understood.</p>
+      <p>“My lord,” she said.</p>
+      <p>Caelis took the case.</p>
+      <p>It weighed almost nothing.</p>
+      <p>Political truth should have been heavier. It should have bent the wrist. It should have announced itself by mass. Instead, it sat in his palm like any other component. A sliver of engineered carbon and encoded memory, small enough to lose in a drawer, large enough to change which dead people had died for what.</p>
+      <p>Merant removed her helmet.</p>
+      <p>Her hair was damp with sweat. A red line crossed her cheek where the suit seal had bitten too hard.</p>
+      <p>“What now?” she asked. Caelis looked across the bay.</p>
+      <p>House Veyr crew moved around them in practiced lanes. Medics. Engineers. Security teams. Children wrapped in thermal blankets near the bulkhead because their quarters were gone and no one had decided where to put them yet. One boy stared at Caelis with open, frightened recognition.</p>
+      <p>He had promised those people order.</p>
+      <p>He had delivered them a new enemy.</p>
+      <p>“We authenticate,” he said.</p>
+      <p>“With whose keys?”</p>
+      <p>“Mine. Yours. Solenne’s technical seal. The Saint Orison’s blackbox. The Lark’s archive chain. Any noble key aboard.”</p>
+      <p>“And then?”</p>
+      <p>Caelis looked at the white hand over the black sun painted on the bay wall.</p>
+      <p>It had meant service once.</p>
+      <p>Then survival.</p>
+      <p>Now he was not sure.</p>
+      <p>“Then we transmit to Princess Juniper.”</p>
+      <p>Merant’s mouth tightened.</p>
+      <p>The words had crossed a border. Everyone present felt it, even if only three of them knew exactly where the border lay.</p>
+      <p>“That is defection,” she said.</p>
+      <p>“Yes.”</p>
+      <p>“Not doubt. Not delay. Not internal review. Defection.”</p>
+      <p>“Yes.”</p>
+      <p>“Adrian will burn every Veyr holding he can reach.”</p>
+      <p>“I know.”</p>
+      <p>“Some of our captains will refuse.” “I know.”</p>
+      <p>“Some will try to kill you.”</p>
+      <p>“I know.”</p>
+      <p>Merant stepped closer. “And if Juniper loses anyway?”</p>
+      <p>Caelis looked at the archive case.</p>
+      <p>“Then at least we will stop helping the lie win faster.”</p>
+      <p>She looked at him for a long moment.</p>
+      <p>Then she gave a small nod. Not approval. Function.</p>
+      <p>“I will call the captains.”</p>
+      <p>“No,” Caelis said. “I will.”</p>
+      <p>“That is tactically unsound.”</p>
+      <p>“It is morally unavoidable.”</p>
+      <p>Merant exhaled through her nose. “Those are usually the same thing said differently.”</p>
+      <p>For the first time since the battle, Caelis almost smiled.</p>
+      <p>Almost.</p>
+      <p>Then the shipwide alert sounded.</p>
+      <p>Not battle stations.</p>
+      <p>Not damage control.</p>
+      <p>Arrival warning.</p>
+      <p>A tactical officer’s voice came over the bay speakers, too controlled to be calm.</p>
+      <p>“Multiple jump signatures at corridor edge. Confirming transponders now.”</p>
+      <p>Caelis looked toward the bay shield, as if the dark outside could answer before the sensors did.</p>
+      <p>The officer continued.</p>
+      <p>“House Calse relief fleet has arrived. Twelve capital signatures. Twenty-three escorts. Loyalist command codes confirmed.” Merant closed her eyes.</p>
+      <p>House Calse.</p>
+      <p>Die-hard Adrian loyalists. Older than Veyr. Richer than Veyr. Crueler by policy rather than temperament, which made them more dependable and more dangerous. They had been named in Mariana’s archive as one of Adrian’s compact Houses.</p>
+      <p>Caelis felt the archive case in his burned hand.</p>
+      <p>The pain helped.</p>
+      <p>A second transmission came through.</p>
+      <p>The bay speakers carried a woman’s voice, formal and bright.</p>
+      <p>“Lord Veyr, this is Duchess Ilyra Calse aboard the Resolute Law. We received your reinforcement call. Hold position. We are assuming theater command.”</p>
+      <p>The recovery bay kept working around them. A stretcher passed behind Caelis. A technician dragged a ruptured coolant hose across the deck. Somewhere under the floor, pumps hammered against pressure loss with the blunt persistence of machinery that had not been informed of politics.</p>
+      <p>Duchess Calse’s voice repeated through the speakers.</p>
+      <p>“Lord Veyr, acknowledge command transfer.”</p>
+      <p>Merant looked at him.</p>
+      <p>“She will board,” she said.</p>
+      <p>“Yes.”</p>
+      <p>“With a security detachment.”</p>
+      <p>“Yes.”</p>
+      <p>“She will ask for your battle record, your prisoner logs, your sensor data, and any recovered material from the Lark.”</p>
+      <p>“Yes.”</p>
+      <p>“She will find the archive.”</p>
+      <p>“Only if we let her.” Merant’s face hardened by small degrees. “Caelis.”</p>
+      <p>He knew that tone. It was the tone used for bad arithmetic. For plans that were possible only because the person making them had stopped valuing the cost.</p>
+      <p>“No,” she said.</p>
+      <p>“I have not said anything.”</p>
+      <p>“You don’t have to.”</p>
+      <p>The tactical officer’s voice came again, this time over Caelis’s private channel.</p>
+      <p>“My lord, House Calse fleet is forming interdiction geometry. They are placing ships around us and the tenders. Their escorts are spreading through the debris field.”</p>
+      <p>Caelis looked through the bay shield.</p>
+      <p>At this distance, the newly arrived fleet was not yet visible to the eye, but the Orison’s tactical overlay painted it for him anyway: blue-white brackets, hostile by implication if not by code. Twelve capital signatures. Twenty-three escorts. Clean formation. Fresh drives. Full magazines. The kind of fleet that arrived after the killing and called itself victor.</p>
+      <p>The Saint Orison could not fight that.</p>
+      <p>Not conventionally.</p>
+      <p>She had taken one spinal hit, lost half her forward volume, spent too much shield, too much ammunition, too many people. House Veyr’s surviving escorts were scattered across rescue lanes, towing pods, collecting bodies, patching wounds in ships and crews alike. The tenders had no chance. Even if every Veyr captain obeyed instantly, even if none chose loyalist protocol over their lord, they would be dead before they cleared the corridor.</p>
+      <p>Caelis watched the overlay settle.</p>
+      <p>Then he understood the shape of what remained.</p>
+      <p>It did not arrive as courage. Courage would have felt warmer. Cleaner.</p>
+      <p>This was only calculation after every better variable had been removed.</p>
+      <p>“Where is Solenne?” he asked.</p>
+      <p>“In the bay,” Merant said. “With the archive.”</p>
+      <p>“Get her to the courier skiff.”</p>
+      <p>Merant’s eyes narrowed. “Which courier skiff?” “The one in the lower auxiliary berth. My mother’s.”</p>
+      <p>“That thing is a museum piece.”</p>
+      <p>“It has a cold jump drive and no fleet transponder unless activated manually. My father used it for tax inspections because no one believed he would travel in something that ugly.”</p>
+      <p>“That may be the most aristocratic sentence you have ever said.”</p>
+      <p>“Will it fly?”</p>
+      <p>Merant looked toward the deck chief.</p>
+      <p>The woman answered without being asked. “Barely.”</p>
+      <p>“Good,” Caelis said. “Barely is sufficient.”</p>
+      <p>The deck chief went pale.</p>
+      <p>Now she understood too.</p>
+      <p>Caelis opened a fleetwide command channel.</p>
+      <p>He did not speak immediately.</p>
+      <p>His face appeared on the bay repeater: blood at one nostril, suit collar unsealed, one hand wrapped in temporary skin, eyes older than they had been three hours ago. He looked less like a lord than like a man who had been assembled from bad decisions and insufficient sleep.</p>
+      <p>That was acceptable. It was accurate.</p>
+      <p>“This is Lord Caelis Veyr to all House Veyr vessels,” he said. “Blackout protocol is now under my authority. No ship is to transmit recovered data to House Calse. No ship is to accept command override from Duchess Ilyra Calse until I have completed direct conference.”</p>
+      <p>The pause after that was short.</p>
+      <p>Too short.</p>
+      <p>Captain Olan from the damaged Aster Mercy answered first.</p>
+      <p>“My lord, confirm. Are we refusing allied theater command?”</p>
+      <p>“Yes.”</p>
+      <p>Another captain cut in. “On what grounds?”</p>
+      <p>“Succession authority.” Silence.</p>
+      <p>Caelis continued before fear could organize itself.</p>
+      <p>“House Veyr has recovered verified imperial archive material from the Lark Ascendant. Contents indicate Prince Adrian unlawfully caused the death of Empress Mariana and falsified succession conditions. Authentication is ongoing. Until complete, all House Veyr ships are to hold under sealed internal authority.”</p>
+      <p>The channel erupted.</p>
+      <p>Not all at once. Not chaotically. Worse. In fragments.</p>
+      <p>Questions.</p>
+      <p>Denials.</p>
+      <p>Demands for proof.</p>
+      <p>One captain cursing openly.</p>
+      <p>Caelis let it run for five seconds.</p>
+      <p>Then spoke over them.</p>
+      <p>“I do not ask you to believe me on loyalty. I ask you to follow lawful containment procedure for disputed succession evidence. That is not rebellion. Not yet.”</p>
+      <p>Merant glanced at him.</p>
+      <p>Not yet was doing dangerous work.</p>
+      <p>Caelis looked at the tactical overlay.</p>
+      <p>Calse ships continued closing.</p>
+      <p>“I am ordering all nonessential personnel, wounded, prisoners, and minors transferred to tenders and recovery craft. Any captain unwilling to follow me may separate and declare neutral posture. You will not be fired upon by House Veyr. Any captain willing to preserve the archive will hold position until my next command.”</p>
+      <p>A young voice answered from one of the corvettes.</p>
+      <p>“What is the next command, my lord?”</p>
+      <p>Caelis looked at the bay shield again.</p>
+      <p>“Survive long enough for the truth to leave.” He cut the channel.</p>
+      <p>No one in the bay spoke.</p>
+      <p>Then movement returned, faster and harder than before.</p>
+      <p>The deck chief started shouting launch orders. Medics argued over which patients could survive transfer. Security teams split in visible disagreement, one group moving to the prisoner compartments, another to the armory, a third simply standing still because their training had no lessons for this. Somewhere overhead, the ship’s old announcement system tried to play a relocation chime and produced three broken notes before someone killed it.</p>
+      <p>Merant moved close enough that only he could hear her.</p>
+      <p>“You are not planning to run.”</p>
+      <p>“No.”</p>
+      <p>“You are planning to keep Calse here.”</p>
+      <p>“Yes.”</p>
+      <p>“For the skiff.”</p>
+      <p>“For the skiff. For the tenders if they can scatter. For any captain who chooses well quickly enough.”</p>
+      <p>Her jaw tightened. “And the Orison?”</p>
+      <p>Caelis looked up into the bay’s ribbed ceiling.</p>
+      <p>The ship hummed around them, wounded and loyal because machines were often loyal in ways people could not afford to be. It had carried his family name for generations. It had raised children in its observation rooms. It had stored old furniture in unused missile galleries because his mother hated waste. It had survived the collapse and every hungry year after it.</p>
+      <p>Now he was going to spend it.</p>
+      <p>“The Orison holds conference,” he said.</p>
+      <p>Merant said nothing.</p>
+      <p>That was worse than argument.</p>
+      <p>Duchess Ilyra Calse boarded at 1648. She came with twelve retainers in polished combat dress and no visible concern for the wounded being moved around her. Her armor was not frontline armor. It was dueling armor, ceremonial by origin and functional by expense, shaped to flatter the body while still stopping a rifle burst. Calse colors ran down one side in a hard green line.</p>
+      <p>She removed her helmet at the foot of the receiving ramp.</p>
+      <p>Forty, perhaps. Sharp-featured. Black hair drawn tight. Eyes like a person reading a contract and already knowing where the trap was hidden.</p>
+      <p>Caelis met her in the midship conference hall because the bridge still had blood on the deck and he did not want to give her the satisfaction of seeing it.</p>
+      <p>The hall had once been used for trade delegations and marriage negotiations. Now half the wall panels were dark from power rationing, and a crack ran through the central table from the spinal hit’s shock transfer. Someone had cleaned the floor too quickly. It still smelled faintly metallic.</p>
+      <p>Duchess Calse entered with two aides and four guards.</p>
+      <p>Merant stood at Caelis’s right.</p>
+      <p>Pahr stood near the rear hatch, pretending to be there for damage assessment. Solenne was not present. If the plan held, she was already four decks below, carrying the archive toward the auxiliary berth.</p>
+      <p>“Lord Veyr,” Duchess Calse said.</p>
+      <p>“Duchess.”</p>
+      <p>She looked him over once.</p>
+      <p>Not rudely. Completely.</p>
+      <p>“You have had a difficult day.”</p>
+      <p>“Yes.”</p>
+      <p>“And yet you delayed command transfer.”</p>
+      <p>“I retained local command until your arrival.”</p>
+      <p>“I have arrived.”</p>
+      <p>“So you have.”</p>
+      <p>Her smile did not reach anything useful. “My fleet has already begun securing the corridor. Your ships are to accept Calse traffic coordination immediately. Your prisoners from the rebel fleet will be transferred to my custody. All recovered data from enemy vessels will be delivered to my flag archive.”</p>
+      <p>“No.”</p>
+      <p>The word sat between them with no decoration.</p>
+      <p>Duchess Calse blinked once.</p>
+      <p>Merant’s hand remained still at her side.</p>
+      <p>“No?” Calse repeated.</p>
+      <p>“No.”</p>
+      <p>“Explain.”</p>
+      <p>Caelis placed the empty archive case on the table.</p>
+      <p>Her eyes went to it.</p>
+      <p>That was all he needed.</p>
+      <p>Not proof. Not certainty. But recognition before she had time to hide it.</p>
+      <p>“You know what this is,” Caelis said.</p>
+      <p>“I know many things.”</p>
+      <p>“You know because House Calse helped create the need for it.”</p>
+      <p>Her guards shifted.</p>
+      <p>Calse raised one finger and they stopped.</p>
+      <p>“Careful,” she said.</p>
+      <p>“I am done being careful in ways that only help murderers.”</p>
+      <p>The room changed.</p>
+      <p>Pahr looked at the floor. Merant did not move. One of Calse’s aides had gone very still, eyes fixed on the case.</p>
+      <p>Duchess Calse studied Caelis for a long moment.</p>
+      <p>Then she sighed. Not dramatically. Almost with irritation.</p>
+      <p>“What did the girl show you?”</p>
+      <p>Caelis felt the confirmation pass through him like cold water.</p>
+      <p>There it was. No denial. No confusion.</p>
+      <p>Only the mild inconvenience of another person knowing too much.</p>
+      <p>“Enough,” he said.</p>
+      <p>“No. Not enough. If it were enough, you would already be transmitting. So either you lack authentication or you lack nerve.”</p>
+      <p>“I have enough authentication.”</p>
+      <p>“Then nerve.”</p>
+      <p>Caelis did not answer.</p>
+      <p>Calse walked slowly around the table. Her guards moved with her, leaving Merant and Caelis in a narrowing angle.</p>
+      <p>“Your House is minor but respected,” she said. “Your holdings are useful. Your vassals are unusually loyal. You personally are regarded as soft, but not corrupt. That makes you valuable, Lord Veyr. Very few people left in this war can look clean while standing next to necessary work.”</p>
+      <p>“Necessary.”</p>
+      <p>“Yes. Necessary.”</p>
+      <p>“Mariana’s murder was necessary?”</p>
+      <p>“Mariana’s removal was necessary.”</p>
+      <p>Caelis watched her face. “You still call it removal.”</p>
+      <p>“I call it history without theatrical phrasing.”</p>
+      <p>“Her son ordered her death.”</p>
+      <p>“Her son prevented imperial disintegration under a ruler who could not choose between power and guilt.”</p>
+      <p>Merant’s expression sharpened. Calse noticed.</p>
+      <p>“Oh, don’t perform disgust. Half the High Council was preparing knives of its own. Adrian simply moved first and moved competently.”</p>
+      <p>“He framed Juniper.”</p>
+      <p>“He isolated a rival claimant.”</p>
+      <p>“He turned grief into a weapon.”</p>
+      <p>“Grief was already a weapon. He loaded it before others did.”</p>
+      <p>Caelis felt something in him try to become anger and fail. Anger required surprise. This was too plain for that.</p>
+      <p>“You are explaining murder as scheduling,” he said.</p>
+      <p>Duchess Calse leaned both hands on the cracked table.</p>
+      <p>“I am explaining rule. You were raised on the decorative version. Duty, mercy, law, legitimacy, all the clean words people carve onto public buildings after the killing is done. Adrian understands the order of operations. First force. Then stability. Then law. Then the murals.”</p>
+      <p>“And the dead?”</p>
+      <p>“Are dead under every claimant.”</p>
+      <p>“No.”</p>
+      <p>Calse tilted her head. “No?”</p>
+      <p>“Some dead are accidents of failure. Some are prices paid in defense. Some are murders hidden under process.”</p>
+      <p>“Useful distinction for private conscience. Less useful for statecraft.”</p>
+      <p>“There is no state left.”</p>
+      <p>“Because people like Mariana kept mistaking restraint for structure.”</p>
+      <p>Caelis looked at the empty case.</p>
+      <p>“And people like Adrian mistake control for repair.”</p>
+      <p>For the first time, Calse’s expression hardened fully. “There is no repair. There is only sequence. First win. Then consolidate. Then teach the next generation that the winning was lawful.”</p>
+      <p>Caelis almost admired the honesty.</p>
+      <p>Almost.</p>
+      <p>The shipwide clock ticked in the corner of his vision.</p>
+      <p class="transmission">1649.</p>
+      <p>Solenne needed four more minutes.</p>
+      <p>Calse noticed his eyes move.</p>
+      <p>She smiled.</p>
+      <p>“There it is.”</p>
+      <p>Caelis said nothing.</p>
+      <p>“You are delaying me.”</p>
+      <p>“Yes.”</p>
+      <p>Her guards raised their weapons.</p>
+      <p>Merant and Pahr drew at the same time.</p>
+      <p>The room became a diagram waiting for a line.</p>
+      <p>Calse did not look worried.</p>
+      <p>“You cannot fight my fleet.”</p>
+      <p>“No.”</p>
+      <p>“You cannot preserve your House.”</p>
+      <p>“Probably not.”</p>
+      <p>“You cannot save the Princess by couriering one archive fragment into a contested corridor.”</p>
+      <p>“I might.”</p>
+      <p>“That is not a strategy.”</p>
+      <p>“It is a correction.” Calse’s smile thinned. “You sound like Mariana.”</p>
+      <p>“Good.”</p>
+      <p>“That was not praise.”</p>
+      <p>“I know.”</p>
+      <p>Her comm bead flashed. She listened for half a second, then her eyes cut back to him.</p>
+      <p>The skiff had launched.</p>
+      <p>Caelis knew it from her face before anyone told him.</p>
+      <p>Calse’s voice went flat. “Stop that craft.”</p>
+      <p>Her guards fired.</p>
+      <p>Merant shot one through the throat seal before the first round crossed the table. Pahr put two into the lights, killing half the room. Caelis ducked as ceramic and metal burst above him. A Calse round struck the table edge and threw fragments into his cheek. He tasted blood.</p>
+      <p>The conference hall became noise and strobing dark.</p>
+      <p>Caelis fired once and hit an aide in the chest. The woman fell backward into the wall with an expression of administrative surprise. Pahr took a round through the shoulder and spun down behind a chair. Merant moved like a person subtracting problems. One guard. Then another. Then she took a hit to the side and kept firing because she had decided pain was clerical.</p>
+      <p>Calse did not fight.</p>
+      <p>She retreated.</p>
+      <p>That was how Caelis knew she was dangerous beyond pride.</p>
+      <p>Her remaining guard dragged her through the rear hatch as Calse shouted into fleet command.</p>
+      <p>“Veyr has defected. Seize all ships. Destroy outbound craft. Capture Lord Veyr if possible. Kill if necessary.”</p>
+      <p>The ship heard.</p>
+      <p>Everyone heard.</p>
+      <p>Caelis rose from behind the table.</p>
+      <p>Merant was on one knee, one hand pressed against her side. Blood moved between her fingers. Pahr coughed. “Skiff is away. Calse escorts are turning.”</p>
+      <p>“How long until intercept?”</p>
+      <p>“Two minutes. Maybe less.”</p>
+      <p>Caelis opened fleetwide.</p>
+      <p>No ceremony.</p>
+      <p>No speech yet.</p>
+      <p>“House Veyr vessels, this is Caelis. The archive courier is outbound. Protect it. Captains unwilling to defect, withdraw now and do not interfere.”</p>
+      <p>The answers came as icons.</p>
+      <p>Not words.</p>
+      <p>That was better.</p>
+      <p>The Aster Mercy turned first, damaged bow swinging toward the Calse interdiction line.</p>
+      <p>Then the corvette Gentle Price.</p>
+      <p>Then two tenders.</p>
+      <p>Then one escort destroyer.</p>
+      <p>Then three ships turned away and marked themselves neutral.</p>
+      <p>One frigate accepted Calse command and went red on the overlay.</p>
+      <p>Caelis looked at it for half a second.</p>
+      <p>The frigate was the Hearth Oath.</p>
+      <p>He knew her captain. Had eaten at her table. Had held her son during a naming ceremony before the collapse taught everyone what ceremonies were worth.</p>
+      <p>He marked the icon and did not give the order to fire.</p>
+      <p>Merant pushed herself upright.</p>
+      <p>“You have to.”</p>
+      <p>“No.” “If she targets the skiff—”</p>
+      <p>“Then yes.”</p>
+      <p>The Hearth Oath held position.</p>
+      <p>Caelis let out a breath he had not known he was holding.</p>
+      <p>Then the Calse line opened fire.</p>
+      <p>The Aster Mercy vanished under the first exchange.</p>
+      <p>Not destroyed entirely. Not at once. The ship came apart in major sections, forward half still burning thrust for three absurd seconds after the aft half went dark. The tactical pane marked escape pods automatically. Then marked most of them lost inside the next salvo.</p>
+      <p>Captain Olan had withdrawn when ordered earlier.</p>
+      <p>He had returned when it mattered.</p>
+      <p>Caelis had no time to feel that properly.</p>
+      <p>“Bridge,” he said. “Plot courier vector.”</p>
+      <p>The tactical officer answered through alarms. “Skiff is cold-running toward debris shadow. Calse escorts adjusting. They’ll reacquire when it clears the Lark wreckage.”</p>
+      <p>“Can we cover?”</p>
+      <p>“Not from current orientation.”</p>
+      <p>“Then rotate us.”</p>
+      <p>Merant stared at him.</p>
+      <p>So did Pahr.</p>
+      <p>The Orison’s helm officer answered from the bridge. “My lord, rotating into cover position exposes our damaged forward quarter.”</p>
+      <p>“I know.”</p>
+      <p>“It also puts our reactor line of sight through the Calse capital cluster if containment fails.”</p>
+      <p>Caelis closed his eyes once.</p>
+      <p>There it was. The thing he had understood in the bay now had engineering language.</p>
+      <p>“Confirm,” he said.</p>
+      <p>The helm officer did not speak for two seconds.</p>
+      <p>Then: “Confirmed.”</p>
+      <p>“Rotate us.”</p>
+      <p>Merant’s face went still.</p>
+      <p>“Caelis.”</p>
+      <p>He looked at her.</p>
+      <p>She understood all of it now. Not the idea. The mechanism.</p>
+      <p>The Orison’s main reactor was old, deep, overbuilt, and already wounded. Its containment stack ran below the aft command spine and through the armored centerline. Under ordinary breach, the safeties would choke it cold. Under deliberate overload with containment shutters locked open and auxiliary reactor governors slaved to the main pulse, it would not merely destroy the ship. It would turn every docked or nearby hull into a participant.</p>
+      <p>Dozens of reactors in proximity.</p>
+      <p>Damaged ships.</p>
+      <p>Calse capital vessels crowding close to assert command and prevent escape.</p>
+      <p>A relief fleet wrapped around a bomb it did not yet know had been built.</p>
+      <p>“You said the next section should be the last,” she said quietly.</p>
+      <p>He almost did not understand. Then he did. She was not speaking to him. She was speaking to the day itself.</p>
+      <p>“Yes,” he said.</p>
+      <p>Pahr laughed weakly from the floor and coughed blood. “That’s a very ugly plan.”</p>
+      <p>“It is.”</p>
+      <p>“Good plans are usually less available.”</p>
+      <p>Caelis knelt beside him. “Can it be done?”</p>
+      <p>Pahr looked offended. “Yes.” “How?”</p>
+      <p>“Reactor control from engineering. Manual confirmation from bridge. Physical lockout at the aft containment spine unless you want the automatics to save everyone from your judgment.”</p>
+      <p>“Can you reach it?”</p>
+      <p>“With this shoulder? No.”</p>
+      <p>Merant holstered her sidearm and picked up Pahr’s toolkit.</p>
+      <p>“I can.”</p>
+      <p>Caelis shook his head. “You’re wounded.”</p>
+      <p>“So are you. Also, I am better at following instructions than you are.”</p>
+      <p>“That is not true.”</p>
+      <p>“It is when the instruction is suicidal.”</p>
+      <p>He could not answer that cleanly.</p>
+      <p>Merant stepped close.</p>
+      <p>“If I go, I need authority.”</p>
+      <p>“You have it.”</p>
+      <p>“No. Say it properly.”</p>
+      <p>He understood what she meant.</p>
+      <p>Not for him.</p>
+      <p>For the ship.</p>
+      <p>Caelis opened command channel. “All House Veyr personnel, Lady Merant has full authority over containment engineering by my order. Any command from her carries my seal.”</p>
+      <p>Merant nodded once.</p>
+      <p>Then, very quietly, “Get the children off the ship.”</p>
+      <p>“I already ordered evacuation.”</p>
+      <p>“Order it again.” He did.</p>
+      <p>The next six minutes became lists.</p>
+      <p>Evacuate medical bay three.</p>
+      <p>Transfer recovered prisoners to tender two.</p>
+      <p>Cut clamps on the damaged port shuttle.</p>
+      <p>Seal forward dormitory remains.</p>
+      <p>Move minors to cargo boat Veyr Patient.</p>
+      <p>Purge external command hooks.</p>
+      <p>Rotate dorsal batteries.</p>
+      <p>Clear auxiliary berth.</p>
+      <p>Mark Calse boarding parties hostile.</p>
+      <p>Send proof packet to every Veyr captain who had not blocked him.</p>
+      <p>Authenticate with House seal.</p>
+      <p>Authenticate with blood key.</p>
+      <p>Authenticate with ship blackbox.</p>
+      <p>Transmit burst to the courier skiff.</p>
+      <p>Transmit burst to Princess Juniper’s last known relay.</p>
+      <p>Transmit burst to any independent archive still willing to receive imperial-format evidence.</p>
+      <p>Caelis returned to command with blood drying on his face and Duchess Calse’s broadcast still shouting treason through half the local channels. Officers looked at him differently now. Some with horror. Some with decision. Some not at all because screens were easier.</p>
+      <p>The viewport showed the Calse fleet clearly.</p>
+      <p>The Resolute Law sat ahead, broad and angular, its armor polished in the old style. Around it, Calse ships formed a hard shell. They had expected submission. Now they were compressing into kill geometry. Caelis sat in the command chair.</p>
+      <p>He had avoided it all day. His father’s chair. His grandfather’s. The old center of House Veyr authority.</p>
+      <p>It was less comfortable than expected.</p>
+      <p>“Open channel to Duchess Calse,” he said.</p>
+      <p>The comms officer hesitated.</p>
+      <p>“Open.”</p>
+      <p>The Duchess appeared above the tactical pane.</p>
+      <p>There was blood on her temple now. Not much. Enough to improve her.</p>
+      <p>“Lord Veyr,” she said. “Power down your weapons and surrender command. I will allow your crew to live under review.”</p>
+      <p>“No.”</p>
+      <p>“You have made your point.”</p>
+      <p>“I have not.”</p>
+      <p>“You have no leverage.”</p>
+      <p>Caelis looked at the tactical timer.</p>
+      <p>Courier skiff: still alive.</p>
+      <p>Merant: approaching containment spine.</p>
+      <p>Evacuation: incomplete.</p>
+      <p>Calse capital proximity: improving.</p>
+      <p>“I have some,” he said.</p>
+      <p>Calse’s eyes narrowed.</p>
+      <p>She understood late.</p>
+      <p>Not too late. Late.</p>
+      <p>Her face changed, and for the first time that day, Caelis saw something like genuine emotion from her. Not fear for herself.</p>
+      <p>Irritation at miscalculation.</p>
+      <p>“You would not,” she said.</p>
+      <p>“I would prefer not to.”</p>
+      <p>“You still think that distinction matters.”</p>
+      <p>“It matters to me.”</p>
+      <p>“You will kill your own people.”</p>
+      <p>“I am trying to move them.”</p>
+      <p>“You will not move enough.”</p>
+      <p>“I know.”</p>
+      <p>The bridge heard him.</p>
+      <p>No one spoke.</p>
+      <p>He continued anyway because lies would have been an insult now.</p>
+      <p>“Any crew still aboard the Orison: evacuation remains open until physical cutoff. Any who choose to stay, report to damage control or batteries. Any who choose to leave, leave. No stigma. No penalty. No final test of loyalty.”</p>
+      <p>Celse laughed once. “You are giving them permission to abandon you?”</p>
+      <p>“I am giving them permission to live.”</p>
+      <p>“That is why men like you lose.”</p>
+      <p>Caelis looked at her.</p>
+      <p>“No,” he said. “Men like me lose because men like you decide winning is proof of worth.”</p>
+      <p>Her expression flattened.</p>
+      <p>“Kill the courier,” she said offscreen.</p>
+      <p>The Calse escorts fired.</p>
+      <p>Veyr ships moved to intercept. The Gentle Price died first, ramming across the firing lane with shields overloaded until its small hull turned white and split. The courier skiff vanished behind the burst, then emerged on a new vector, tumbling, still cold.</p>
+      <p>The tender Veyr Patient took a missile meant for the skiff and broke open along its cargo bay. Caelis saw life pods scatter. Some launched. Some did not.</p>
+      <p>His hands tightened on the chair.</p>
+      <p>“Do not stop,” Merant said over private channel.</p>
+      <p>Her voice was strained. Breath clipped. Pain doing work inside each word.</p>
+      <p>“Status,” he asked.</p>
+      <p>“At containment spine. Manual lockout is older than I am and twice as stubborn.”</p>
+      <p>“Can you set it?”</p>
+      <p>“I can set anything if people stop bothering me.”</p>
+      <p>The channel clicked off.</p>
+      <p>Calse’s fleet fired again.</p>
+      <p>This time the skiff’s drive woke.</p>
+      <p>Not bright. Not full. Just enough.</p>
+      <p>A needle of motion. A bad angle made barely viable by debris shadow, dying shields, and the fact no sane pilot expected a museum courier to cut under a fractured grain hauler and slingshot through a refueling lattice’s debris wake.</p>
+      <p>Solenne, Caelis thought.</p>
+      <p>The skiff reached jump threshold.</p>
+      <p>A Calse destroyer lined up.</p>
+      <p>The Hearth Oath moved.</p>
+      <p>For one second Caelis did not understand.</p>
+      <p>Then the frigate that had accepted Calse command put itself between the destroyer and the skiff.</p>
+      <p>It did not fire. It simply occupied the space.</p>
+      <p>The destroyer’s shot punched through it bow to stern.</p>
+      <p>The Hearth Oath held together long enough for the skiff to vanish.</p>
+      <p>No flash. No noble departure. Just absence.</p>
+      <p>The archive was gone.</p>
+      <p>Caelis closed his eyes.</p>
+      <p>Only for a second.</p>
+      <p>Then opened them.</p>
+      <p>“Signal received from auxiliary skiff,” the comms officer said, voice breaking. “Jump complete. Packet away.”</p>
+      <p>The bridge exhaled.</p>
+      <p>Not relief.</p>
+      <p>Something harsher.</p>
+      <p>Calse stared at him from the open channel.</p>
+      <p>“You have bought a rumor.”</p>
+      <p>“No,” Caelis said. “I have bought an audit.”</p>
+      <p>The reactor alarm began then.</p>
+      <p>Low at first.</p>
+      <p>Then rising.</p>
+      <p>Merant came over shipwide, not private.</p>
+      <p>“Aft containment lockout set. Manual governors open. Engineering crews evacuating through dorsal access. Main reactor accepts bridge confirmation.”</p>
+      <p>Her breathing paused.</p>
+      <p>Then: “Caelis. Finish it before Calse spreads.”</p>
+      <p>The bridge looked at him. The confirmation prompt opened on the command pane.</p>
+      <p>It was small.</p>
+      <p>That felt wrong too.</p>
+      <p>So many large decisions arrived as little boxes.</p>
+      <p class="transmission">MAIN REACTOR CONTAINMENT OVERRIDE<br />
+        AUXILIARY GOVERNOR SLAVE CONFIRMED<br />
+        SAFETY INTERLOCKS DISABLED BY FIELD AUTHORITY: MERANT<br />
+        VEYR-COMMAND<br />
+        BRIDGE CONFIRMATION REQUIRED<br />
+        CONSEQUENCE: TOTAL VESSEL LOSS LIKELY<br />
+        CONFIRM / CANCEL</p>
+      <p>Caelis did not press it.</p>
+      <p>Not yet.</p>
+      <p>He opened fleetwide.</p>
+      <p>“All remaining Veyr vessels, scatter on independent vectors. The Orison will hold Calse attention. Transmit the archive packet to every receiver that will take it. If you stay, you die for no additional gain.”</p>
+      <p>Then he opened the channel to Duchess Calse and left it unencrypted.</p>
+      <p>“Duchess,” he said. “Request conference aboard the Saint Orison.”</p>
+      <p>Her expression did something almost human.</p>
+      <p>“You cannot be serious.”</p>
+      <p>“I am.”</p>
+      <p>“You are overloading your reactor.”</p>
+      <p>“Yes.”</p>
+      <p>“Then why would I board?”</p>
+      <p>“Because if you do not, I transmit your refusal beside the archive packet. House Calse named in Mariana’s evidence. House Calse refusing direct challenge after attempted seizure. House Calse firing on evacuation craft. It will not matter to Adrian’s inner circle, but it will matter to every undecided noble watching for weakness.” She said nothing.</p>
+      <p>Caelis continued.</p>
+      <p>“You came to assume command. Come assume it.”</p>
+      <p>Calse studied him.</p>
+      <p>He could see the decision tree moving behind her eyes. Pride. Optics. Suspicion. The possibility that he was bluffing. The possibility that his reactor overload was reversible if command crew were seized quickly. The need to prove that Veyr had panicked, not judged. The old noble disease: believing personal presence could dominate physics if enough people were watching.</p>
+      <p>“I will come with a security party,” she said.</p>
+      <p>“Yes.”</p>
+      <p>“You will stand down bridge guard.”</p>
+      <p>“No.”</p>
+      <p>A thin smile. “There you are.”</p>
+      <p>“I will receive you in the command hall.”</p>
+      <p>“Ten minutes.”</p>
+      <p>“Five.”</p>
+      <p>“Seven.”</p>
+      <p>“Six,” Caelis said.</p>
+      <p>She accepted.</p>
+      <p>The channel closed.</p>
+      <p>The bridge stared at him.</p>
+      <p>Pahr, patched badly and leaning against a console because medical authority had lost the argument, spoke first.</p>
+      <p>“She’s greedy.”</p>
+      <p>“She is political.”</p>
+      <p>“That is what I said.” Caelis looked to the evacuation board.</p>
+      <p>More green than before.</p>
+      <p>Still too much red.</p>
+      <p>“Continue evacuation until Calse docks,” he said. “Then seal all outer locks except dorsal three. Let her aboard. No one fires unless they try for engineering.”</p>
+      <p>The helm officer turned. “My lord, what about you?”</p>
+      <p>Caelis looked at the confirmation prompt.</p>
+      <p>“I have a meeting.”</p>
+      <p>Duchess Calse came aboard with twenty.</p>
+      <p>Too many for courtesy. Too few for occupation.</p>
+      <p>She brought her wounded pride under better armor and walked through the Saint Orison as if already deciding which corridors would be stripped for parts after judgment. Her guards kept weapons low but charged. House Veyr security watched from intersections. No one saluted.</p>
+      <p>That was the first visible sign that something irreversible had happened.</p>
+      <p>Caelis waited in the command hall.</p>
+      <p>Not the conference room. That had holes in it now.</p>
+      <p>The command hall was older, narrower, lined with dead display panels and old campaign maps etched directly into the walls. Some showed borders that had not existed in a century. Some showed trade routes now reduced to debris, raider lanes, or myth. At the far end, a single viewport looked out over the fleet.</p>
+      <p>Calse entered and removed her helmet again.</p>
+      <p>“Still alive,” she said.</p>
+      <p>“For now.”</p>
+      <p>“That can be negotiated.”</p>
+      <p>“No.”</p>
+      <p>She glanced at the guards, then at Merant, who stood beside the far bulkhead in a fresh pressure wrap that was already showing red. “You survived engineering,” Calse said.</p>
+      <p>Merant’s mouth twitched. “So far.”</p>
+      <p>Calse looked back to Caelis. “You have caused significant damage today.”</p>
+      <p>“Yes.”</p>
+      <p>“To your House most of all.”</p>
+      <p>“Yes.”</p>
+      <p>“To the Prince’s cause.”</p>
+      <p>“Good.”</p>
+      <p>“To the Empire.”</p>
+      <p>Caelis shook his head once. “The Empire is gone. We are arguing over what gets to grow in the wreckage.”</p>
+      <p>Calse stepped closer.</p>
+      <p>Her guards moved with her.</p>
+      <p>Caelis did not move.</p>
+      <p>“You think this makes you clean,” she said.</p>
+      <p>“No.”</p>
+      <p>“You think switching sides pays the debt.”</p>
+      <p>“No.”</p>
+      <p>“You think dying at the right moment converts error into virtue.”</p>
+      <p>“No.”</p>
+      <p>That stopped her.</p>
+      <p>He let the silence hold.</p>
+      <p>Then said, “I think I was wrong. That is all. Everything after that is logistics.”</p>
+      <p>For a fraction of a second, something in Calse’s face shifted. Not sympathy. Recognition, perhaps, of a person who had abandoned persuasion because the internal verdict had already been issued. “You could still preserve part of your House,” she said.</p>
+      <p>“No.”</p>
+      <p>“You have not heard the offer.”</p>
+      <p>“I have heard every version of it since I was born.”</p>
+      <p>Calse’s eyes hardened. “Then say your final line, Lord Veyr. I assume you prepared one.”</p>
+      <p>Caelis looked past her, out the viewport.</p>
+      <p>The Calse fleet had drawn close.</p>
+      <p>Too close.</p>
+      <p>Not every ship. Enough.</p>
+      <p>They surrounded the Orison and the remains of the Veyr formation in a tightening shell, confident that the old capital ship was crippled and contained. Their boarding clamps were visible now on three lower decks. Their escorts held firing lines against any Veyr vessel still loyal enough to interfere.</p>
+      <p>The evacuation board on Caelis’s wrist blinked.</p>
+      <p>Still red in places.</p>
+      <p>But less.</p>
+      <p>Less had to be enough.</p>
+      <p>He opened shipwide, fleetwide, and local open broadcast.</p>
+      <p>Not a speech channel. Not a noble address format.</p>
+      <p>Just raw transmission.</p>
+      <p>“This is Caelis Veyr.”</p>
+      <p>His voice echoed through the hall speakers half a second after he said it.</p>
+      <p>“I pledged House Veyr to Prince Adrian because I believed order could still be recovered through him. I believed Princess Juniper’s faction would continue the fracture until nothing remained. I believed a compromised throne was better than endless succession war.”</p>
+      <p>He looked at Calse.</p>
+      <p>“I was wrong.” No one interrupted.</p>
+      <p>Not even her.</p>
+      <p>“Empress Mariana left evidence that Adrian conspired to force succession, ordered her death, concealed the act, and prepared to frame Princess Juniper. House Calse was named among the compact Houses that enabled him. That evidence has left this corridor. By now, copies are moving beyond my reach and yours.”</p>
+      <p>Calse’s jaw tightened.</p>
+      <p>Caelis continued.</p>
+      <p>“I do not claim clean hands. Today I fired on Juniper’s fleet. I killed people carrying the truth I should have sought earlier. I spent loyal lives on a false premise. I cannot return those lives by changing banners.”</p>
+      <p>The ship trembled.</p>
+      <p>Reactor pressure warning moved from amber to red.</p>
+      <p>Calse saw it on one of her guard’s wrist panes.</p>
+      <p>Her eyes widened slightly.</p>
+      <p>Caelis kept speaking.</p>
+      <p>“But I can stop spending more.”</p>
+      <p>He placed his burned hand on the command panel at the end of the hall.</p>
+      <p>A secondary confirmation opened.</p>
+      <p>Merant’s override had reached here too.</p>
+      <p>Of course it had.</p>
+      <p>She had always been thorough.</p>
+      <p>Calse’s guards raised weapons.</p>
+      <p>Merant raised hers.</p>
+      <p>The room became very still.</p>
+      <p>Caelis looked at Duchess Ilyra Calse.</p>
+      <p>“You said first force, then stability, then law, then the murals.” His thumb hovered over confirmation.</p>
+      <p>“I think you only ever get more force.”</p>
+      <p>Calse lunged.</p>
+      <p>Not with dignity.</p>
+      <p>Not with command.</p>
+      <p>Just sudden animal speed, crossing the last meters with one hand outstretched toward the panel as if she could physically hold back consequence.</p>
+      <p>Merant fired.</p>
+      <p>Calse’s guard fired.</p>
+      <p>The hall disappeared into muzzle flash.</p>
+      <p>Caelis felt a strike in his abdomen, then another along his ribs. The impacts were strangely impersonal. Like being shoved by a crowd. His hand slipped on the panel, blood making the surface slick.</p>
+      <p>Calse hit the table edge beside him and clawed for his wrist.</p>
+      <p>“Cancel it,” she hissed.</p>
+      <p>Caelis looked at her.</p>
+      <p>Up close, she looked younger than he expected. Or perhaps fear made everyone younger by stripping away the work they had done to become something else.</p>
+      <p>“No,” he said.</p>
+      <p>He pressed confirm.</p>
+      <p>The panel accepted him.</p>
+      <p>For one second nothing happened.</p>
+      <p>That was the worst second.</p>
+      <p>Then the Saint Orison’s reactor stopped trying to remain a starship component and became an event.</p>
+      <p>White filled the aft quarter first. Not flame. Not explosion in the old chemical sense. A hard conversion of stored violence into light, pressure, fragments, radiation, and expanding fields that made every sensor in the corridor scream at once. The Orison split along its armored spine. Auxiliary reactors, slaved open, followed in sequence faster than human hearing could separate.</p>
+      <p>The Calse boarding clamps became conduits.</p>
+      <p>The first docked cruiser breached through its own reactor safeties as the Orison’s pulse drove back through the connection. Its containment failed outward into the destroyer beside it. That ship’s magazines cooked. A tender caught the edge and vanished. Three escorts tried to cut thrust and collided in the confusion, their shields flaring against heat they had not been designed to parse.</p>
+      <p>The Resolute Law took the main wave broadside.</p>
+      <p>Its shields held for less than a second.</p>
+      <p>Then failed all at once.</p>
+      <p>The command hall viewport went white.</p>
+      <p>From a distance, the Virell corridor looked as if a new star had opened where the wreckage field used to be.</p>
+      <p>It burned without shape at first. A white knot. Then a widening shell. Then dozens of secondary blooms as reactors, magazines, drive cores, and shield capacitors answered one another in sequence.</p>
+      <p>The light reached the moon and drew hard shadows across old craters.</p>
+      <p>It reached the fleeing tenders.</p>
+      <p>It reached the neutral ships.</p>
+      <p>It reached the courier skiff’s last relay buoy three minutes after the skiff itself had gone.</p>
+      <p>The buoy recorded what it could.</p>
+      <p>The destruction of the Saint Orison.</p>
+      <p>The loss of House Calse’s forward relief fleet.</p>
+      <p>The disappearance of Duchess Ilyra Calse’s command signature.</p>
+      <p>The confirmed escape of an imperial succession archive packet. Then the buoy burned out under radiation load.</p>
+      <p>For a while, the corridor contained only debris, expanding gas, and automatic distress calls from ships that no longer had people aboard to be distressed.</p>
+      <p>Later, surviving captains would disagree over what Lord Caelis Veyr had meant to accomplish. Some said he had defected too late. Some said he had saved Princess Juniper’s claim. Some said he had destroyed his House for evidence no court would ever be strong enough to use. Some said he had murdered allies under the cover of conscience. Some said he had found the only remaining use for a noble death.</p>
+      <p>The archive did not care.</p>
+      <p>It copied.</p>
+      <p>It moved.</p>
+      <p>It reached three independent relays, two minor Houses, one Princess-aligned fleet tender, and an old imperial court server no one had successfully shut down because everyone had forgotten it existed.</p>
+      <p>By the next day, Mariana’s face was everywhere that still had screens.</p>
+      <p>Not whole.</p>
+      <p>Not clean.</p>
+      <p>The files were damaged, compressed, incomplete in places. Adrian’s defenders called them fabricated before they finished downloading. Juniper’s ministers called them decisive before they finished authenticating. Neutral Houses called for review, which meant delay, which meant fear.</p>
+      <p>But people watched anyway.</p>
+      <p>They watched Mariana speak without a crown.</p>
+      <p>They watched the corridor outside her observatory.</p>
+      <p>They heard Adrian’s voice.</p>
+      <p>Make it painless if possible.</p>
+      <p>Public grief must remain useful.</p>
+      <p>The words moved faster than fleets. On Veyr holdings, Adrian’s reprisals began within forty hours. Some governors surrendered. Some resisted. Some declared they had never heard of Lord Caelis, which was difficult because his portrait still hung in their halls. The children evacuated from the Saint Orison were received by scattered relatives, neutral captains, and one Juniperite hospital ship that logged them as “noncombatant political dependents” because bureaucracy sometimes discovered mercy by accident.</p>
+      <p>Lady Merant’s final engineering override remained in the Orison’s blackbox fragment, recovered months later from the debris field by a Princess salvage crew.</p>
+      <p>Pahr’s toolkit was never found.</p>
+      <p>Solenne survived the courier flight and spent the next eleven years testifying to courts, councils, military tribunals, and rooms full of people who had already chosen what they wanted the truth to mean.</p>
+      <p>She kept the archive case.</p>
+      <p>Not because it was symbolic.</p>
+      <p>Because it was evidence.</p>
+      <p>The Virell corridor remained dangerous for years. Ships avoided it when they could. Debris maps marked the region in red, with a navigational warning that did not mention politics, guilt, or succession.</p>
+      <p>Just mass.</p>
+      <p>Radiation.</p>
+      <p>Unstable wreckage.</p>
+      <p>And the aftereffects of multiple simultaneous reactor core breaches.</p>
+      <p>In later records, the battle received many names.</p>
+      <p>The Calse Disaster.</p>
+      <p>The Virell Betrayal.</p>
+      <p>The Orison Incident.</p>
+      <p>The Archive Break.</p>
+      <p>Among the surviving children of House Veyr, who had watched from tenders as their ship became light behind them, it had another name. They called it the Ivory Cradle.</p>
+    </div>
+  </body>
+</html>
