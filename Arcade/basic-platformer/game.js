@@ -35,13 +35,17 @@
     const player = {
         x: 80,
         y: 0,
-        width: 34,
-        height: 52,
+        width: 84,
+        height: 70,
+        bodyRadius: 26,
+        bodyOffsetX: 42,
+        bodyOffsetY: 34,
         vx: 0,
         vy: 0,
         speed: 270,
         jumpSpeed: 640,
         grounded: false,
+        legs: [],
     }
 
     const camera = {
@@ -53,8 +57,18 @@
         { x: 620, y: 390, width: 320, height: 24, rise: 105 },
     ]
 
+    const legSegmentLengths = [30, 28, 26]
+    const legSegmentThickness = 5
+    const legConfigs = [
+        { hipX: -20, hipY: -10, restX: -84, bend: -1, lift: 20 },
+        { hipX: -9, hipY: 16, restX: -48, bend: 1, lift: 15 },
+        { hipX: 9, hipY: 16, restX: 48, bend: -1, lift: 15 },
+        { hipX: 20, hipY: -10, restX: 84, bend: 1, lift: 20 },
+    ]
+
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
     const lerp = (a, b, t) => a + (b - a) * t
+    const smooth = (t) => t * t * (3 - 2 * t)
 
     function applyViewVariables() {
         const root = document.documentElement.style
@@ -109,13 +123,69 @@
         }
     }
 
+    function getBodyCenter() {
+        return {
+            x: player.x + player.bodyOffsetX,
+            y: player.y + player.bodyOffsetY,
+        }
+    }
+
+    function getLegAnchor(leg) {
+        const body = getBodyCenter()
+        return {
+            x: body.x + leg.hipX,
+            y: body.y + leg.hipY,
+        }
+    }
+
+    function getFootRestPosition(leg) {
+        const body = getBodyCenter()
+        const movementBias = clamp(player.vx / player.speed, -1, 1) * 18
+        const x = clamp(body.x + leg.restX + movementBias, 12, world.width - 12)
+        const supportY = player.grounded
+            ? getFootSupportY(x, body.y)
+            : body.y + player.bodyRadius + 30
+
+        return { x, y: supportY }
+    }
+
+    function getFootSupportY(x, bodyY) {
+        let bestY = platforms[0].y
+
+        for (const platform of platforms) {
+            const onPlatformX = x >= platform.x && x <= platform.x + platform.width
+            const reachableFromBody = platform.y >= bodyY - 8
+
+            if (onPlatformX && reachableFromBody && platform.y < bestY) {
+                bestY = platform.y
+            }
+        }
+
+        return bestY - 2
+    }
+
+    function resetLegs() {
+        player.legs = legConfigs.map((config) => {
+            const rest = getFootRestPosition(config)
+            return {
+                ...config,
+                target: { ...rest },
+                stepFrom: { ...rest },
+                stepTo: { ...rest },
+                stepProgress: 1,
+                stepDuration: 0.15,
+            }
+        })
+    }
+
     function resetPlayer() {
         player.x = 80
         player.y = platforms[0].y - player.height
         player.vx = 0
         player.vy = 0
-        player.grounded = false
+        player.grounded = true
         camera.x = 0
+        resetLegs()
     }
 
     function resetIfBelowWorld() {
@@ -149,6 +219,7 @@
         player.x = clamp(player.x, 0, world.width - player.width)
         resetIfBelowWorld()
         updateCamera(dt)
+        updateLegs(dt)
     }
 
     function movePlayer(dx, dy) {
@@ -198,6 +269,115 @@
         camera.x = clamp(lerp(camera.x, target, 1 - Math.exp(-8 * dt)), 0, maxCamera)
     }
 
+    function updateLegs(dt) {
+        if (player.legs.length === 0) {
+            resetLegs()
+        }
+
+        for (const leg of player.legs) {
+            const rest = getFootRestPosition(leg)
+
+            if (!player.grounded) {
+                leg.stepProgress = 1
+                leg.target.x = lerp(leg.target.x, rest.x, 1 - Math.exp(-12 * dt))
+                leg.target.y = lerp(leg.target.y, rest.y, 1 - Math.exp(-12 * dt))
+                continue
+            }
+
+            const targetDistance = Math.hypot(
+                rest.x - leg.target.x,
+                rest.y - leg.target.y
+            )
+
+            if (leg.stepProgress >= 1 && targetDistance > 24) {
+                leg.stepFrom = { ...leg.target }
+                leg.stepTo = { ...rest }
+                leg.stepProgress = 0
+            }
+
+            if (leg.stepProgress < 1) {
+                leg.stepProgress = Math.min(1, leg.stepProgress + dt / leg.stepDuration)
+                const t = smooth(leg.stepProgress)
+                leg.target.x = lerp(leg.stepFrom.x, leg.stepTo.x, t)
+                leg.target.y =
+                    lerp(leg.stepFrom.y, leg.stepTo.y, t) -
+                    Math.sin(t * Math.PI) * leg.lift
+            } else {
+                leg.target.y = lerp(leg.target.y, rest.y, 1 - Math.exp(-18 * dt))
+            }
+        }
+    }
+
+    function solveLegIk(anchor, target, bend) {
+        const totalLength = legSegmentLengths.reduce((sum, length) => sum + length, 0)
+        const dx = target.x - anchor.x
+        const dy = target.y - anchor.y
+        const distance = Math.max(0.001, Math.hypot(dx, dy))
+        const direction = { x: dx / distance, y: dy / distance }
+        const clampedTarget =
+            distance > totalLength
+                ? {
+                      x: anchor.x + direction.x * totalLength,
+                      y: anchor.y + direction.y * totalLength,
+                  }
+                : target
+        const normal = { x: -direction.y * bend, y: direction.x * bend }
+        const points = [
+            { ...anchor },
+            {
+                x: anchor.x + direction.x * legSegmentLengths[0] + normal.x * 14,
+                y: anchor.y + direction.y * legSegmentLengths[0] + normal.y * 14,
+            },
+            {
+                x:
+                    anchor.x +
+                    direction.x * (legSegmentLengths[0] + legSegmentLengths[1]) +
+                    normal.x * 10,
+                y:
+                    anchor.y +
+                    direction.y * (legSegmentLengths[0] + legSegmentLengths[1]) +
+                    normal.y * 10,
+            },
+            { ...clampedTarget },
+        ]
+
+        for (let iteration = 0; iteration < 6; iteration += 1) {
+            points[3] = { ...clampedTarget }
+
+            for (let i = 2; i >= 0; i -= 1) {
+                const next = points[i + 1]
+                const current = points[i]
+                const vector = normalize(current.x - next.x, current.y - next.y)
+                points[i] = {
+                    x: next.x + vector.x * legSegmentLengths[i],
+                    y: next.y + vector.y * legSegmentLengths[i],
+                }
+            }
+
+            points[0] = { ...anchor }
+
+            for (let i = 1; i < points.length; i += 1) {
+                const previous = points[i - 1]
+                const current = points[i]
+                const vector = normalize(current.x - previous.x, current.y - previous.y)
+                points[i] = {
+                    x: previous.x + vector.x * legSegmentLengths[i - 1],
+                    y: previous.y + vector.y * legSegmentLengths[i - 1],
+                }
+            }
+        }
+
+        return points
+    }
+
+    function normalize(x, y) {
+        const length = Math.max(0.001, Math.hypot(x, y))
+        return {
+            x: x / length,
+            y: y / length,
+        }
+    }
+
     function draw() {
         ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0)
         ctx.clearRect(0, 0, view.renderWidth, view.renderHeight)
@@ -225,10 +405,48 @@
     }
 
     function drawPlayer() {
+        for (const leg of player.legs) {
+            drawLeg(leg)
+        }
+
+        const body = getBodyCenter()
         ctx.fillStyle = '#1f2735'
-        ctx.fillRect(player.x, player.y, player.width, player.height)
+        ctx.beginPath()
+        ctx.arc(body.x, body.y, player.bodyRadius, 0, Math.PI * 2)
+        ctx.fill()
+
         ctx.fillStyle = '#5df4ff'
-        ctx.fillRect(player.x + 8, player.y + 10, player.width - 16, 12)
+        ctx.beginPath()
+        ctx.arc(body.x + player.bodyRadius * 0.34, body.y - 5, 5, 0, Math.PI * 2)
+        ctx.fill()
+    }
+
+    function drawLeg(leg) {
+        const anchor = getLegAnchor(leg)
+        const joints = solveLegIk(anchor, leg.target, leg.bend)
+
+        for (let i = 0; i < joints.length - 1; i += 1) {
+            drawSegment(joints[i], joints[i + 1], legSegmentThickness, '#1f2735')
+        }
+
+        ctx.fillStyle = '#5df4ff'
+        for (const joint of joints.slice(1, 3)) {
+            ctx.fillRect(joint.x - 2, joint.y - 2, 4, 4)
+        }
+    }
+
+    function drawSegment(a, b, thickness, color) {
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const length = Math.hypot(dx, dy)
+        const angle = Math.atan2(dy, dx)
+
+        ctx.save()
+        ctx.translate(a.x + dx * 0.5, a.y + dy * 0.5)
+        ctx.rotate(angle)
+        ctx.fillStyle = color
+        ctx.fillRect(-length * 0.5, -thickness * 0.5, length, thickness)
+        ctx.restore()
     }
 
     let lastTime = 0
