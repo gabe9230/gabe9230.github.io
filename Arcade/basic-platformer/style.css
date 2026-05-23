@@ -15,20 +15,20 @@ body {
 }
 
 .game-shell {
-    width: min(1100px, 100%);
+    width: min(var(--view-width), 100%);
     min-height: 100vh;
     margin: 0 auto;
-    padding: 16px;
+    padding: var(--shell-padding);
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
-    gap: 12px;
+    gap: var(--shell-gap);
 }
 
 header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--header-gap);
 }
 
 h1 {
@@ -38,10 +38,10 @@ h1 {
 }
 
 button {
-    min-height: 40px;
-    padding: 0 18px;
+    min-height: var(--button-min-height);
+    padding: 0 var(--button-padding-x);
     border: 1px solid #4d5669;
-    border-radius: 6px;
+    border-radius: var(--canvas-border-radius);
     color: #f5f7fb;
     background: #202532;
     font: inherit;
@@ -56,29 +56,27 @@ button:hover {
 canvas {
     display: block;
     width: 100%;
-    height: min(72vh, 620px);
-    min-height: 360px;
+    height: auto;
+    min-height: var(--canvas-min-height);
+    aspect-ratio: var(--view-aspect-ratio);
     border: 1px solid #2d3443;
-    border-radius: 6px;
+    border-radius: var(--canvas-border-radius);
     background: #9ec9ff;
 }
 
-@media (max-width: 560px) {
-    .game-shell {
-        padding: 10px;
-    }
+body.is-compact .game-shell {
+    padding: var(--compact-shell-padding);
+}
 
-    header {
-        align-items: stretch;
-        flex-direction: column;
-    }
+body.is-compact header {
+    align-items: stretch;
+    flex-direction: column;
+}
 
-    button {
-        width: 100%;
-    }
+body.is-compact button {
+    width: 100%;
+}
 
-    canvas {
-        height: 68vh;
-        min-height: 340px;
-    }
+body.is-compact canvas {
+    min-height: var(--compact-canvas-min-height);
 }

@@ -6,9 +6,24 @@
     const resetButton = document.getElementById('resetButton')
 
     const keys = new Set()
+    // Change these layout values here; HTML attributes and CSS variables are derived from them.
     const view = {
-        width: 960,
-        height: 540,
+        width: 1280,
+        height: 720,
+        minWidth: 320,
+        minHeight: 300,
+        shellPadding: 16,
+        compactShellPadding: 10,
+        shellGap: 12,
+        headerGap: 12,
+        buttonMinHeight: 40,
+        buttonPaddingX: 18,
+        canvasMinHeight: 360,
+        compactCanvasMinHeight: 340,
+        canvasBorderRadius: 6,
+        compactBreakpoint: 560,
+        renderWidth: 1280,
+        renderHeight: 720,
         dpr: 1,
     }
 
@@ -41,14 +56,44 @@
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
     const lerp = (a, b, t) => a + (b - a) * t
 
+    function applyViewVariables() {
+        const root = document.documentElement.style
+        const vars = {
+            '--view-width': `${view.width}px`,
+            '--view-height': `${view.height}px`,
+            '--view-aspect-ratio': `${view.width} / ${view.height}`,
+            '--shell-padding': `${view.shellPadding}px`,
+            '--compact-shell-padding': `${view.compactShellPadding}px`,
+            '--shell-gap': `${view.shellGap}px`,
+            '--header-gap': `${view.headerGap}px`,
+            '--button-min-height': `${view.buttonMinHeight}px`,
+            '--button-padding-x': `${view.buttonPaddingX}px`,
+            '--canvas-min-height': `${view.canvasMinHeight}px`,
+            '--compact-canvas-min-height': `${view.compactCanvasMinHeight}px`,
+            '--canvas-border-radius': `${view.canvasBorderRadius}px`,
+        }
+
+        for (const [name, value] of Object.entries(vars)) {
+            root.setProperty(name, value)
+        }
+
+        document.body.classList.toggle(
+            'is-compact',
+            window.innerWidth <= view.compactBreakpoint
+        )
+        canvas.setAttribute('width', String(view.width))
+        canvas.setAttribute('height', String(view.height))
+    }
+
     function resize() {
+        applyViewVariables()
         const rect = canvas.getBoundingClientRect()
-        view.width = Math.max(320, rect.width)
-        view.height = Math.max(300, rect.height)
+        view.renderWidth = Math.max(view.minWidth, rect.width)
+        view.renderHeight = Math.max(view.minHeight, rect.height)
         view.dpr = Math.min(window.devicePixelRatio || 1, 2)
-        canvas.width = Math.round(view.width * view.dpr)
-        canvas.height = Math.round(view.height * view.dpr)
-        world.height = view.height
+        canvas.width = Math.round(view.renderWidth * view.dpr)
+        canvas.height = Math.round(view.renderHeight * view.dpr)
+        world.height = view.renderHeight
         layoutPlatforms()
         resetIfBelowWorld()
     }
@@ -148,14 +193,14 @@
     }
 
     function updateCamera(dt) {
-        const target = player.x + player.width * 0.5 - view.width * 0.4
-        const maxCamera = Math.max(0, world.width - view.width)
+        const target = player.x + player.width * 0.5 - view.renderWidth * 0.4
+        const maxCamera = Math.max(0, world.width - view.renderWidth)
         camera.x = clamp(lerp(camera.x, target, 1 - Math.exp(-8 * dt)), 0, maxCamera)
     }
 
     function draw() {
         ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0)
-        ctx.clearRect(0, 0, view.width, view.height)
+        ctx.clearRect(0, 0, view.renderWidth, view.renderHeight)
 
         drawSky()
         ctx.save()
@@ -167,7 +212,7 @@
 
     function drawSky() {
         ctx.fillStyle = '#9ec9ff'
-        ctx.fillRect(0, 0, view.width, view.height)
+        ctx.fillRect(0, 0, view.renderWidth, view.renderHeight)
     }
 
     function drawPlatforms() {
