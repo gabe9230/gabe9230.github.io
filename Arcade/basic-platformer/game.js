@@ -35,11 +35,11 @@
     const player = {
         x: 80,
         y: 0,
-        width: 84,
-        height: 70,
-        bodyRadius: 26,
+        width: 92,
+        height: 92,
+        bodyRadius: 28,
         bodyOffsetX: 42,
-        bodyOffsetY: 34,
+        bodyOffsetY: 46,
         vx: 0,
         vy: 0,
         speed: 270,
@@ -57,13 +57,13 @@
         { x: 620, y: 390, width: 320, height: 24, rise: 105 },
     ]
 
-    const legSegmentLengths = [30, 28, 26]
+    const legSegmentLengths = [42, 40, 38]
     const legSegmentThickness = 5
     const legConfigs = [
-        { hipX: -20, hipY: -10, restX: -84, bend: -1, lift: 20 },
-        { hipX: -9, hipY: 16, restX: -48, bend: 1, lift: 15 },
-        { hipX: 9, hipY: 16, restX: 48, bend: -1, lift: 15 },
-        { hipX: 20, hipY: -10, restX: 84, bend: 1, lift: 20 },
+        { hipX: -25, hipY: -10, restX: -122, bend: -1, lift: 26, upperClearance: 58, lowerClearance: 34 },
+        { hipX: -13, hipY: 18, restX: -72, bend: 1, lift: 18, upperClearance: 40, lowerClearance: 24 },
+        { hipX: 13, hipY: 18, restX: 72, bend: -1, lift: 18, upperClearance: 40, lowerClearance: 24 },
+        { hipX: 25, hipY: -10, restX: 122, bend: 1, lift: 26, upperClearance: 58, lowerClearance: 34 },
     ]
 
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
@@ -161,7 +161,7 @@
             }
         }
 
-        return bestY - 2
+        return bestY - legSegmentThickness * 0.5
     }
 
     function resetLegs() {
@@ -308,7 +308,8 @@
         }
     }
 
-    function solveLegIk(anchor, target, bend) {
+    function solveLegIk(anchor, target, leg) {
+        const bend = leg.bend
         const totalLength = legSegmentLengths.reduce((sum, length) => sum + length, 0)
         const dx = target.x - anchor.x
         const dy = target.y - anchor.y
@@ -325,23 +326,27 @@
         const points = [
             { ...anchor },
             {
-                x: anchor.x + direction.x * legSegmentLengths[0] + normal.x * 14,
-                y: anchor.y + direction.y * legSegmentLengths[0] + normal.y * 14,
+                x: anchor.x + direction.x * legSegmentLengths[0] + normal.x * 18,
+                y:
+                    anchor.y +
+                    direction.y * legSegmentLengths[0] +
+                    normal.y * 18,
             },
             {
                 x:
                     anchor.x +
                     direction.x * (legSegmentLengths[0] + legSegmentLengths[1]) +
-                    normal.x * 10,
+                    normal.x * 15,
                 y:
                     anchor.y +
                     direction.y * (legSegmentLengths[0] + legSegmentLengths[1]) +
-                    normal.y * 10,
+                    normal.y * 15,
             },
             { ...clampedTarget },
         ]
 
         for (let iteration = 0; iteration < 6; iteration += 1) {
+            liftLegJoints(points, clampedTarget, leg)
             points[3] = { ...clampedTarget }
 
             for (let i = 2; i >= 0; i -= 1) {
@@ -367,7 +372,14 @@
             }
         }
 
+        liftLegJoints(points, clampedTarget, leg)
+
         return points
+    }
+
+    function liftLegJoints(points, target, leg) {
+        points[1].y = Math.min(points[1].y, target.y - leg.upperClearance)
+        points[2].y = Math.min(points[2].y, target.y - leg.lowerClearance)
     }
 
     function normalize(x, y) {
@@ -423,7 +435,7 @@
 
     function drawLeg(leg) {
         const anchor = getLegAnchor(leg)
-        const joints = solveLegIk(anchor, leg.target, leg.bend)
+        const joints = solveLegIk(anchor, leg.target, leg)
 
         for (let i = 0; i < joints.length - 1; i += 1) {
             drawSegment(joints[i], joints[i + 1], legSegmentThickness, '#1f2735')
