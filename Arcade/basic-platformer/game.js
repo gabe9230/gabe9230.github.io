@@ -78,6 +78,8 @@
         swingDamping: 8,
         footGravity: 1750,
         footLiftSpeed: 220,
+        pinAbdomenRotation: true,
+        abdomenAngle: 0,
     }
 
     const legConfigs = [
@@ -190,6 +192,7 @@
                 label: 'spider-body',
             }
         )
+        pinAbdomenRotation()
 
         legs = legConfigs.map((config) => ({
             ...config,
@@ -231,8 +234,19 @@
         updateLegGeometry(dt)
         applyLimitedLegSupport()
         Engine.update(engine, dt * 1000)
+        pinAbdomenRotation()
         updateGrounded()
         updateCamera(dt)
+    }
+
+    function pinAbdomenRotation() {
+        if (!spiderConfig.pinAbdomenRotation || !spiderBody) {
+            return
+        }
+
+        Body.setInertia(spiderBody, Infinity)
+        Body.setAngularVelocity(spiderBody, 0)
+        Body.setAngle(spiderBody, spiderConfig.abdomenAngle)
     }
 
     function updateLegGeometry(dt) {
