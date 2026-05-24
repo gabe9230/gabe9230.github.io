@@ -56,7 +56,12 @@
     const spiderConfig = {
         bodyRadius: 28,
         bodyDensity: 0.003,
-        stanceHeight: 92,
+        stanceHeight: 74,
+        crouchStanceHeight: 48,
+        jumpExtendStanceHeight: 116,
+        jumpCrouchDuration: 0.14,
+        jumpExtendDuration: 0.22,
+        jumpRecoverDuration: 0.18,
         legThickness: 6,
         footRadius: 4,
         segmentLengths: [48, 44, 40],
@@ -66,16 +71,20 @@
         torqueForceScale: 4.4,
         supportSpring: 0.009,
         supportDamping: 0.013,
-        moveForce: 0.0038,
+        moveTractionScale: 0.72,
         maxSpeed: 5.4,
-        jumpForce: 0.08,
+        stepThreshold: 44,
+        swingAcceleration: 36,
+        swingDamping: 8,
+        footGravity: 1750,
+        footLiftSpeed: 220,
     }
 
     const legConfigs = [
-        { hip: { x: -25, y: -10 }, restX: -122, bend: -1, upperClearance: 62, lowerClearance: 36 },
-        { hip: { x: -13, y: 18 }, restX: -72, bend: 1, upperClearance: 42, lowerClearance: 25 },
-        { hip: { x: 13, y: 18 }, restX: 72, bend: -1, upperClearance: 42, lowerClearance: 25 },
-        { hip: { x: 25, y: -10 }, restX: 122, bend: 1, upperClearance: 62, lowerClearance: 36 },
+        { hip: { x: -25, y: -10 }, restX: -118, bend: -1, upperClearance: 58, lowerClearance: 34 },
+        { hip: { x: -13, y: 18 }, restX: -70, bend: 1, upperClearance: 38, lowerClearance: 23 },
+        { hip: { x: 13, y: 18 }, restX: 70, bend: -1, upperClearance: 38, lowerClearance: 23 },
+        { hip: { x: 25, y: -10 }, restX: 118, bend: 1, upperClearance: 58, lowerClearance: 34 },
     ]
 
     let engine = null
@@ -83,7 +92,12 @@
     let spiderBody = null
     let legs = []
     let lastTime = 0
-    let jumpCooldown = 0
+    let activeStanceHeight = spiderConfig.stanceHeight
+    let jumpState = {
+        phase: 'ready',
+        timer: 0,
+    }
+    let jumpQueued = false
     let grounded = false
 
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
@@ -179,11 +193,24 @@
 
         legs = legConfigs.map((config) => ({
             ...config,
-            foot: { x: 160 + config.restX, y: platforms[0].y },
+            foot: {
+                x: 160 + config.restX,
+                y: platforms[0].y - spiderConfig.footRadius,
+            },
+            footVelocity: { x: 0, y: 0 },
             points: [],
-            contact: false,
+            contact: true,
+            contactY: platforms[0].y,
             maxSupport: 0,
         }))
+
+        activeStanceHeight = spiderConfig.stanceHeight
+        jumpState = {
+            phase: 'ready',
+            timer: 0,
+        }
+        jumpQueued = false
+        grounded = false
 
         Composite.add(engine.world, [...terrainBodies, spiderBody])
         updateLegGeometry(1 / 60)
@@ -193,7 +220,6 @@
     function resetPhysics() {
         setupPhysics()
         lastTime = 0
-        jumpCooldown = 0
     }
 
     function update(dt) {
@@ -201,9 +227,8 @@
             return
         }
 
-        jumpCooldown = Math.max(0, jumpCooldown - dt)
+        updateJumpState(dt)
         updateLegGeometry(dt)
-        applyInputForces()
         applyLimitedLegSupport()
         Engine.update(engine, dt * 1000)
         updateGrounded()
@@ -215,20 +240,31 @@
             const hip = getHipWorld(leg)
             const movementBias = clamp(spiderBody.velocity.x / spiderConfig.maxSpeed, -1, 1) * 18
             const desiredX = clamp(spiderBody.position.x + leg.restX + movementBias, 12, world.width - 12)
-            const terrainY = findTerrainTop(desiredX, hip.y)
-            const reachableFoot = terrainY
-                ? { x: desiredX, y: terrainY - spiderConfig.footRadius }
-                : { x: desiredX, y: spiderBody.position.y + spiderConfig.bodyRadius + 48 }
-            const targetDistance = Math.hypot(reachableFoot.x - hip.x, reachableFoot.y - hip.y)
-            const maxReach = spiderConfig.segmentLengths.reduce((sum, length) => sum + length, 0)
-            const canReach = targetDistance <= maxReach + 4
+            const maxReach = getMaxLegReach()
 
-            leg.contact = Boolean(terrainY && canReach)
+            if (leg.contact) {
+                const contactY = findFootContactY(leg.foot.x, leg.foot.y)
+                const distance = Math.hypot(leg.foot.x - hip.x, leg.foot.y - hip.y)
+                const needsStep =
+                    Math.abs(desiredX - leg.foot.x) > spiderConfig.stepThreshold ||
+                    distance > maxReach - 8 ||
+                    contactY === null
 
-            const followRate = leg.contact ? 1 - Math.exp(-18 * dt) : 1 - Math.exp(-10 * dt)
-            leg.foot.x = lerp(leg.foot.x, reachableFoot.x, followRate)
-            leg.foot.y = lerp(leg.foot.y, reachableFoot.y, followRate)
+                if (needsStep) {
+                    releaseFoot(leg, desiredX)
+                } else {
+                    leg.contactY = contactY
+                    leg.foot.y = contactY - spiderConfig.footRadius
+                    leg.footVelocity.x = 0
+                    leg.footVelocity.y = 0
+                }
+            }
 
+            if (!leg.contact) {
+                swingFoot(leg, hip, desiredX, dt)
+            }
+
+            clampFootToReach(leg, hip, maxReach)
             leg.points = solveLegIk(hip, leg.foot, leg)
             leg.maxSupport = leg.contact ? calculateMaxSupport(leg) : 0
         }
@@ -242,21 +278,151 @@
         }
     }
 
-    function findTerrainTop(x, hipY) {
-        let bestY = null
-        const maxDrop = spiderConfig.segmentLengths.reduce((sum, length) => sum + length, 0) + 20
+    function updateJumpState(dt) {
+        jumpState.timer += dt
+
+        if (jumpState.phase === 'ready') {
+            activeStanceHeight = keys.has('KeyS')
+                ? spiderConfig.crouchStanceHeight
+                : spiderConfig.stanceHeight
+
+            if (jumpQueued && grounded) {
+                jumpState.phase = 'crouch'
+                jumpState.timer = 0
+            }
+
+            jumpQueued = false
+            return
+        }
+
+        if (jumpState.phase === 'crouch') {
+            const t = clamp(jumpState.timer / spiderConfig.jumpCrouchDuration, 0, 1)
+            activeStanceHeight = lerp(spiderConfig.stanceHeight, spiderConfig.crouchStanceHeight, t)
+
+            if (t >= 1) {
+                jumpState.phase = 'extend'
+                jumpState.timer = 0
+            }
+            return
+        }
+
+        if (jumpState.phase === 'extend') {
+            const t = clamp(jumpState.timer / spiderConfig.jumpExtendDuration, 0, 1)
+            activeStanceHeight = lerp(
+                spiderConfig.crouchStanceHeight,
+                spiderConfig.jumpExtendStanceHeight,
+                t
+            )
+
+            if (t >= 1) {
+                jumpState.phase = 'recover'
+                jumpState.timer = 0
+            }
+            return
+        }
+
+        const t = clamp(jumpState.timer / spiderConfig.jumpRecoverDuration, 0, 1)
+        activeStanceHeight = lerp(
+            spiderConfig.jumpExtendStanceHeight,
+            spiderConfig.stanceHeight,
+            t
+        )
+
+        if (t >= 1) {
+            jumpState.phase = 'ready'
+            jumpState.timer = 0
+            activeStanceHeight = spiderConfig.stanceHeight
+        }
+    }
+
+    function getMaxLegReach() {
+        return spiderConfig.segmentLengths.reduce((sum, length) => sum + length, 0)
+    }
+
+    function releaseFoot(leg, desiredX) {
+        const direction = Math.sign(desiredX - leg.foot.x) || Math.sign(spiderBody.velocity.x) || 1
+        leg.contact = false
+        leg.contactY = null
+        leg.footVelocity.x = direction * Math.max(90, Math.abs(spiderBody.velocity.x) * 28)
+        leg.footVelocity.y = -spiderConfig.footLiftSpeed
+    }
+
+    function swingFoot(leg, hip, desiredX, dt) {
+        const previousY = leg.foot.y
+        const horizontalError = desiredX - leg.foot.x
+        leg.footVelocity.x += horizontalError * spiderConfig.swingAcceleration * dt
+        leg.footVelocity.x *= Math.exp(-spiderConfig.swingDamping * dt)
+        leg.footVelocity.y += spiderConfig.footGravity * dt
+
+        leg.foot.x = clamp(leg.foot.x + leg.footVelocity.x * dt, 12, world.width - 12)
+        leg.foot.y += leg.footVelocity.y * dt
+
+        const landingY = findFootLanding(leg.foot.x, previousY, leg.foot.y)
+        if (landingY !== null && canReachFoot(hip, leg.foot.x, landingY - spiderConfig.footRadius)) {
+            leg.foot.y = landingY - spiderConfig.footRadius
+            leg.footVelocity.x = 0
+            leg.footVelocity.y = 0
+            leg.contact = true
+            leg.contactY = landingY
+        }
+    }
+
+    function clampFootToReach(leg, hip, maxReach) {
+        const dx = leg.foot.x - hip.x
+        const dy = leg.foot.y - hip.y
+        const distance = Math.hypot(dx, dy)
+
+        if (distance <= maxReach) {
+            return
+        }
+
+        const direction = normalize(dx, dy)
+        leg.foot.x = hip.x + direction.x * maxReach
+        leg.foot.y = hip.y + direction.y * maxReach
+        leg.footVelocity.x *= 0.35
+        leg.footVelocity.y *= 0.35
+        leg.contact = false
+        leg.contactY = null
+    }
+
+    function canReachFoot(hip, x, y) {
+        return Math.hypot(x - hip.x, y - hip.y) <= getMaxLegReach() + 2
+    }
+
+    function findFootContactY(x, footY) {
+        const bottom = footY + spiderConfig.footRadius
 
         for (const platform of platforms) {
-            const withinX = x >= platform.x && x <= platform.x + platform.width
-            const belowHip = platform.y >= hipY - 22
-            const reachableY = platform.y <= hipY + maxDrop
+            const withinX =
+                x >= platform.x - spiderConfig.footRadius &&
+                x <= platform.x + platform.width + spiderConfig.footRadius
+            const onTop = Math.abs(bottom - platform.y) <= 2.5
 
-            if (withinX && belowHip && reachableY && (bestY === null || platform.y < bestY)) {
-                bestY = platform.y
+            if (withinX && onTop) {
+                return platform.y
             }
         }
 
-        return bestY
+        return null
+    }
+
+    function findFootLanding(x, previousY, currentY) {
+        let landingY = null
+        const previousBottom = previousY + spiderConfig.footRadius
+        const currentBottom = currentY + spiderConfig.footRadius
+
+        for (const platform of platforms) {
+            const withinX =
+                x >= platform.x - spiderConfig.footRadius &&
+                x <= platform.x + platform.width + spiderConfig.footRadius
+            const crossedTop = previousBottom <= platform.y && currentBottom >= platform.y
+
+            if (withinX && crossedTop && (landingY === null || platform.y < landingY)) {
+                landingY = platform.y
+            }
+        }
+
+        return landingY
     }
 
     function calculateMaxSupport(leg) {
@@ -344,28 +510,12 @@
         }
     }
 
-    function applyInputForces() {
+    function getMoveInput() {
         let move = 0
         if (keys.has('KeyA')) move -= 1
         if (keys.has('KeyD')) move += 1
 
-        if (move !== 0) {
-            const velocityError = move * spiderConfig.maxSpeed - spiderBody.velocity.x
-            const forceX = clamp(velocityError * 0.0009, -spiderConfig.moveForce, spiderConfig.moveForce)
-            Body.applyForce(spiderBody, spiderBody.position, { x: forceX, y: 0 })
-        }
-
-        if (keys.has('KeyW') && grounded && jumpCooldown <= 0) {
-            Body.applyForce(spiderBody, spiderBody.position, {
-                x: 0,
-                y: -spiderConfig.jumpForce,
-            })
-            jumpCooldown = 0.24
-        }
-
-        if (keys.has('KeyS')) {
-            Body.applyForce(spiderBody, spiderBody.position, { x: 0, y: 0.012 })
-        }
+        return move
     }
 
     function applyLimitedLegSupport() {
@@ -375,26 +525,43 @@
             return
         }
 
-        const footY = contactLegs.reduce((sum, leg) => sum + leg.foot.y, 0) / contactLegs.length
-        const desiredBodyY = footY - spiderConfig.stanceHeight
+        const totalAvailable = contactLegs.reduce((sum, leg) => sum + leg.maxSupport, 0)
+        const footY =
+            contactLegs.reduce((sum, leg) => sum + leg.points[3].y, 0) / contactLegs.length
+        const desiredBodyY = footY - activeStanceHeight
         const heightError = spiderBody.position.y - desiredBodyY
         const supportRequest =
             heightError * spiderConfig.supportSpring +
             Math.max(0, spiderBody.velocity.y) * spiderConfig.supportDamping
-        const totalAvailable = contactLegs.reduce((sum, leg) => sum + leg.maxSupport, 0)
         const totalSupport = clamp(supportRequest, 0, totalAvailable)
 
-        if (totalSupport <= 0) {
-            return
+        if (totalSupport > 0) {
+            for (const leg of contactLegs) {
+                const foot = leg.points[3]
+                const share = totalSupport * (leg.maxSupport / totalAvailable)
+                Body.applyForce(
+                    spiderBody,
+                    { x: foot.x, y: spiderBody.position.y },
+                    { x: 0, y: -share }
+                )
+            }
         }
 
-        for (const leg of contactLegs) {
-            const share = totalSupport * (leg.maxSupport / totalAvailable)
-            Body.applyForce(
-                spiderBody,
-                { x: leg.foot.x, y: spiderBody.position.y },
-                { x: 0, y: -share }
-            )
+        const move = getMoveInput()
+        if (move !== 0) {
+            const velocityError = move * spiderConfig.maxSpeed - spiderBody.velocity.x
+            const tractionLimit = totalAvailable * spiderConfig.moveTractionScale
+            const requestedTraction = clamp(velocityError * 0.0009, -tractionLimit, tractionLimit)
+
+            for (const leg of contactLegs) {
+                const foot = leg.points[3]
+                const share = requestedTraction * (leg.maxSupport / totalAvailable)
+                Body.applyForce(
+                    spiderBody,
+                    { x: foot.x, y: spiderBody.position.y },
+                    { x: share, y: 0 }
+                )
+            }
         }
     }
 
@@ -471,6 +638,8 @@
     }
 
     function drawLeg(leg) {
+        const foot = leg.points[3] || leg.foot
+
         for (let i = 0; i < leg.points.length - 1; i += 1) {
             drawSegmentCollider(leg.points[i], leg.points[i + 1])
         }
@@ -481,7 +650,7 @@
         }
 
         ctx.beginPath()
-        ctx.arc(leg.foot.x, leg.foot.y, spiderConfig.footRadius, 0, Math.PI * 2)
+        ctx.arc(foot.x, foot.y, spiderConfig.footRadius, 0, Math.PI * 2)
         ctx.fill()
     }
 
@@ -527,6 +696,9 @@
     window.addEventListener('keydown', (event) => {
         if (['KeyA', 'KeyD', 'KeyW', 'KeyS'].includes(event.code)) {
             event.preventDefault()
+            if (event.code === 'KeyW' && !keys.has('KeyW')) {
+                jumpQueued = true
+            }
             keys.add(event.code)
         }
     })
