@@ -8,19 +8,19 @@
     const WALL_PAD = 64 * SCALE;
     const LOSE_Y = 84 * (WORLD.height / 960);
     const DROP_COOLDOWN = 520;
-    const FIXED_STEP = 1000 / 60;
-    const GRAVITY_SCALE = 0.0014375;
+    const FIXED_STEP = 1000 / 120;
+    const GRAVITY_SCALE = 0.005;
     const STORAGE_KEY = "gabriel-suika-clone-best";
     const POINTS_STORAGE_KEY = "gabriel-suika-clone-points";
     const LEGACY_META_STORAGE_KEY = "gabriel-suika-clone-meta";
     const SCORE_TO_POINTS_RATE = 10;
     const JIGGLE_COST = 100;
     const REMOVE_COST = 50;
-    const FRUIT_COLLISION_SIDES = 64;
-    const FRUIT_FRICTION = 0.0042;
+    const FRUIT_COLLISION_SIDES = 1028;
+    const FRUIT_FRICTION = 0.8;
     const FRUIT_RESTITUTION = 0.15;
     const FRUIT_FRICTION_AIR = 0.0007;
-    const FRUIT_ANGULAR_FRICTION_AIR = FRUIT_FRICTION_AIR * 1.4;
+    const FRUIT_ANGULAR_FRICTION_AIR = FRUIT_FRICTION_AIR * 1;
     const FRUIT_EXTRA_ANGULAR_DAMPING = FRUIT_ANGULAR_FRICTION_AIR - FRUIT_FRICTION_AIR;
     const WATERMELON_JUICE_PARTICLES = 44;
     const WATERMELON_JUICE_GRAVITY = 760;
@@ -781,7 +781,7 @@
             accumulator += elapsed;
             while (accumulator >= FIXED_STEP) {
                 Engine.update(engine, FIXED_STEP);
-                applyFruitAngularFriction(FIXED_STEP);
+                // applyFruitAngularFriction(FIXED_STEP);
                 processWatermelonPops();
                 processMerges();
                 accumulator -= FIXED_STEP;
