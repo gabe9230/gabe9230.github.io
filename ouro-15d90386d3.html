@@ -42,6 +42,7 @@
     <div><div class="v" id="bar">—</div><div class="l">TRANSFORMER BAR</div></div>
     <div><div class="v" id="gap">—</div><div class="l">GAP (BAR−BEST)</div></div>
   </div>
+  <div class="small" id="phase"></div>
   <div class="small" id="thr"></div>
   <canvas id="spark" width="600" height="150"></canvas>
 </div>
@@ -68,25 +69,27 @@ async function load(){
   const ge = document.getElementById("gap");
   ge.textContent = g==null ? "—" : (g>=0?"+":"")+g.toFixed(4);
   ge.className = "v " + (g>0 ? "gap-good" : "gap-bad");
+  document.getElementById("phase").textContent = s.phase ? `phase: ${s.phase}` : "";
+  const champ = s.champion, rg = s.ratchet_gate;
   document.getElementById("thr").textContent =
-    `win < ${s.win_thresh?.toFixed(4)}   pivot target ≤ ${s.target?.toFixed(4)}   σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps`;
+    `champion ${champ?.toFixed(4) ?? "—"}   ratchet gate < ${rg?.toFixed(4) ?? "—"}   σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps`;
   const bn = document.getElementById("banner");
   if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
-  else if (best!=null && s.win_thresh!=null && best < s.win_thresh) { bn.style.display=""; bn.textContent = "▲ past the win gate — confirmation pending"; }
+  else { bn.style.display="none"; }
   // sparkline
   const c = document.getElementById("spark"), x = c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
   const H = (d.history||[]).filter(p=>p.val<9);
   if (H.length > 1 && bar!=null){
-    const vals = H.map(p=>p.val).concat([bar, s.target??bar]);
+    const vals = H.map(p=>p.val).concat([bar, rg??bar, champ??bar]);
     const lo = Math.min(...vals)-.05, hi = Math.max(...vals)+.05;
     const X = i => 8 + i*(c.width-16)/(H.length-1), Y = v => c.height-10-((v-lo)/(hi-lo))*(c.height-20);
     x.strokeStyle="#e3b341"; x.setLineDash([5,4]); x.beginPath(); x.moveTo(0,Y(bar)); x.lineTo(c.width,Y(bar)); x.stroke();
-    if (s.target!=null){ x.strokeStyle="#ffd33d"; x.beginPath(); x.moveTo(0,Y(s.target)); x.lineTo(c.width,Y(s.target)); x.stroke(); }
+    if (rg!=null){ x.strokeStyle="#ffd33d"; x.beginPath(); x.moveTo(0,Y(rg)); x.lineTo(c.width,Y(rg)); x.stroke(); }  // ratchet gate
     x.setLineDash([]);
     let rb = Infinity; x.strokeStyle="#3fb950"; x.beginPath();
     H.forEach((p,i)=>{ rb=Math.min(rb,p.val); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
-    H.forEach((p,i)=>{ x.fillStyle = p.val<bar ? "#3fb950" : "#58a6ff"; x.beginPath(); x.arc(X(i),Y(p.val),3,0,7); x.fill(); });
+    H.forEach((p,i)=>{ x.fillStyle = (champ!=null && p.val<=champ) ? "#3fb950" : "#58a6ff"; x.beginPath(); x.arc(X(i),Y(p.val),3,0,7); x.fill(); });
   }
   // evals
   document.getElementById("evals").innerHTML = (s.recent||[]).map(r=>{
