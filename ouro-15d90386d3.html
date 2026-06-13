@@ -41,9 +41,9 @@
 <div id="banner" class="card banner" style="display:none"></div>
 <div class="card">
   <div class="bignums">
-    <div><div class="v" id="best">—</div><div class="l">BEST VAL</div></div>
-    <div><div class="v" id="bar">—</div><div class="l">TRANSFORMER BAR</div></div>
-    <div><div class="v" id="gap">—</div><div class="l">GAP (BAR−BEST)</div></div>
+    <div><div class="v" id="best">—</div><div class="l">CHAMPION VAL</div></div>
+    <div><div class="v" id="gate">—</div><div class="l">RATCHET GATE</div></div>
+    <div><div class="v" id="ppl">—</div><div class="l">CHAMPION PPL</div></div>
   </div>
   <div class="small" id="phase"></div>
   <div class="small" id="thr"></div>
@@ -51,7 +51,7 @@
 </div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
-<footer>private page — unlinked, noindex · <span id="pagever">v2 · ratchet/champion</span></footer>
+<footer>private page — unlinked, noindex · <span id="pagever">v3 · bar removed</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -65,17 +65,13 @@ async function load(){
   upd.textContent = "data " + ago(age) + " old";
   upd.className = "pill" + (age > 900 ? " stale" : "");
   const s = d.search || {};
-  const best = s.best_val, bar = s.bar;
-  document.getElementById("best").textContent = best?.toFixed(4) ?? "—";
-  document.getElementById("bar").textContent  = bar?.toFixed(4) ?? "—";
-  const g = (bar!=null && best!=null) ? bar - best : null;
-  const ge = document.getElementById("gap");
-  ge.textContent = g==null ? "—" : (g>=0?"+":"")+g.toFixed(4);
-  ge.className = "v " + (g>0 ? "gap-good" : "gap-bad");
+  const champ = s.champion ?? s.best_val, rg = s.ratchet_gate;
+  document.getElementById("best").textContent = champ?.toFixed(4) ?? "—";
+  document.getElementById("gate").textContent = rg?.toFixed(4) ?? "—";
+  document.getElementById("ppl").textContent  = champ!=null ? Math.exp(champ).toFixed(2) : "—";
   document.getElementById("phase").textContent = s.phase ? `phase: ${s.phase}` : "";
-  const champ = s.champion, rg = s.ratchet_gate;
   document.getElementById("thr").textContent =
-    `champion ${champ?.toFixed(4) ?? "—"}   ratchet gate < ${rg?.toFixed(4) ?? "—"}   σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps`;
+    `σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps   ${(d.cluster?.workers||[]).length} GPU(s)`;
   const bn = document.getElementById("banner");
   if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
   else { bn.style.display="none"; }
@@ -83,20 +79,18 @@ async function load(){
   const c = document.getElementById("spark"), x = c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
   const H = (d.history||[]).filter(p=>p.val<9);
-  if (H.length > 1 && bar!=null){
-    const vals = H.map(p=>p.val).concat([bar, rg??bar, champ??bar]);
+  if (H.length > 1 && champ!=null){
+    const vals = H.map(p=>p.val).concat([rg??champ, champ]);
     const lo = Math.min(...vals)-.05, hi = Math.max(...vals)+.05;
     const X = i => 8 + i*(c.width-16)/(H.length-1), Y = v => c.height-10-((v-lo)/(hi-lo))*(c.height-20);
-    x.strokeStyle="#e3b341"; x.setLineDash([5,4]); x.beginPath(); x.moveTo(0,Y(bar)); x.lineTo(c.width,Y(bar)); x.stroke();
-    if (rg!=null){ x.strokeStyle="#ffd33d"; x.beginPath(); x.moveTo(0,Y(rg)); x.lineTo(c.width,Y(rg)); x.stroke(); }  // ratchet gate
-    x.setLineDash([]);
+    if (rg!=null){ x.strokeStyle="#ffd33d"; x.setLineDash([5,4]); x.beginPath(); x.moveTo(0,Y(rg)); x.lineTo(c.width,Y(rg)); x.stroke(); x.setLineDash([]); }  // ratchet gate
     let rb = Infinity; x.strokeStyle="#3fb950"; x.beginPath();
     H.forEach((p,i)=>{ rb=Math.min(rb,p.val); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
-    H.forEach((p,i)=>{ x.fillStyle = (champ!=null && p.val<=champ) ? "#3fb950" : "#58a6ff"; x.beginPath(); x.arc(X(i),Y(p.val),3,0,7); x.fill(); });
+    H.forEach((p,i)=>{ x.fillStyle = (p.val<=champ) ? "#3fb950" : "#58a6ff"; x.beginPath(); x.arc(X(i),Y(p.val),3,0,7); x.fill(); });
   }
   // evals
   document.getElementById("evals").innerHTML = (s.recent||[]).map(r=>{
-    const col = r.val < bar ? "var(--green)" : "var(--fg)";
+    const col = (champ!=null && r.val<=champ) ? "var(--green)" : "var(--fg)";
     const tags = [r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":""].filter(Boolean).join(" ");
     return `<div class="row"><span style="color:${col}"><b>${r.val?.toFixed(4)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}</span></div>`;
   }).join("") || "<div class='small'>no evals yet</div>";
