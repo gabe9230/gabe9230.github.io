@@ -73,7 +73,8 @@ async function load(){
   document.getElementById("thr").textContent =
     `σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps   ${(d.cluster?.workers||[]).length} GPU(s)`;
   const bn = document.getElementById("banner");
-  if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
+  if (s.plateau) { bn.style.display=""; bn.textContent = `■ ARCHITECTURE PLATEAU — ${s.plateau.champion} (val ${s.plateau.val}, ppl ${s.plateau.ppl}) is final · ready for scale training`; }
+  else if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
   else { bn.style.display="none"; }
   // sparkline
   const c = document.getElementById("spark"), x = c.getContext("2d");
