@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ouroborus — live</title>
+<style>
+  :root { --bg:#0d1117; --bg2:#161b22; --fg:#c9d1d9; --dim:#8b949e; --grid:#21262d;
+          --blue:#58a6ff; --green:#3fb950; --amber:#e3b341; --red:#f85149; --gold:#ffd33d; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--fg); font:14px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; padding:14px; max-width:560px; margin:0 auto; }
+  h1 { font-size:15px; letter-spacing:.06em; color:var(--dim); display:flex; justify-content:space-between; align-items:center; }
+  .pill { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--bg2); border:1px solid var(--grid); }
+  .pill.stale { color:var(--red); border-color:var(--red); }
+  .card { background:var(--bg2); border:1px solid var(--grid); border-radius:10px; padding:12px; margin-top:12px; }
+  .banner { border-color:var(--gold); color:var(--gold); font-weight:bold; text-align:center; }
+  .bignums { display:flex; gap:10px; }
+  .bignums div { flex:1; text-align:center; }
+  .bignums .v { font-size:26px; font-weight:bold; }
+  .bignums .l { font-size:10px; color:var(--dim); letter-spacing:.08em; }
+  .gap-good { color:var(--green); } .gap-bad { color:var(--red); }
+  canvas { width:100%; height:120px; margin-top:8px; }
+  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--grid); font-size:12.5px; gap:8px; }
+  .row:last-child { border-bottom:none; }
+  .row .ops { color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .wk { margin-top:8px; padding:10px; border:1px solid var(--grid); border-radius:8px; }
+  .wk .nm { font-weight:bold; }
+  .bar { height:8px; background:var(--bg); border-radius:4px; margin-top:6px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--blue); }
+  .small { font-size:11px; color:var(--dim); margin-top:4px; }
+  .stat-ready { color:var(--green); } .stat-warn { color:var(--amber); } .stat-off { color:var(--red); }
+  footer { color:var(--grid); font-size:10px; text-align:center; margin-top:18px; }
+</style>
+</head>
+<body>
+<h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
+<div id="banner" class="card banner" style="display:none"></div>
+<div class="card">
+  <div class="bignums">
+    <div><div class="v" id="best">—</div><div class="l">BEST VAL</div></div>
+    <div><div class="v" id="bar">—</div><div class="l">TRANSFORMER BAR</div></div>
+    <div><div class="v" id="gap">—</div><div class="l">GAP (BAR−BEST)</div></div>
+  </div>
+  <div class="small" id="thr"></div>
+  <canvas id="spark" width="600" height="150"></canvas>
+</div>
+<div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
+<div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
+<footer>private page — unlinked, noindex</footer>
+<script>
+const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
+function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
+function esc(t){ const d=document.createElement("div"); d.textContent=t??""; return d.innerHTML; }
+async function load(){
+  let d;
+  try { d = await (await fetch(SRC + "?t=" + Date.now(), {cache:"no-store"})).json(); }
+  catch(e){ document.getElementById("upd").textContent = "fetch failed"; return; }
+  const age = Date.now()/1000 - d.ts;
+  const upd = document.getElementById("upd");
+  upd.textContent = "data " + ago(age) + " old";
+  upd.className = "pill" + (age > 900 ? " stale" : "");
+  const s = d.search || {};
+  const best = s.best_val, bar = s.bar;
+  document.getElementById("best").textContent = best?.toFixed(4) ?? "—";
+  document.getElementById("bar").textContent  = bar?.toFixed(4) ?? "—";
+  const g = (bar!=null && best!=null) ? bar - best : null;
+  const ge = document.getElementById("gap");
+  ge.textContent = g==null ? "—" : (g>=0?"+":"")+g.toFixed(4);
+  ge.className = "v " + (g>0 ? "gap-good" : "gap-bad");
+  document.getElementById("thr").textContent =
+    `win < ${s.win_thresh?.toFixed(4)}   pivot target ≤ ${s.target?.toFixed(4)}   σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps`;
+  const bn = document.getElementById("banner");
+  if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
+  else if (best!=null && s.win_thresh!=null && best < s.win_thresh) { bn.style.display=""; bn.textContent = "▲ past the win gate — confirmation pending"; }
+  // sparkline
+  const c = document.getElementById("spark"), x = c.getContext("2d");
+  x.clearRect(0,0,c.width,c.height);
+  const H = (d.history||[]).filter(p=>p.val<9);
+  if (H.length > 1 && bar!=null){
+    const vals = H.map(p=>p.val).concat([bar, s.target??bar]);
+    const lo = Math.min(...vals)-.05, hi = Math.max(...vals)+.05;
+    const X = i => 8 + i*(c.width-16)/(H.length-1), Y = v => c.height-10-((v-lo)/(hi-lo))*(c.height-20);
+    x.strokeStyle="#e3b341"; x.setLineDash([5,4]); x.beginPath(); x.moveTo(0,Y(bar)); x.lineTo(c.width,Y(bar)); x.stroke();
+    if (s.target!=null){ x.strokeStyle="#ffd33d"; x.beginPath(); x.moveTo(0,Y(s.target)); x.lineTo(c.width,Y(s.target)); x.stroke(); }
+    x.setLineDash([]);
+    let rb = Infinity; x.strokeStyle="#3fb950"; x.beginPath();
+    H.forEach((p,i)=>{ rb=Math.min(rb,p.val); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
+    H.forEach((p,i)=>{ x.fillStyle = p.val<bar ? "#3fb950" : "#58a6ff"; x.beginPath(); x.arc(X(i),Y(p.val),3,0,7); x.fill(); });
+  }
+  // evals
+  document.getElementById("evals").innerHTML = (s.recent||[]).map(r=>{
+    const col = r.val < bar ? "var(--green)" : "var(--fg)";
+    const tags = [r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":""].filter(Boolean).join(" ");
+    return `<div class="row"><span style="color:${col}"><b>${r.val?.toFixed(4)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}</span></div>`;
+  }).join("") || "<div class='small'>no evals yet</div>";
+  // workers
+  document.getElementById("workers").innerHTML = (d.cluster?.workers||[]).map(w=>{
+    const off = w.age > 60;
+    const sc = off ? "stat-off" : (w.status==="ready"||w.status==="running") ? "stat-ready" : "stat-warn";
+    const st = off ? `OFFLINE ${ago(w.age)} — last: ${w.status}` : w.status;
+    const tcol = w.temp>=83?"var(--red)":w.temp>=75?"var(--amber)":"var(--dim)";
+    return `<div class="wk"><div class="nm">${esc(w.id)} <span class="${sc}">● ${esc(st)}</span></div>
+      <div class="bar"><i style="width:${w.util||0}%"></i></div>
+      <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div></div>`;
+  }).join("") + `<div class="small">queue ${d.cluster?.queued??0} · running ${d.cluster?.running??0} · done ${d.cluster?.done??0}</div>`;
+}
+load(); setInterval(load, 60000);
+</script>
+</body>
+</html>
