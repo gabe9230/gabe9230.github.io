@@ -108,14 +108,18 @@ async function load(){
   const cpEl = document.getElementById("compound");
   if (cp.niches!=null || cp.motifs!=null){
     const ab = (cp.archive_best||[]).map(v=> (typeof v==="number"? v.toFixed(3): v)).join(" · ");
-    cpEl.innerHTML = `archive: <b>${cp.niches??0}</b> niches filled${ab?` &nbsp;best ${ab}`:""}<br>`+
+    const sp = cp.archive_spread;
+    const spread = sp ? ` &nbsp;<span style="color:var(--dim)">spread ${sp.min}…${sp.med}…${sp.max}</span>` : "";
+    cpEl.innerHTML = `archive: <b>${cp.niches??0}</b> niches filled${ab?` &nbsp;best ${ab}`:""}${spread}<br>`+
       `library: <b>${cp.motifs??0}</b> motifs${cp.motifs_champion?` (${cp.motifs_champion} from champions)`:""}`;
   } else { cpEl.textContent = "warming up…"; }
   // evals
   document.getElementById("evals").innerHTML = (s.recent||[]).map(r=>{
     const col = (champ!=null && r.val<=champ) ? "var(--green)" : "var(--fg)";
-    const tags = [r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":""].filter(Boolean).join(" ");
-    return `<div class="row"><span style="color:${col}"><b>${r.val?.toFixed(4)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}</span></div>`;
+    const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
+    const tags = [r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
+    const extra = [r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
+    return `<div class="row"><span style="color:${col}"><b>${r.val?.toFixed(4)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
   }).join("") || "<div class='small'>no evals yet</div>";
   // workers
   document.getElementById("workers").innerHTML = (d.cluster?.workers||[]).map(w=>{
