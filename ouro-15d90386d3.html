@@ -78,31 +78,35 @@ async function load(){
   if (s.plateau) { bn.style.display=""; bn.textContent = `■ ARCHITECTURE PLATEAU — ${s.plateau.champion} (val ${s.plateau.val}, ppl ${s.plateau.ppl}) is final · ready for scale training`; }
   else if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
   else { bn.style.display="none"; }
-  // sparkline
+  // sparkline — DIFFICULTY-NORMALIZED: plot nrm = val − transformer-bar(this level). A curriculum
+  // advance raises the bar and resets exploration, so raw val spikes up and LOOKS like a regression;
+  // nrm is comparable across levels. 0 = matches the transformer at the current difficulty; below 0
+  // = beats it. The pop-mean line bending below 0 over time = the search genuinely compounding.
   const c = document.getElementById("spark"), x = c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
-  const H = (d.history||[]).filter(p=>p.val<9);
-  if (H.length > 1 && champ!=null){
-    const vals = H.map(p=>p.val).concat([rg??champ, champ]);
+  const H = (d.history||[]).filter(p=>p.nrm!=null && p.val<9);
+  const bestN = s.best_nrm;
+  if (H.length > 1){
+    const vals = H.map(p=>p.nrm).concat([0, bestN ?? 0]);
     const lo = Math.min(...vals)-.05, hi = Math.max(...vals)+.05;
     const X = i => 8 + i*(c.width-16)/(H.length-1), Y = v => c.height-10-((v-lo)/(hi-lo))*(c.height-20);
-    if (rg!=null){ x.strokeStyle="#ffd33d"; x.setLineDash([5,4]); x.beginPath(); x.moveTo(0,Y(rg)); x.lineTo(c.width,Y(rg)); x.stroke(); x.setLineDash([]); }  // ratchet gate
+    x.strokeStyle="#ffd33d"; x.setLineDash([5,4]); x.beginPath(); x.moveTo(0,Y(0)); x.lineTo(c.width,Y(0)); x.stroke(); x.setLineDash([]);  // transformer bar (nrm=0)
     // POPULATION-MEAN trend (trailing window) — the whole-search signal: flat = not compounding,
-    // bending downward = the proposer is getting better over time.
+    // bending downward (further below the bar) = the proposer is getting better over time.
     const win = Math.max(3, Math.round(H.length*0.15));
     x.strokeStyle="#d2a8ff"; x.lineWidth=2; x.beginPath();
-    H.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=H[j].val;
+    H.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=H[j].nrm;
       const m=s/(i-a+1); i?x.lineTo(X(i),Y(m)):x.moveTo(X(0),Y(m)); }); x.stroke();
     let rb = Infinity; x.strokeStyle="#3fb950"; x.beginPath();   // running-best staircase
-    H.forEach((p,i)=>{ rb=Math.min(rb,p.val); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
+    H.forEach((p,i)=>{ rb=Math.min(rb,p.nrm); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
     x.lineWidth=1;
-    H.forEach((p,i)=>{ x.fillStyle = (p.val<=champ) ? "#3fb950" : "#58a6ff"; x.beginPath(); x.arc(X(i),Y(p.val),2.5,0,7); x.fill(); });  // each eval
+    H.forEach((p,i)=>{ x.fillStyle = (p.nrm<=0) ? "#3fb950" : "#58a6ff"; x.beginPath(); x.arc(X(i),Y(p.nrm),2.5,0,7); x.fill(); });  // each eval
   }
   document.getElementById("sparkleg").innerHTML =
     `<span style="color:#58a6ff">●</span> eval &nbsp; `+
-    `<span style="color:#3fb950">▬</span> running best &nbsp; `+
+    `<span style="color:#3fb950">▬</span> best vs bar &nbsp; `+
     `<span style="color:#d2a8ff">▬</span> pop. mean &nbsp; `+
-    `<span style="color:#ffd33d">┄</span> ratchet gate`;
+    `<span style="color:#ffd33d">┄</span> transformer bar (0)`;
   // compounding engine — archive coverage + learned motif library
   const cp = d.compounding || {};
   const cpEl = document.getElementById("compound");
@@ -115,10 +119,10 @@ async function load(){
   } else { cpEl.textContent = "warming up…"; }
   // evals
   document.getElementById("evals").innerHTML = (s.recent||[]).map(r=>{
-    const col = (champ!=null && r.val<=champ) ? "var(--green)" : "var(--fg)";
+    const col = (r.edge!=null && r.edge>0) ? "var(--green)" : "var(--fg)";   // beats the bar at ITS level
     const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
     const tags = [r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
-    const extra = [r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
+    const extra = [r.edge!=null?`${r.edge>0?"+":""}${r.edge.toFixed(3)} vs bar`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
     return `<div class="row"><span style="color:${col}"><b>${r.val?.toFixed(4)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
   }).join("") || "<div class='small'>no evals yet</div>";
   // workers
