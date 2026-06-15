@@ -115,10 +115,12 @@ async function load(){
       `library: <b>${cp.motifs??0}</b> motifs${cp.motifs_champion?` (${cp.motifs_champion} from champions)`:""}`;
   } else { cpEl.textContent = "warming up…"; }
   // evals
+  const champs = new Set((s.winners||[]).map(w=>w.name));
   document.getElementById("evals").innerHTML = (s.recent||[]).map(r=>{
-    const col = (r.edge!=null && r.edge>0) ? "var(--green)" : "var(--fg)";   // beats the bar at ITS level
+    const col = champs.has(r.name) ? "#ffd33d"                                // yellow = confirmed champion
+              : (r.edge!=null && r.edge>0) ? "var(--green)" : "var(--fg)";    // green = beats the bar at ITS level
     const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
-    const tags = [r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
+    const tags = [champs.has(r.name)?"champion":"", r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
     const extra = [r.edge!=null?`${r.edge>0?"+":""}${r.edge.toFixed(3)} vs bar`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
     return `<div class="row"><span style="color:${col}"><b>${r.val?.toFixed(4)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
   }).join("") || "<div class='small'>no evals yet</div>";
