@@ -78,35 +78,31 @@ async function load(){
   if (s.plateau) { bn.style.display=""; bn.textContent = `■ ARCHITECTURE PLATEAU — ${s.plateau.champion} (val ${s.plateau.val}, ppl ${s.plateau.ppl}) is final · ready for scale training`; }
   else if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
   else { bn.style.display="none"; }
-  // sparkline — DIFFICULTY-NORMALIZED: plot nrm = val − transformer-bar(this level). A curriculum
-  // advance raises the bar and resets exploration, so raw val spikes up and LOOKS like a regression;
-  // nrm is comparable across levels. 0 = matches the transformer at the current difficulty; below 0
-  // = beats it. The pop-mean line bending below 0 over time = the search genuinely compounding.
+  // sparkline — kept simple: X = wall-clock time, Y = score vs the transformer bar at each net's OWN
+  // level (nrm = val − bar; lower is better, 0 = matches the transformer). Two lines only — running
+  // BEST and population MEAN — over one faint dot per eval. A faint 0 line anchors "normalized".
   const c = document.getElementById("spark"), x = c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
-  const H = (d.history||[]).filter(p=>p.nrm!=null && p.val<9);
-  const bestN = s.best_nrm;
+  const H = (d.history||[]).filter(p=>p.nrm!=null && p.val<9 && p.ts);
   if (H.length > 1){
-    const vals = H.map(p=>p.nrm).concat([0, bestN ?? 0]);
-    const lo = Math.min(...vals)-.05, hi = Math.max(...vals)+.05;
-    const X = i => 8 + i*(c.width-16)/(H.length-1), Y = v => c.height-10-((v-lo)/(hi-lo))*(c.height-20);
-    x.strokeStyle="#ffd33d"; x.setLineDash([5,4]); x.beginPath(); x.moveTo(0,Y(0)); x.lineTo(c.width,Y(0)); x.stroke(); x.setLineDash([]);  // transformer bar (nrm=0)
-    // POPULATION-MEAN trend (trailing window) — the whole-search signal: flat = not compounding,
-    // bending downward (further below the bar) = the proposer is getting better over time.
-    const win = Math.max(3, Math.round(H.length*0.15));
+    const ts = H.map(p=>p.ts), t0 = Math.min(...ts), t1 = Math.max(...ts);
+    const ns = H.map(p=>p.nrm), lo = Math.min(0,...ns)-.05, hi = Math.max(0,...ns)+.05;
+    const X = i => 8 + ((ts[i]-t0)/Math.max(t1-t0,1e-9))*(c.width-16);
+    const Y = v => c.height-10-((v-lo)/(hi-lo))*(c.height-20);
+    if (lo < 0 && hi > 0){ x.strokeStyle="rgba(139,148,158,.35)"; x.setLineDash([2,3]); x.beginPath(); x.moveTo(8,Y(0)); x.lineTo(c.width-8,Y(0)); x.stroke(); x.setLineDash([]); }  // transformer bar (0)
+    H.forEach((p,i)=>{ x.fillStyle = (p.nrm<=0) ? "rgba(63,185,80,.5)" : "rgba(88,166,255,.45)"; x.beginPath(); x.arc(X(i),Y(p.nrm),2,0,7); x.fill(); });  // one dot per eval, under the lines
+    const win = Math.max(3, Math.round(H.length*0.15));    // MEAN — trailing-window population trend
     x.strokeStyle="#d2a8ff"; x.lineWidth=2; x.beginPath();
     H.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=H[j].nrm;
       const m=s/(i-a+1); i?x.lineTo(X(i),Y(m)):x.moveTo(X(0),Y(m)); }); x.stroke();
-    let rb = Infinity; x.strokeStyle="#3fb950"; x.beginPath();   // running-best staircase
+    let rb = Infinity; x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();   // BEST — running-best staircase
     H.forEach((p,i)=>{ rb=Math.min(rb,p.nrm); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
     x.lineWidth=1;
-    H.forEach((p,i)=>{ x.fillStyle = (p.nrm<=0) ? "#3fb950" : "#58a6ff"; x.beginPath(); x.arc(X(i),Y(p.nrm),2.5,0,7); x.fill(); });  // each eval
   }
   document.getElementById("sparkleg").innerHTML =
-    `<span style="color:#58a6ff">●</span> eval &nbsp; `+
-    `<span style="color:#3fb950">▬</span> best vs bar &nbsp; `+
-    `<span style="color:#d2a8ff">▬</span> pop. mean &nbsp; `+
-    `<span style="color:#ffd33d">┄</span> transformer bar (0)`;
+    `<span style="color:#3fb950">▬</span> best &nbsp;&nbsp; `+
+    `<span style="color:#d2a8ff">▬</span> mean &nbsp;&nbsp; `+
+    `<span style="color:var(--dim)">● eval · ┄ transformer (0) · x = time</span>`;
   // compounding engine — archive coverage + learned motif library
   const cp = d.compounding || {};
   const cpEl = document.getElementById("compound");
