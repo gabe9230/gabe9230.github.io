@@ -141,7 +141,7 @@ async function load(){
       ${netLine}</div>`;
   }).join("") + `<div class="small">queue ${d.cluster?.queued??0} · running ${d.cluster?.running??0} · done ${d.cluster?.done??0}</div>`;
 }
-load(); setInterval(load, 60000);
+load(); setInterval(load, 30000);
 </script>
 </body>
 </html>
