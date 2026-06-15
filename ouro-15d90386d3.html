@@ -130,9 +130,15 @@ async function load(){
     const sc = off ? "stat-off" : (w.status==="ready"||w.status==="running") ? "stat-ready" : "stat-warn";
     const st = off ? `OFFLINE ${ago(w.age)} — last: ${w.status}` : w.status;
     const tcol = w.temp>=83?"var(--red)":w.temp>=75?"var(--amber)":"var(--dim)";
+    const stepPct = (w.step!=null && w.steps) ? Math.min(100, 100*w.step/w.steps) : 0;
+    const netLine = w.net
+      ? `<div class="small" style="margin-top:3px">net <b style="color:var(--amber)">${esc(w.net)}</b>${w.sps!=null?` · ${w.sps} st/s`:""}${(w.step!=null&&w.steps)?` · step ${w.step}/${w.steps}`:""}</div>
+         ${(w.step!=null&&w.steps)?`<div class="bar" style="height:4px"><i style="width:${stepPct}%;background:var(--amber)"></i></div>`:""}`
+      : `<div class="small" style="margin-top:3px;color:var(--dim)">idle — no net being evaluated</div>`;
     return `<div class="wk"><div class="nm">${esc(w.id)} <span class="${sc}">● ${esc(st)}</span></div>
       <div class="bar"><i style="width:${w.util||0}%"></i></div>
-      <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div></div>`;
+      <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div>
+      ${netLine}</div>`;
   }).join("") + `<div class="small">queue ${d.cluster?.queued??0} · running ${d.cluster?.running??0} · done ${d.cluster?.done??0}</div>`;
 }
 load(); setInterval(load, 60000);
