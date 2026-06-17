@@ -41,9 +41,9 @@
 <div id="banner" class="card banner" style="display:none"></div>
 <div class="card">
   <div class="bignums">
-    <div><div class="v" id="best">—</div><div class="l">CHAMPION VAL</div></div>
-    <div><div class="v" id="gate">—</div><div class="l">RATCHET GATE</div></div>
-    <div><div class="v" id="ppl">—</div><div class="l">CHAMPION PPL</div></div>
+    <div><div class="v" id="best">—</div><div class="l">BEST SKILL</div></div>
+    <div><div class="v" id="gate">—</div><div class="l">LEVEL</div></div>
+    <div><div class="v" id="ppl">—</div><div class="l">CHAMPION LOSS</div></div>
   </div>
   <div class="small" id="phase"></div>
   <div class="small" id="thr"></div>
@@ -53,7 +53,7 @@
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">COMPOUNDING ENGINE</div><div id="compound" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
-<footer>private page — unlinked, noindex · <span id="pagever">v6 · worker init state</span></footer>
+<footer>private page — unlinked, noindex · <span id="pagever">v7 · skill score</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -67,10 +67,12 @@ async function load(){
   upd.textContent = "data " + ago(age) + " old";
   upd.className = "pill" + (age > 900 ? " stale" : "");
   const s = d.search || {};
-  const champ = s.champion ?? s.best_val, rg = s.ratchet_gate;
-  document.getElementById("best").textContent = champ?.toFixed(4) ?? "—";
-  document.getElementById("gate").textContent = rg?.toFixed(4) ?? "—";
-  document.getElementById("ppl").textContent  = champ!=null ? Math.exp(champ).toFixed(2) : "—";
+  const champ = s.champion ?? s.best_val;                       // raw loss (cross-entropy) of the best net
+  const pct = v => v==null ? "—" : (100*v).toFixed(1)+"%";      // skill -> human percentage
+  document.getElementById("best").textContent = pct(s.best_skill);             // SKILL replaces raw val
+  const lv = s.level;
+  document.getElementById("gate").textContent = lv ? `${lv.kind||""} ${lv.difficulty??0}`.trim() : "—";
+  document.getElementById("ppl").textContent  = champ?.toFixed(4) ?? "—";       // raw loss, for reference
   document.getElementById("phase").textContent = s.phase ? `phase: ${s.phase}` : "";
   document.getElementById("thr").textContent =
     `σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps   ${(d.cluster?.workers||[]).length} GPU(s)`;
@@ -78,32 +80,31 @@ async function load(){
   if (s.plateau) { bn.style.display=""; bn.textContent = `■ ARCHITECTURE PLATEAU — ${s.plateau.champion} (val ${s.plateau.val}, ppl ${s.plateau.ppl}) is final · ready for scale training`; }
   else if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
   else { bn.style.display="none"; }
-  // sparkline — kept simple: X = wall-clock time, Y = score vs the transformer bar at each net's OWN
-  // level (nrm = val − bar; lower is better, 0 = matches the transformer). Two lines only — running
-  // BEST and population MEAN — over one faint dot per eval. A faint 0 line anchors "normalized".
+  // sparkline — X = wall-clock time, Y = SKILL (1 − loss/ln V; difficulty-normalized, higher is better,
+  // 1 = perfect prediction, 0 = uniform-random). Two lines: running BEST (max) and population MEAN,
+  // over one faint dot per eval.
   const c = document.getElementById("spark"), x = c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
-  const H = (d.history||[]).filter(p=>p.nrm!=null && p.val<9 && p.ts);
+  const H = (d.history||[]).filter(p=>p.skill!=null && p.val<9 && p.ts);
   if (H.length > 1){
     const ts = H.map(p=>p.ts), t0 = Math.min(...ts), t1 = Math.max(...ts);
-    const ns = H.map(p=>p.nrm), lo = Math.min(0,...ns)-.05, hi = Math.max(0,...ns)+.05;
+    const ks = H.map(p=>p.skill), lo = Math.max(0,Math.min(...ks)-.03), hi = Math.min(1,Math.max(...ks)+.03);
     const X = i => 8 + ((ts[i]-t0)/Math.max(t1-t0,1e-9))*(c.width-16);
-    const Y = v => c.height-10-((v-lo)/(hi-lo))*(c.height-20);
-    if (lo < 0 && hi > 0){ x.strokeStyle="rgba(139,148,158,.35)"; x.setLineDash([2,3]); x.beginPath(); x.moveTo(8,Y(0)); x.lineTo(c.width-8,Y(0)); x.stroke(); x.setLineDash([]); }  // transformer bar (0)
+    const Y = v => c.height-10-((v-lo)/Math.max(hi-lo,1e-9))*(c.height-20);   // higher skill = higher up
     x.fillStyle="rgba(88,166,255,.5)";
-    H.forEach((p,i)=>{ x.beginPath(); x.arc(X(i),Y(p.nrm),2,0,7); x.fill(); });  // one dot per eval, under the lines
+    H.forEach((p,i)=>{ x.beginPath(); x.arc(X(i),Y(p.skill),2,0,7); x.fill(); });  // one dot per eval
     const win = Math.max(3, Math.round(H.length*0.15));    // MEAN — trailing-window population trend
     x.strokeStyle="#d2a8ff"; x.lineWidth=2; x.beginPath();
-    H.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=H[j].nrm;
+    H.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=H[j].skill;
       const m=s/(i-a+1); i?x.lineTo(X(i),Y(m)):x.moveTo(X(0),Y(m)); }); x.stroke();
-    let rb = Infinity; x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();   // BEST — running-best staircase
-    H.forEach((p,i)=>{ rb=Math.min(rb,p.nrm); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
+    let rb = -Infinity; x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();   // BEST — running-MAX staircase
+    H.forEach((p,i)=>{ rb=Math.max(rb,p.skill); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
     x.lineWidth=1;
   }
   document.getElementById("sparkleg").innerHTML =
-    `<span style="color:#3fb950">▬</span> best &nbsp;&nbsp; `+
-    `<span style="color:#d2a8ff">▬</span> mean &nbsp;&nbsp; `+
-    `<span style="color:var(--dim)">● eval · ┄ transformer (0) · x = time</span>`;
+    `<span style="color:#3fb950">▬</span> best skill &nbsp;&nbsp; `+
+    `<span style="color:#d2a8ff">▬</span> mean skill &nbsp;&nbsp; `+
+    `<span style="color:var(--dim)">● eval · 1 = perfect, 0 = random · x = time</span>`;
   // compounding engine — archive coverage + learned motif library
   const cp = d.compounding || {};
   const cpEl = document.getElementById("compound");
@@ -118,11 +119,11 @@ async function load(){
   const champs = new Set((s.winners||[]).map(w=>w.name));
   document.getElementById("evals").innerHTML = (s.recent||[]).map(r=>{
     const col = champs.has(r.name) ? "#ffd33d"                                // yellow = confirmed champion
-              : (r.edge!=null && r.edge>0) ? "var(--green)" : "var(--fg)";    // green = beats the bar at ITS level
+              : (r.lme!=null && r.lme<-0.05) ? "var(--green)" : "var(--fg)";  // green = USES context (late<early)
     const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
     const tags = [champs.has(r.name)?"champion":"", r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
-    const extra = [r.edge!=null?`${r.edge>0?"+":""}${r.edge.toFixed(3)} vs bar`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
-    return `<div class="row"><span style="color:${col}"><b>${r.val?.toFixed(4)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
+    const extra = [r.val!=null?`loss ${r.val.toFixed(3)}`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
+    return `<div class="row"><span style="color:${col}"><b>${pct(r.skill)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
   }).join("") || "<div class='small'>no evals yet</div>";
   // workers
   document.getElementById("workers").innerHTML = (d.cluster?.workers||[]).map(w=>{
