@@ -53,7 +53,7 @@
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">COMPOUNDING ENGINE</div><div id="compound" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
-<footer>private page — unlinked, noindex · <span id="pagever">v5 · trend line</span></footer>
+<footer>private page — unlinked, noindex · <span id="pagever">v6 · worker init state</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -130,11 +130,14 @@ async function load(){
     const sc = off ? "stat-off" : (w.status==="ready"||w.status==="running") ? "stat-ready" : "stat-warn";
     const st = off ? `OFFLINE ${ago(w.age)} — last: ${w.status}` : w.status;
     const tcol = w.temp>=83?"var(--red)":w.temp>=75?"var(--amber)":"var(--dim)";
-    const stepPct = (w.step!=null && w.steps) ? Math.min(100, 100*w.step/w.steps) : 0;
-    const netLine = w.net
-      ? `<div class="small" style="margin-top:3px">net <b style="color:var(--amber)">${esc(w.net)}</b>${w.sps!=null?` · ${w.sps} st/s`:""}${(w.step!=null&&w.steps)?` · step ${w.step}/${w.steps}`:""}</div>
-         ${(w.step!=null&&w.steps)?`<div class="bar" style="height:4px"><i style="width:${stepPct}%;background:var(--amber)"></i></div>`:""}`
-      : `<div class="small" style="margin-top:3px;color:var(--dim)">idle — no net being evaluated</div>`;
+    const stepping = (w.step!=null && w.steps);                 // training underway (progress reported)
+    const stepPct = stepping ? Math.min(100, 100*w.step/w.steps) : 0;
+    const netLine = stepping
+      ? `<div class="small" style="margin-top:3px">net <b style="color:var(--amber)">${esc(w.net||"?")}</b>${w.sps!=null?` · ${w.sps} st/s`:""} · step ${w.step}/${w.steps}</div>
+         <div class="bar" style="height:4px"><i style="width:${stepPct}%;background:var(--amber)"></i></div>`
+      : (w.job && !off)                                          // has a job but no step yet = booting the eval (torch import / model build / CUDA ctx)
+        ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ initializing${w.net?` <b>${esc(w.net)}</b>`:""} — loading model &amp; data…</div>`
+        : `<div class="small" style="margin-top:3px;color:var(--dim)">idle — no net being evaluated</div>`;
     return `<div class="wk"><div class="nm">${esc(w.id)} <span class="${sc}">● ${esc(st)}</span></div>
       <div class="bar"><i style="width:${w.util||0}%"></i></div>
       <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div>
