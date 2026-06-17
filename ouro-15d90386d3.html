@@ -79,6 +79,7 @@
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">ENGINE STATS</div><div id="compound" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
+<div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CONTROL <span style="opacity:.5">· read-only mirror</span></div><div id="control" class="small">—</div></div>
 </div>
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
@@ -211,6 +212,19 @@ async function load(){
     cpEl.innerHTML = `archive: <b>${cp.niches??0}</b> niches filled${ab?` &nbsp;best ${ab}`:""}${spread}<br>`+
       `library: <b>${cp.motifs??0}</b> motifs${cp.motifs_champion?` (${cp.motifs_champion} from champions)`:""}`;
   } else { cpEl.textContent = "warming up…"; }
+  // control surface — READ-ONLY mirror of the brain's control_status.json (the app owns the write path)
+  const ctl = s.control || {};
+  const ctlEl = document.getElementById("control");
+  if (ctl.live || ctl.paused!=null){
+    const lv = ctl.live || {}, im = ctl.immutable || {}, fmt = v => (v==null ? "auto" : v);
+    const qh = (ctl.queue_head||[]).map(x=>esc(String(x.ops||"").slice(0,40))).join(", ");
+    ctlEl.innerHTML =
+      `<b style="color:${ctl.paused?'#f85149':'#3fb950'}">${ctl.paused?'⏸ PAUSED':'▶ running'}</b>`+
+      ` &nbsp;<span style="color:var(--dim)">applied seq ${ctl.applied_seq??'—'} · ${ctl.status_age??'?'}s ago</span><br>`+
+      `<span style="color:var(--dim)">live:</span> plateau_k <b>${fmt(lv.plateau_k)}</b> · screen ${fmt(lv.screen_steps)}/${fmt(lv.steps)} · over ${fmt(lv.over)} · target ${fmt(lv.target)} · plateau_cyc ${fmt(lv.plateau_cycles)} · queue_max ${fmt(lv.queue_max)} · dispatch ${fmt(lv.dispatch)} · explore ${fmt(lv.explore)}<br>`+
+      `<span style="color:var(--dim)">queue:</span> <b>${ctl.queue_depth??0}</b>${qh?` — ${qh}`:""}<br>`+
+      `<span style="color:var(--dim);opacity:.7">fixed (restart to change): d ${im.d} · L ${im.n_layer} · batch ${im.batch} · seed ${im.seed} · ${im.device} · ${im.cluster?'cluster':'local'}</span>`;
+  } else { ctlEl.textContent = "no control state yet"; }
   // evals — paginated list (10/page); tap a row for the full data sheet (renderEvals/showSheet, top of script)
   window._evals = s.recent || [];
   window._champs = new Set((s.winners||[]).map(w=>w.name));
