@@ -67,7 +67,7 @@
 <div id="banner" class="card banner" style="display:none"></div>
 <div class="card">
   <div class="bignums">
-    <div><div class="v" id="best">—</div><div class="l">BEST SKILL</div></div>
+    <div><div class="v" id="best">—</div><div class="l">CAPABILITY</div><div class="l" id="bestsk" style="opacity:.6;margin-top:2px">—</div></div>
     <div><div class="v" id="gate">—</div><div class="l">LEVEL</div></div>
     <div><div class="v" id="ppl">—</div><div class="l">CHAMPION LOSS</div></div>
   </div>
@@ -165,7 +165,8 @@ async function load(){
   const s = d.search || {};
   window._d = d;                                                // for the Tasks / Inventions subpages
   const champ = s.champion ?? s.best_val;                       // raw loss (cross-entropy) of the best net
-  document.getElementById("best").textContent = pct(s.best_skill);             // SKILL replaces raw val
+  document.getElementById("best").textContent = (s.capability!=null ? s.capability.toFixed(2) : "—");  // CAPABILITY = rungs cleared + current-rung skill (difficulty-agnostic, monotonic)
+  document.getElementById("bestsk").textContent = (s.best_skill!=null ? pct(s.best_skill)+" skill" : "");  // per-rung skill (secondary)
   const lv = s.level;
   document.getElementById("gate").textContent = lv ? `${lv.kind||""} ${lv.difficulty??0}`.trim() : "—";
   document.getElementById("ppl").textContent  = champ?.toFixed(4) ?? "—";       // raw loss, for reference
@@ -180,26 +181,26 @@ async function load(){
   // over one faint dot per eval.
   const c = document.getElementById("spark"), x = c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
-  const H = (d.history||[]).filter(p=>p.skill!=null && p.val<9 && p.ts);
+  const H = (d.history||[]).filter(p=>p.cap!=null && p.val<9 && p.ts);
   if (H.length > 1){
     const ts = H.map(p=>p.ts), t0 = Math.min(...ts), t1 = Math.max(...ts);
-    const ks = H.map(p=>p.skill), lo = Math.max(0,Math.min(...ks)-.03), hi = Math.min(1,Math.max(...ks)+.03);
+    const ks = H.map(p=>p.cap), lo = Math.max(0,Math.min(...ks)-.05), hi = Math.max(...ks)+.05;
     const X = i => 8 + ((ts[i]-t0)/Math.max(t1-t0,1e-9))*(c.width-16);
-    const Y = v => c.height-10-((v-lo)/Math.max(hi-lo,1e-9))*(c.height-20);   // higher skill = higher up
+    const Y = v => c.height-10-((v-lo)/Math.max(hi-lo,1e-9))*(c.height-20);   // higher capability = higher up
     x.fillStyle="rgba(88,166,255,.5)";
-    H.forEach((p,i)=>{ x.beginPath(); x.arc(X(i),Y(p.skill),2,0,7); x.fill(); });  // one dot per eval
+    H.forEach((p,i)=>{ x.beginPath(); x.arc(X(i),Y(p.cap),2,0,7); x.fill(); });  // one dot per eval
     const win = Math.max(3, Math.round(H.length*0.15));    // MEAN — trailing-window population trend
     x.strokeStyle="#d2a8ff"; x.lineWidth=2; x.beginPath();
-    H.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=H[j].skill;
+    H.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=H[j].cap;
       const m=s/(i-a+1); i?x.lineTo(X(i),Y(m)):x.moveTo(X(0),Y(m)); }); x.stroke();
     let rb = -Infinity; x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();   // BEST — running-MAX staircase
-    H.forEach((p,i)=>{ rb=Math.max(rb,p.skill); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
+    H.forEach((p,i)=>{ rb=Math.max(rb,p.cap); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
     x.lineWidth=1;
   }
   document.getElementById("sparkleg").innerHTML =
-    `<span style="color:#3fb950">▬</span> best skill &nbsp;&nbsp; `+
-    `<span style="color:#d2a8ff">▬</span> mean skill &nbsp;&nbsp; `+
-    `<span style="color:var(--dim)">● eval · 1 = perfect, 0 = random · x = time</span>`;
+    `<span style="color:#3fb950">▬</span> best capability &nbsp;&nbsp; `+
+    `<span style="color:#d2a8ff">▬</span> mean capability &nbsp;&nbsp; `+
+    `<span style="color:var(--dim)">● eval · capability = rung + skill · x = time</span>`;
   // compounding engine — archive coverage + learned motif library
   const cp = d.compounding || {};
   const cpEl = document.getElementById("compound");
