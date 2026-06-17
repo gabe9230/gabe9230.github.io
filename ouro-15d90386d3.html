@@ -34,6 +34,19 @@
   .small { font-size:11px; color:var(--dim); margin-top:4px; }
   .stat-ready { color:var(--green); } .stat-warn { color:var(--amber); } .stat-off { color:var(--red); }
   footer { color:var(--grid); font-size:10px; text-align:center; margin-top:18px; }
+  .erow { cursor:pointer; }
+  .erow:active, .erow:hover { background:var(--bg); }
+  .pager { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 0 8px; font-size:11px; color:var(--dim); }
+  .pager button { background:var(--bg); color:var(--fg); border:1px solid var(--grid); border-radius:6px; padding:4px 10px; font:inherit; font-size:11px; cursor:pointer; }
+  .pager button:disabled { opacity:.35; cursor:default; }
+  .sheet-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); display:flex; align-items:center; justify-content:center; padding:16px; z-index:50; }
+  .sheet-card { background:var(--bg2); border:1px solid var(--grid); border-radius:12px; padding:16px; max-width:520px; width:100%; max-height:85vh; overflow:auto; }
+  .shh { font-size:14px; margin-bottom:8px; word-break:break-word; color:var(--amber); }
+  .srow { display:flex; justify-content:space-between; gap:12px; padding:5px 0; border-bottom:1px solid var(--grid); font-size:12.5px; }
+  .srow:last-child { border-bottom:none; }
+  .srow .sk { color:var(--dim); flex-shrink:0; }
+  .srow .sv { text-align:right; word-break:break-word; }
+  .sclose { margin-top:14px; width:100%; background:var(--bg); color:var(--fg); border:1px solid var(--grid); border-radius:8px; padding:9px; font:inherit; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -53,11 +66,54 @@
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">COMPOUNDING ENGINE</div><div id="compound" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
-<footer>private page — unlinked, noindex · <span id="pagever">v7 · skill score</span></footer>
+<div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
+<footer>private page — unlinked, noindex · <span id="pagever">v8 · eval pages + data sheet</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
 function esc(t){ const d=document.createElement("div"); d.textContent=t??""; return d.innerHTML; }
+function pct(v){ return v==null ? "—" : (100*v).toFixed(1)+"%"; }
+let recentPage = 0;
+function renderEvals(){
+  const all = window._evals || [], champs = window._champs || new Set();
+  const PER = 10, nPages = Math.max(1, Math.ceil(all.length/PER));
+  recentPage = Math.min(Math.max(0, recentPage), nPages-1);
+  const body = all.slice(recentPage*PER, recentPage*PER+PER).map((r,j)=>{
+    const gi = recentPage*PER + j;
+    const col = champs.has(r.name) ? "#ffd33d" : (r.lme!=null && r.lme<-0.05) ? "var(--green)" : "var(--fg)";
+    const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
+    const tags = [champs.has(r.name)?"champion":"", r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
+    const extra = [r.val!=null?`loss ${r.val.toFixed(3)}`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
+    return `<div class="row erow" onclick="showSheet(${gi})"><span style="color:${col}"><b>${pct(r.skill)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
+  }).join("") || "<div class='small'>no evals yet</div>";
+  const pager = all.length > PER
+    ? `<div class="pager"><button onclick="pageRecent(-1)" ${recentPage<=0?"disabled":""}>◀ newer</button>`
+      + `<span>page ${recentPage+1}/${nPages} · ${all.length} evals</span>`
+      + `<button onclick="pageRecent(1)" ${recentPage>=nPages-1?"disabled":""}>older ▶</button></div>`
+    : "";
+  document.getElementById("evals").innerHTML = pager + body;
+}
+function pageRecent(delta){ recentPage += delta; renderEvals(); }
+function showSheet(i){
+  const r = (window._evals||[])[i]; if(!r) return;
+  const yn = v => v===true ? "yes" : v===false ? "no" : v;
+  const F = [
+    ["net", r.name], ["ops", r.ops], ["skill", r.skill!=null ? (100*r.skill).toFixed(2)+"%" : null],
+    ["loss (cross-entropy)", r.val], ["perplexity", r.ppl], ["level / corpus", r.corpus], ["task kind", r.kind],
+    ["window", r.window], ["topology", r.topo], ["external memory", r.ext], ["attention stack", r.stack],
+    ["synth op (L2)", r.synth], ["context Δ (late−early)", r.lme], ["val σ (seed noise)", r.val_std],
+    ["pos loss", r.pos_loss], ["cost", r.cost], ["steps/sec", r.st_per_s], ["pruned", r.pruned],
+    ["d (width)", r.d], ["layers", r.n_layer], ["train steps", r.steps], ["seed", r.seed],
+    ["params", r.params], ["score (−val)", r.score],
+    ["evaluated", r.ts ? new Date(r.ts*1000).toLocaleString() : null],
+  ];
+  const rows = F.filter(([k,v]) => v!=null && v!=="").map(([k,v]) =>
+    `<div class="srow"><span class="sk">${esc(k)}</span><span class="sv">${esc(yn(v))}</span></div>`).join("");
+  document.getElementById("sheetbody").innerHTML =
+    `<div class="shh">${esc(r.name)}</div>` + rows + `<button class="sclose" onclick="closeSheet()">close</button>`;
+  document.getElementById("sheet").style.display = "flex";
+}
+function closeSheet(e){ if(!e || e.target.id==="sheet") document.getElementById("sheet").style.display="none"; }
 async function load(){
   let d;
   try { d = await (await fetch(SRC + "?t=" + Date.now(), {cache:"no-store"})).json(); }
@@ -68,7 +124,6 @@ async function load(){
   upd.className = "pill" + (age > 900 ? " stale" : "");
   const s = d.search || {};
   const champ = s.champion ?? s.best_val;                       // raw loss (cross-entropy) of the best net
-  const pct = v => v==null ? "—" : (100*v).toFixed(1)+"%";      // skill -> human percentage
   document.getElementById("best").textContent = pct(s.best_skill);             // SKILL replaces raw val
   const lv = s.level;
   document.getElementById("gate").textContent = lv ? `${lv.kind||""} ${lv.difficulty??0}`.trim() : "—";
@@ -115,16 +170,10 @@ async function load(){
     cpEl.innerHTML = `archive: <b>${cp.niches??0}</b> niches filled${ab?` &nbsp;best ${ab}`:""}${spread}<br>`+
       `library: <b>${cp.motifs??0}</b> motifs${cp.motifs_champion?` (${cp.motifs_champion} from champions)`:""}`;
   } else { cpEl.textContent = "warming up…"; }
-  // evals
-  const champs = new Set((s.winners||[]).map(w=>w.name));
-  document.getElementById("evals").innerHTML = (s.recent||[]).map(r=>{
-    const col = champs.has(r.name) ? "#ffd33d"                                // yellow = confirmed champion
-              : (r.lme!=null && r.lme<-0.05) ? "var(--green)" : "var(--fg)";  // green = USES context (late<early)
-    const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
-    const tags = [champs.has(r.name)?"champion":"", r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
-    const extra = [r.val!=null?`loss ${r.val.toFixed(3)}`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
-    return `<div class="row"><span style="color:${col}"><b>${pct(r.skill)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
-  }).join("") || "<div class='small'>no evals yet</div>";
+  // evals — paginated list (10/page); tap a row for the full data sheet (renderEvals/showSheet, top of script)
+  window._evals = s.recent || [];
+  window._champs = new Set((s.winners||[]).map(w=>w.name));
+  renderEvals();
   // workers
   document.getElementById("workers").innerHTML = (d.cluster?.workers||[]).map(w=>{
     const off = w.age > 60;
