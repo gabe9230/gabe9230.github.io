@@ -47,10 +47,23 @@
   .srow .sk { color:var(--dim); flex-shrink:0; }
   .srow .sv { text-align:right; word-break:break-word; }
   .sclose { margin-top:14px; width:100%; background:var(--bg); color:var(--fg); border:1px solid var(--grid); border-radius:8px; padding:9px; font:inherit; cursor:pointer; }
+  .tabs { display:flex; gap:6px; margin-top:10px; }
+  .tab { flex:1; background:var(--bg2); color:var(--dim); border:1px solid var(--grid); border-radius:8px; padding:7px; font:inherit; font-size:12px; cursor:pointer; }
+  .tab.active { color:var(--fg); border-color:var(--blue); }
+  .inv-sec { color:var(--dim); font-size:11px; letter-spacing:.08em; margin:16px 0 6px; }
+  .inv-sec:first-child { margin-top:0; }
+  .inv-item { padding:9px 0; border-bottom:1px solid var(--grid); }
+  .inv-item:last-child { border-bottom:none; }
+  .inv-h { font-weight:bold; font-size:13px; }
+  .inv-d { color:var(--dim); font-weight:normal; font-size:11px; }
+  .inv-what { font-size:12px; color:var(--fg); margin-top:3px; word-break:break-word; }
+  .inv-why { color:var(--green); font-size:11px; margin-top:3px; word-break:break-word; }
 </style>
 </head>
 <body>
 <h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
+<div class="tabs"><button class="tab active" onclick="showView('main')">Dashboard</button><button class="tab" onclick="showView('tasks')">Tasks</button><button class="tab" onclick="showView('inv')">Inventions</button></div>
+<div id="view-main">
 <div id="banner" class="card banner" style="display:none"></div>
 <div class="card">
   <div class="bignums">
@@ -63,11 +76,14 @@
   <canvas id="spark" width="600" height="150"></canvas>
   <div class="small" id="sparkleg" style="text-align:center"></div>
 </div>
-<div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">COMPOUNDING ENGINE</div><div id="compound" class="small"></div></div>
+<div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">ENGINE STATS</div><div id="compound" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
+</div>
+<div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
+<div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer>private page — unlinked, noindex · <span id="pagever">v8 · eval pages + data sheet</span></footer>
+<footer><span id="pagever">v9 · tasks + inventions</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -114,6 +130,30 @@ function showSheet(i){
   document.getElementById("sheet").style.display = "flex";
 }
 function closeSheet(e){ if(!e || e.target.id==="sheet") document.getElementById("sheet").style.display="none"; }
+let curView = "main";
+function showView(v){
+  curView = v;
+  for (const n of ["main","tasks","inv"]) { const el=document.getElementById("view-"+n); if(el) el.style.display=(n===v)?"":"none"; }
+  document.querySelectorAll(".tab").forEach((t,i)=> t.classList.toggle("active", ["main","tasks","inv"][i]===v));
+  if (v==="tasks") renderTasks(); else if (v==="inv") renderInventions();
+}
+function renderTasks(){
+  const ts = (window._d && window._d.tasks) || [];
+  document.getElementById("tasksbody").innerHTML = ts.map(x=>
+    `<div class="inv-item"><div class="inv-h">${esc(x.name)} <span class="inv-d">· ${esc(x.difficulty)}${x.active?" · <b style='color:var(--green)'>active</b>":""}</span></div><div class="inv-what">${esc(x.desc)}</div></div>`
+  ).join("") || "<div class='small'>—</div>";
+}
+function renderInventions(){
+  const inv = (window._d && window._d.inventions) || {};
+  const item = x => `<div class="inv-item"><div class="inv-h">${esc(x.name)} <span class="inv-d">${esc(x.kind||x.when||"")}</span></div>`
+    + (x.what ? `<div class="inv-what">${esc(x.what)}</div>` : "")
+    + (x.why ? `<div class="inv-why">why: ${esc(x.why)}</div>` : "") + `</div>`;
+  const sec = (title, arr) => (arr && arr.length) ? `<div class="inv-sec">${title}</div>` + arr.map(item).join("") : "";
+  document.getElementById("invbody").innerHTML =
+    (sec(`ATOMS — invented primitives (${(inv.atoms||[]).length})`, inv.atoms)
+   + sec("TASKS — self-posed", inv.tasks)
+   + sec("CORPUSES", inv.corpuses)) || "<div class='small'>nothing invented yet</div>";
+}
 async function load(){
   let d;
   try { d = await (await fetch(SRC + "?t=" + Date.now(), {cache:"no-store"})).json(); }
@@ -123,6 +163,7 @@ async function load(){
   upd.textContent = "data " + ago(age) + " old";
   upd.className = "pill" + (age > 900 ? " stale" : "");
   const s = d.search || {};
+  window._d = d;                                                // for the Tasks / Inventions subpages
   const champ = s.champion ?? s.best_val;                       // raw loss (cross-entropy) of the best net
   document.getElementById("best").textContent = pct(s.best_skill);             // SKILL replaces raw val
   const lv = s.level;
@@ -133,7 +174,6 @@ async function load(){
     `σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps   ${(d.cluster?.workers||[]).length} GPU(s)`;
   const bn = document.getElementById("banner");
   if (s.plateau) { bn.style.display=""; bn.textContent = `■ ARCHITECTURE PLATEAU — ${s.plateau.champion} (val ${s.plateau.val}, ppl ${s.plateau.ppl}) is final · ready for scale training`; }
-  else if (s.winners?.length) { bn.style.display=""; bn.textContent = "★ CONFIRMED WIN: " + s.winners.map(w=>`${w.name} mean ${w.val_mean}`).join("  "); }
   else { bn.style.display="none"; }
   // sparkline — X = wall-clock time, Y = SKILL (1 − loss/ln V; difficulty-normalized, higher is better,
   // 1 = perfect prediction, 0 = uniform-random). Two lines: running BEST (max) and population MEAN,
@@ -174,6 +214,7 @@ async function load(){
   window._evals = s.recent || [];
   window._champs = new Set((s.winners||[]).map(w=>w.name));
   renderEvals();
+  if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
   // workers
   document.getElementById("workers").innerHTML = (d.cluster?.workers||[]).map(w=>{
     const off = w.age > 60;
