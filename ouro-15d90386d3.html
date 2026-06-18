@@ -276,32 +276,31 @@ async function load(){
   // sparkline — TWO trajectories on a shared time-X / value-Y (both "higher = better"):
   //   GREEN line  = HANDOFF readiness (operator_score 0..1 -> the seat; ~chance 0.40, flat until Stage-1
   //                 progress, then climbs). recorded on-change.
-  //   YELLOW line = CHAMPION capability (running-max of per-eval capability = rung difficulty + skill).
+  //   YELLOW line = CHAMPION capability (running-max of per-eval capability = DIFF_MULT*rung + skill, the
+  //                 difficulty-AGNOSTIC monotonic metric). The difficulty multiplier is small (publisher
+  //                 DIFF_MULT) so capability lands in the handoff's 0..1 band and the lines track; it can
+  //                 still climb past 1 as rungs clear (unbounded — no upper clamp on the axis).
   //   blue dots   = individual evals (each design's capability). dashed = chance (~0.40) for the handoff line.
   const c = document.getElementById("spark"), x = c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
-  // capability is RE-NORMALIZED to its 0..1 SKILL component (capability = rung difficulty + skill; the
-  // difficulty rung is shown in the header DIFFICULTY readout). Plotting skill puts the champion line on
-  // the SAME 0..1 axis as the handoff score so the two trajectories track comparably (skill ~0.46 vs
-  // handoff ~0.43) instead of capability floating ~1 unit above.
-  const EV = (d.history||[]).filter(p=>p.skill!=null && p.ts);                                 // per-eval skill (0..1)
+  const EV = (d.history||[]).filter(p=>p.cap!=null && p.val<9 && p.ts);                        // per-eval capability
   const HH = ((d.search&&d.search.handoff_history)||[]).filter(p=>p&&p.score!=null&&p.ts);    // handoff trend
   const allTs = [...EV.map(p=>p.ts), ...HH.map(p=>p.ts)];
   if (allTs.length >= 1){
     const nowS = Date.now()/1000;
     let t0 = Math.min(...allTs), t1 = Math.max(nowS, ...allTs);
     if (t1-t0 < 60){ t0 = t1 - 3600; }                          // a single flat point still gets a span
-    const vals = [.35,.55].concat(EV.map(p=>p.skill)).concat(HH.map(p=>p.score));   // anchor the chance band
-    const lo = Math.max(0, Math.min(...vals)-.05), hi = Math.min(1, Math.max(...vals)+.05);
+    const vals = [.35,.55].concat(EV.map(p=>p.cap)).concat(HH.map(p=>p.score));   // anchor the chance band
+    const lo = Math.max(0, Math.min(...vals)-.05), hi = Math.max(...vals)+.05;    // no upper clamp (capability is unbounded)
     const X = t => 8 + ((t-t0)/Math.max(t1-t0,1e-9))*(c.width-16);
     const Y = v => c.height-10-((v-lo)/Math.max(hi-lo,1e-9))*(c.height-20);   // higher = higher up
     x.strokeStyle="rgba(139,148,158,.4)"; x.setLineDash([4,4]); x.beginPath();    // chance reference (~0.40)
     x.moveTo(8,Y(0.40)); x.lineTo(c.width-8,Y(0.40)); x.stroke(); x.setLineDash([]);
-    x.fillStyle="rgba(88,166,255,.45)";                                           // individual evals (skill, 0..1)
-    EV.forEach(p=>{ x.beginPath(); x.arc(X(p.ts),Y(p.skill),2,0,7); x.fill(); });
-    if (EV.length){                                                               // YELLOW: champion skill (running max)
+    x.fillStyle="rgba(88,166,255,.45)";                                           // individual evals (capability)
+    EV.forEach(p=>{ x.beginPath(); x.arc(X(p.ts),Y(p.cap),2,0,7); x.fill(); });
+    if (EV.length){                                                               // YELLOW: champion capability (running max)
       let rb=-Infinity; x.strokeStyle="#e3b341"; x.lineWidth=2; x.beginPath();
-      EV.forEach((p,i)=>{ rb=Math.max(rb,p.skill); i?x.lineTo(X(p.ts),Y(rb)):x.moveTo(X(p.ts),Y(rb)); });
+      EV.forEach((p,i)=>{ rb=Math.max(rb,p.cap); i?x.lineTo(X(p.ts),Y(rb)):x.moveTo(X(p.ts),Y(rb)); });
       x.lineTo(X(t1),Y(rb)); x.stroke();
     }
     if (HH.length){                                                               // GREEN: handoff readiness trend
@@ -315,7 +314,7 @@ async function load(){
   }
   document.getElementById("sparkleg").innerHTML =
     `<span style="color:#3fb950">▬</span> handoff (&rarr; seat) &nbsp; `+
-    `<span style="color:#e3b341">▬</span> champion capability (0&ndash;1 skill) &nbsp; `+
+    `<span style="color:#e3b341">▬</span> champion capability &nbsp; `+
     `<span style="color:rgba(88,166,255,.8)">●</span> evals &nbsp; `+
     `<span style="color:var(--dim)">- - chance &asymp; 0.40 · x = time</span>`;
   // compounding engine — archive coverage + learned motif library
