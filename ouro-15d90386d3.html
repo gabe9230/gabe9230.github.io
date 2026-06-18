@@ -85,7 +85,7 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v13 · live interpolated progress · client-derived phase/eta · round/phase/eta</span></footer>
+<footer><span id="pagever">v14 · per-task suite breakdown · live interpolated progress · client-derived phase/eta · round/phase/eta</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -118,11 +118,18 @@ function pageRecent(delta){ recentPage += delta; renderEvals(); }
 function showSheet(i){
   const r = (window._evals||[])[i]; if(!r) return;
   const yn = v => v===true ? "yes" : v===false ? "no" : v;
+  // SUITE rows are evaluated on EVERY task (chat + wiki + the synth rung); r.corpus is only the RUNG
+  // identifier (the difficulty the round targets), not the one task this ran on. Surface the per-task
+  // breakdown + the worst (binding) task so it's clear the score is the worst-case across all tasks.
+  const pts = r.per_task_skill;
+  const taskStr = pts ? Object.entries(pts).map(([k,v])=>`${k.replace('synth:recall:','recall:')} ${(100*v).toFixed(0)}%`).join(" · ") + (r.worst_task?` — worst: ${r.worst_task}`:"") : null;
   const F = [
     ["net", r.name], ["ops", r.ops],
     ["capability (rung + skill)", r.cap!=null ? r.cap.toFixed(3) : null],
-    ["skill", r.skill!=null ? (100*r.skill).toFixed(2)+"%" : null],
-    ["loss (cross-entropy)", r.val], ["perplexity", r.ppl], ["level / corpus", r.corpus], ["task kind", r.kind],
+    [pts ? "worst-case skill (min across tasks)" : "skill", r.skill!=null ? (100*r.skill).toFixed(2)+"%" : null],
+    ["per-task skill", taskStr],
+    [pts ? "agg-loss (1 − worst skill)" : "loss (cross-entropy)", r.val], ["perplexity", r.ppl],
+    [pts ? "rung (difficulty targeted; runs full suite)" : "level / corpus", r.corpus], ["task kind", r.kind],
     ["window", r.window], ["topology", r.topo], ["external memory", r.ext], ["attention stack", r.stack],
     ["synth op (L2)", r.synth], ["context Δ (late−early)", r.lme], ["val σ (seed noise)", r.val_std],
     ["pos loss", r.pos_loss], ["cost", r.cost], ["steps/sec", r.st_per_s], ["pruned", r.pruned],
