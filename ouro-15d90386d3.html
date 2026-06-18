@@ -72,6 +72,7 @@
     <div><div class="v" id="ppl">—</div><div class="l">CHAMPION LOSS</div></div>
   </div>
   <div class="small" id="phase"></div>
+  <div class="small" id="oploop" style="opacity:.85"></div>
   <div class="small" id="thr"></div>
   <canvas id="spark" width="600" height="150"></canvas>
   <div class="small" id="sparkleg" style="text-align:center"></div>
@@ -268,6 +269,15 @@ async function load(){
   const gk = document.getElementById("gatekind"); if (gk) gk.textContent = (lv && lv.kind) ? lv.kind : "";
   document.getElementById("ppl").textContent  = champ?.toFixed(4) ?? "—";       // raw loss, for reference
   document.getElementById("phase").textContent = s.phase ? `phase: ${s.phase}` : "";
+  // SHARED-SEAT operator loop (the model proposes, humans screen). v0 ranking is ~random until the core
+  // improves — show the falsifiable rank-control verdict so it stays honest.
+  const op = d.proposals;
+  document.getElementById("oploop").innerHTML = op
+    ? `operator loop: ${op.slates} slate(s) · ${op.screened} screened (${op.accepted}✓/${op.rejected}✗) · `
+      + `proposer ${op.proposer_score!=null?op.proposer_score.toFixed(2):"?"} · `
+      + (op.control_passed ? `<span style="color:#3fb950">rank-control PASS</span>`
+                           : `<span style="color:#f85149">rank-control FAIL → ordering ~random (babysat)</span>`)
+    : "";
   document.getElementById("thr").textContent =
     `σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps   ${(d.cluster?.workers||[]).length} GPU(s)`;
   const bn = document.getElementById("banner");
