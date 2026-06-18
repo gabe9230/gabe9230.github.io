@@ -68,7 +68,7 @@
 <div class="card">
   <div class="bignums">
     <div><div class="v" id="best">—</div><div class="l">CAPABILITY</div><div class="l" id="bestsk" style="opacity:.6;margin-top:2px">—</div></div>
-    <div><div class="v" id="gate">—</div><div class="l">DIFFICULTY</div></div>
+    <div><div class="v" id="gate">—</div><div class="l">DIFFICULTY</div><div class="l" id="gatekind" style="opacity:.6;margin-top:2px">—</div></div>
     <div><div class="v" id="ppl">—</div><div class="l">CHAMPION LOSS</div></div>
   </div>
   <div class="small" id="phase"></div>
@@ -85,7 +85,7 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v10 · scale-continuity · capability evals · worker phases</span></footer>
+<footer><span id="pagever">v11 · scale-continuity · capability evals · worker phases · difficulty value</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -175,7 +175,10 @@ async function load(){
   document.getElementById("best").textContent = (s.capability!=null ? s.capability.toFixed(2) : "—");  // CAPABILITY = rungs cleared + current-rung skill (difficulty-agnostic, monotonic)
   document.getElementById("bestsk").textContent = (s.best_skill!=null ? pct(s.best_skill)+" skill" : "");  // per-rung skill (secondary)
   const lv = s.level;
-  document.getElementById("gate").textContent = lv ? `${lv.kind||""} ${lv.difficulty??0}`.trim() : "—";
+  // DIFFICULTY = the bare rung VALUE that is added to skill to form capability (capability = difficulty +
+  // skill). Show the number itself (e.g. 1), with the task kind as a small sub-label for context.
+  document.getElementById("gate").textContent = (lv && lv.difficulty!=null) ? lv.difficulty : "—";
+  const gk = document.getElementById("gatekind"); if (gk) gk.textContent = (lv && lv.kind) ? lv.kind : "";
   document.getElementById("ppl").textContent  = champ?.toFixed(4) ?? "—";       // raw loss, for reference
   document.getElementById("phase").textContent = s.phase ? `phase: ${s.phase}` : "";
   document.getElementById("thr").textContent =
