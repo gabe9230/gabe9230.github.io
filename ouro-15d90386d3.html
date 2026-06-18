@@ -273,31 +273,33 @@ async function load(){
   const bn = document.getElementById("banner");
   if (s.plateau) { bn.style.display=""; bn.textContent = `■ ARCHITECTURE PLATEAU — ${s.plateau.champion} (val ${s.plateau.val}, ppl ${s.plateau.ppl}) is final · ready for scale training`; }
   else { bn.style.display="none"; }
-  // sparkline — X = wall-clock time, Y = SKILL (1 − loss/ln V; difficulty-normalized, higher is better,
-  // 1 = perfect prediction, 0 = uniform-random). Two lines: running BEST (max) and population MEAN,
-  // over one faint dot per eval.
+  // sparkline — HANDOFF READINESS over time (the north-star trajectory): Y = operator_score (0..1, how
+  // close a core is to taking the operator seat), X = wall-clock. ~chance (~0.40) and FLAT until real
+  // Stage-1 progress, then it climbs. Replaces the old capability sparkline (capability now lives in the
+  // header sub-line + the recent-evals rows). History is recorded ON-CHANGE, so a flat score = a flat line.
   const c = document.getElementById("spark"), x = c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
-  const H = (d.history||[]).filter(p=>p.cap!=null && p.val<9 && p.ts);
-  if (H.length > 1){
-    const ts = H.map(p=>p.ts), t0 = Math.min(...ts), t1 = Math.max(...ts);
-    const ks = H.map(p=>p.cap), lo = Math.max(0,Math.min(...ks)-.05), hi = Math.max(...ks)+.05;
-    const X = i => 8 + ((ts[i]-t0)/Math.max(t1-t0,1e-9))*(c.width-16);
-    const Y = v => c.height-10-((v-lo)/Math.max(hi-lo,1e-9))*(c.height-20);   // higher capability = higher up
-    x.fillStyle="rgba(88,166,255,.5)";
-    H.forEach((p,i)=>{ x.beginPath(); x.arc(X(i),Y(p.cap),2,0,7); x.fill(); });  // one dot per eval
-    const win = Math.max(3, Math.round(H.length*0.15));    // MEAN — trailing-window population trend
-    x.strokeStyle="#d2a8ff"; x.lineWidth=2; x.beginPath();
-    H.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=H[j].cap;
-      const m=s/(i-a+1); i?x.lineTo(X(i),Y(m)):x.moveTo(X(0),Y(m)); }); x.stroke();
-    let rb = -Infinity; x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();   // BEST — running-MAX staircase
-    H.forEach((p,i)=>{ rb=Math.max(rb,p.cap); i?x.lineTo(X(i),Y(rb)):x.moveTo(X(0),Y(rb)); }); x.stroke();
+  const HH = ((d.search&&d.search.handoff_history)||[]).filter(p=>p&&p.score!=null&&p.ts);
+  if (HH.length >= 1){
+    const nowS = Date.now()/1000, ts = HH.map(p=>p.ts), sc = HH.map(p=>p.score);
+    let t0 = Math.min(...ts), t1 = Math.max(nowS, ...ts);
+    if (t1-t0 < 60){ t0 = t1 - 3600; }                          // a single flat point still gets a span
+    let lo = Math.min(.35, ...sc), hi = Math.max(.55, ...sc);   // keep the ~0.4-0.5 chance band in frame
+    lo = Math.max(0, lo-.03); hi = Math.min(1, hi+.03);
+    const X = t => 8 + ((t-t0)/Math.max(t1-t0,1e-9))*(c.width-16);
+    const Y = v => c.height-10-((v-lo)/Math.max(hi-lo,1e-9))*(c.height-20);   // higher readiness = higher up
+    x.strokeStyle="rgba(139,148,158,.45)"; x.setLineDash([4,4]); x.beginPath();   // chance reference (~0.40)
+    x.moveTo(8,Y(0.40)); x.lineTo(c.width-8,Y(0.40)); x.stroke(); x.setLineDash([]);
+    x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();                        // handoff stepped line
+    HH.forEach((p,i)=>{ i?x.lineTo(X(p.ts),Y(p.score)):x.moveTo(X(p.ts),Y(p.score)); });
+    x.lineTo(X(t1), Y(sc[sc.length-1])); x.stroke();                              // extend last value to now
+    x.fillStyle="#3fb950";
+    HH.forEach(p=>{ x.beginPath(); x.arc(X(p.ts),Y(p.score),2.5,0,7); x.fill(); });
     x.lineWidth=1;
   }
   document.getElementById("sparkleg").innerHTML =
-    `<span style="color:#3fb950">▬</span> best capability &nbsp;&nbsp; `+
-    `<span style="color:#d2a8ff">▬</span> mean capability &nbsp;&nbsp; `+
-    `<span style="color:var(--dim)">● eval · capability = rung + skill · x = time</span>`;
+    `<span style="color:#3fb950">▬</span> handoff readiness (&rarr; operator seat) &nbsp;&nbsp; `+
+    `<span style="color:var(--dim)">- - chance &asymp; 0.40 · x = time · flat until Stage-1 progress</span>`;
   // compounding engine — archive coverage + learned motif library
   const cp = d.compounding || {};
   const cpEl = document.getElementById("compound");
