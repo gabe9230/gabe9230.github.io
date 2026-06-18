@@ -85,7 +85,7 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v14 · per-task suite breakdown · live interpolated progress · client-derived phase/eta · round/phase/eta</span></footer>
+<footer><span id="pagever">v15 · incomplete-design marker · per-task breakdown · live interpolated progress · client-derived phase/eta · round/phase/eta</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -98,14 +98,23 @@ function renderEvals(){
   recentPage = Math.min(Math.max(0, recentPage), nPages-1);
   const body = all.slice(recentPage*PER, recentPage*PER+PER).map((r,j)=>{
     const gi = recentPage*PER + j;
-    const col = champs.has(r.name) ? "#ffd33d" : (r.lme!=null && r.lme<-0.05) ? "var(--green)" : "var(--fg)";
+    // INCOMPLETE = the design didn't finish all suite tasks (one diverged/OOM'd/timed out -> the all-present
+    // gate fires -> no worst-case capability). Marked '✗' + 'incomplete' rather than a bare '—' so it reads as
+    // a FAILED design, not missing data; the extra line shows which tasks it DID complete (so the gap is clear).
+    const incomplete = (r.val == null);
+    const col = incomplete ? "var(--dim)" : (champs.has(r.name) ? "#ffd33d" : (r.lme!=null && r.lme<-0.05) ? "var(--green)" : "var(--fg)");
     const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
-    const tags = [champs.has(r.name)?"champion":"", r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
-    const extra = [r.skill!=null?`${pct(r.skill)} skill`:"", r.val!=null?`loss ${r.val.toFixed(3)}`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
-    // HEADLINE = capability (rung difficulty + skill), the difficulty-agnostic metric — NOT a raw skill%
-    // (a harder-rung eval has lower skill% but higher capability, so skill% misreads an advance as a drop).
-    const capStr = (r.cap!=null ? r.cap.toFixed(2) : (r.skill!=null ? pct(r.skill) : "—"));
-    return `<div class="row erow" onclick="showSheet(${gi})"><span style="color:${col}"><b>${capStr}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
+    const gotStr = (r.per_task_skill && Object.keys(r.per_task_skill).length)
+      ? "got " + Object.entries(r.per_task_skill).map(([k,v])=>`${k.replace('synth:recall:','recall:')} ${(100*v).toFixed(0)}%`).join(" ")
+      : "no task finished";
+    const tags = [champs.has(r.name)?"champion":"", incomplete?"incomplete":"", r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
+    const extra = (incomplete
+      ? [gotStr, r.cost!=null?`c${r.cost}`:""]
+      : [r.skill!=null?`${pct(r.skill)} skill`:"", r.val!=null?`loss ${r.val.toFixed(3)}`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""]).filter(Boolean).join(" ");
+    // HEADLINE = capability (rung difficulty + skill) for completed designs; '✗' for incomplete (no score).
+    const capStr = incomplete ? "✗" : (r.cap!=null ? r.cap.toFixed(2) : (r.skill!=null ? pct(r.skill) : "—"));
+    const capCol = incomplete ? "var(--red)" : col;
+    return `<div class="row erow" onclick="showSheet(${gi})"><span style="color:${capCol}"><b>${capStr}</b></span><span class="ops" style="color:${incomplete?'var(--dim)':'inherit'}">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
   }).join("") || "<div class='small'>no evals yet</div>";
   const pager = all.length > PER
     ? `<div class="pager"><button onclick="pageRecent(-1)" ${recentPage<=0?"disabled":""}>◀ newer</button>`
