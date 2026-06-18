@@ -62,7 +62,7 @@
 </head>
 <body>
 <h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
-<div class="tabs"><button class="tab active" onclick="showView('main')">Dashboard</button><button class="tab" onclick="showView('tasks')">Tasks</button><button class="tab" onclick="showView('inv')">Inventions</button></div>
+<div class="tabs"><button class="tab active" onclick="showView('main')">Dashboard</button><button class="tab" onclick="showView('tasks')">Plan</button><button class="tab" onclick="showView('inv')">Inventions</button></div>
 <div id="view-main">
 <div id="banner" class="card banner" style="display:none"></div>
 <div class="card">
@@ -84,10 +84,10 @@
 <div class="card" id="scalecard" style="display:none"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">SCALE-CONTINUITY <span style="opacity:.5">· do probe winners hold at full scale?</span></div><div id="scalecont" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CONTROL <span style="opacity:.5">· read-only mirror</span></div><div id="control" class="small">—</div></div>
 </div>
-<div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
+<div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">PLAN — strategic roadmap + tactical backlog <span style="opacity:.5">· the staircase to the operator seat</span></div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v17 · operator-loop card (agent proposals + how we screened) · realtime relay (~3s) · incomplete-design marker · per-task breakdown · client-derived phase/eta</span></footer>
+<footer><span id="pagever">v18 · Plan tab (strategic roadmap + tactical backlog, from ROADMAP.md/TODO.md) · operator-loop card · realtime relay (~3s) · per-task breakdown</span></footer>
 <script>
 const RELAY = "https://sunny-bumblebee-5647.gabe9230.deno.net/status";   // realtime (laptop POSTs ~every 5s)
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";  // ~5min fallback
@@ -167,11 +167,37 @@ function showView(v){
   document.querySelectorAll(".tab").forEach((t,i)=> t.classList.toggle("active", ["main","tasks","inv"][i]===v));
   if (v==="tasks") renderTasks(); else if (v==="inv") renderInventions();
 }
+// PLAN tab — the project's STRATEGIC roadmap (stages) + TACTICAL backlog (TODO open items by priority),
+// parsed from ROADMAP.md + TODO.md by the publisher (d.plan). Replaces the old learning-tasks view: this is
+// the staircase + the to-do list the system is actually being driven by, mirrored read-only to the phone.
 function renderTasks(){
-  const ts = (window._d && window._d.tasks) || [];
-  document.getElementById("tasksbody").innerHTML = ts.map(x=>
-    `<div class="inv-item"><div class="inv-h">${esc(x.name)} <span class="inv-d">· ${esc(x.difficulty)}${x.active?" · <b style='color:var(--green)'>active</b>":""}</span></div><div class="inv-what">${esc(x.desc)}</div></div>`
-  ).join("") || "<div class='small'>—</div>";
+  const p = (window._d && window._d.plan) || null;
+  const el = document.getElementById("tasksbody");
+  if(!p){ el.innerHTML = "<div class='small'>plan not published yet</div>"; return; }
+  // ── ROADMAP staircase ──
+  const stages = (p.roadmap||[]).map(s=>{
+    const badge = s.here ? ` <span style="color:#3fb950;font-weight:bold">◀ WE ARE HERE</span>` : "";
+    return `<div class="inv-item"><div class="inv-h" style="${s.here?'color:#3fb950':''}">${esc(s.name)}${badge}</div>`
+      + (s.status?`<div class="inv-what" style="color:var(--dim)">${esc(s.status)}</div>`:"") + `</div>`;
+  }).join("");
+  const position = (p.position||[]).length
+    ? `<div class="inv-sec">HONEST CURRENT POSITION</div>` + (p.position||[]).map(b=>
+        `<div class="inv-what" style="color:var(--dim);padding:4px 0">• ${esc(b)}</div>`).join("")
+    : "";
+  // ── TACTICAL backlog, grouped by priority ──
+  const PCOL = {P1:"#f85149", P2:"#e3b341", P3:"#8b949e"};
+  const open = (p.open||[]);
+  const byPri = ord => open.filter(o=>o.pri===ord);
+  const grp = ord => { const items = byPri(ord); if(!items.length) return "";
+    return items.map(o=>
+      `<div class="inv-item"><div class="inv-h"><span style="color:${PCOL[o.pri]||'var(--dim)'};font-weight:bold">[${o.pri}]</span> ${esc(o.title)}</div>`
+      + (o.status?`<div class="inv-what" style="color:var(--dim)">${esc(o.status)}</div>`:"") + `</div>`).join("");
+  };
+  const tdl = `<div class="inv-sec">BACKLOG — ${open.length} open · ${p.done||0} done</div>`
+    + grp("P1") + grp("P2") + grp("P3");
+  el.innerHTML = `<div class="inv-sec">ROADMAP — Stage 0 → 3</div>` + stages + position
+    + `<div style="height:10px"></div>` + tdl
+    || "<div class='small'>—</div>";
 }
 function renderInventions(){
   const inv = (window._d && window._d.inventions) || {};
