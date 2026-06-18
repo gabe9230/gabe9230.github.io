@@ -67,7 +67,7 @@
 <div id="banner" class="card banner" style="display:none"></div>
 <div class="card">
   <div class="bignums">
-    <div><div class="v" id="best">—</div><div class="l">CAPABILITY</div><div class="l" id="bestsk" style="opacity:.6;margin-top:2px">—</div></div>
+    <div><div class="v" id="best">—</div><div class="l">HANDOFF&nbsp;&rarr;&nbsp;SEAT</div><div class="l" id="bestsk" style="opacity:.6;margin-top:2px">—</div></div>
     <div><div class="v" id="gate">—</div><div class="l">DIFFICULTY</div><div class="l" id="gatekind" style="opacity:.6;margin-top:2px">—</div></div>
     <div><div class="v" id="ppl">—</div><div class="l">CHAMPION LOSS</div></div>
   </div>
@@ -251,8 +251,16 @@ async function load(){
   const s = d.search || {};
   window._d = d;                                                // for the Tasks / Inventions subpages
   const champ = s.champion ?? s.best_val;                       // raw loss (cross-entropy) of the best net
-  document.getElementById("best").textContent = (s.capability!=null ? s.capability.toFixed(2) : "—");  // CAPABILITY = rungs cleared + current-rung skill (difficulty-agnostic, monotonic)
-  document.getElementById("bestsk").textContent = (s.best_skill!=null ? pct(s.best_skill)+" skill" : "");  // per-rung skill (secondary)
+  // HEADLINE = STAGE 1->2 HANDOFF READINESS (operator_bench: how close a core is to taking the seat —
+  // read code, tell correct from buggy, pick the fix). The north-star metric: ~chance (~0.4) until real
+  // Stage-1 progress, then climbs. CAPABILITY (live substrate progress) is demoted to the sub-line. If no
+  // handoff score yet (older payload / unscored) -> fall back to the capability headline.
+  const ho = s.handoff;
+  document.getElementById("best").textContent = (ho && ho.score!=null) ? ho.score.toFixed(2)
+                                               : (s.capability!=null ? s.capability.toFixed(2) : "—");
+  document.getElementById("bestsk").textContent = (ho && ho.score!=null)
+    ? ((s.capability!=null ? "cap "+s.capability.toFixed(2) : "") + (s.best_skill!=null ? " · "+pct(s.best_skill)+" skill" : "")).trim()
+    : (s.best_skill!=null ? pct(s.best_skill)+" skill" : "");
   const lv = s.level;
   // DIFFICULTY = the bare rung VALUE that is added to skill to form capability (capability = difficulty +
   // skill). Show the number itself (e.g. 1), with the task kind as a small sub-label for context.
