@@ -77,6 +77,7 @@
   <canvas id="spark" width="600" height="150"></canvas>
   <div class="small" id="sparkleg" style="text-align:center"></div>
 </div>
+<div class="card" id="oploopcard" style="display:none"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">OPERATOR LOOP <span style="opacity:.5">· the model proposes its own next steps, we screen them (shared seat)</span></div><div id="oploopbody" class="small">—</div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">ENGINE STATS</div><div id="compound" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
@@ -86,7 +87,7 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v16 · realtime relay (~3s) · incomplete-design marker · per-task breakdown · live interpolated progress · client-derived phase/eta · round/phase/eta</span></footer>
+<footer><span id="pagever">v17 · operator-loop card (agent proposals + how we screened) · realtime relay (~3s) · incomplete-design marker · per-task breakdown · client-derived phase/eta</span></footer>
 <script>
 const RELAY = "https://sunny-bumblebee-5647.gabe9230.deno.net/status";   // realtime (laptop POSTs ~every 5s)
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";  // ~5min fallback
@@ -178,6 +179,44 @@ function renderInventions(){
     (sec(`ATOMS — invented primitives (${(inv.atoms||[]).length})`, inv.atoms)
    + sec("TASKS — self-posed", inv.tasks)
    + sec("CORPUSES", inv.corpuses)) || "<div class='small'>nothing invented yet</div>";
+}
+// OPERATOR LOOP — the AGENT data (distinct from the token-prediction search): the model reads our actual
+// next-step candidates and RANKS them by how well its own core predicts each; we then SCREEN that slate
+// (accept / reject / build) and the verdicts become its training corpus. v0's rank-control FAILS (core is
+// below chance), so we screen on MERIT, not the model's order — the card stays honest about that.
+function renderOploop(d){
+  const op = (d && d.proposals) || null;
+  const card = document.getElementById("oploopcard");
+  if(!card) return;
+  if(!op){ card.style.display="none"; return; }
+  card.style.display="";
+  const CH = {discrim:0.5, fix:0.333, behavior:0.333};                    // per-axis chance on operator_bench
+  const ax = (name,v)=> v==null ? "" :
+    `<span style="color:${v>=CH[name]-1e-6?'var(--green)':'var(--red)'}">${name} ${(100*v).toFixed(0)}%</span>`;
+  const head = `<div style="margin-bottom:6px">proposer <b>${esc(op.proposer||"core")}</b> `
+    + `<span style="color:var(--dim)">vs chance:</span> ${[ax('discrim',op.discrim),ax('fix',op.fix),ax('behavior',op.behavior)].filter(Boolean).join(" · ")}</div>`
+    + `<div style="margin-bottom:8px">${op.slates} slate(s) · ${op.screened} screened — `
+    + `<b style="color:var(--green)">${op.accepted||0}✓</b> / <b style="color:var(--red)">${op.rejected||0}✗</b> · `
+    + `<b style="color:#ffd33d">${op.built||0} built</b></div>`;
+  const ctrl = op.control_passed
+    ? `<div class="small" style="color:var(--green);margin-bottom:8px">✓ rank-control PASS — the proposer's ordering beat the planted controls</div>`
+    : `<div class="small" style="color:var(--red);margin-bottom:8px">✗ rank-control FAIL — ${esc(op.caveat||"ordering is ~random")}. We screen on MERIT, not the model's order (babysat shared seat).</div>`;
+  const rows = (op.ranking||[]).map(r=>{
+    const badge = r.built ? `<span style="color:#ffd33d">★ built</span>`
+      : r.verdict==="accept" ? `<span style="color:var(--green)">✓ accept</span>`
+      : r.verdict==="reject" ? `<span style="color:var(--red)">✗ reject</span>`
+      : `<span style="color:var(--dim)">· pending</span>`;
+    const ctag = r.control==="good" ? ` <span style="color:var(--dim)">[ctrl✓]</span>`
+      : r.control==="bad" ? ` <span style="color:var(--dim)">[ctrl✗]</span>` : "";
+    const commit = r.commit ? ` <span style="color:var(--dim)">@${esc(String(r.commit).slice(0,9))}</span>` : "";
+    const reason = r.reason ? `<div class="small" style="color:var(--dim);margin-top:2px">${esc(r.reason)}</div>` : "";
+    return `<div class="inv-item"><div><span style="color:var(--dim)">#${r.rank}</span> ${badge}${ctag}${commit} `
+      + `<span style="color:var(--dim);font-size:11px">${esc(r.area||"")}</span></div>`
+      + `<div class="inv-what">${esc(r.text||"")}</div>${reason}</div>`;
+  }).join("");
+  document.getElementById("oploopbody").innerHTML = head + ctrl
+    + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.06em;margin-bottom:2px">LATEST SLATE — what the model proposed, in its own ranked order (we screen)</div>`
+    + (rows || "<div class='small'>no slate yet</div>");
 }
 // ── CLIENT-SIDE derivations (the publisher ships only raw step/steps/sps; the page computes phase, ETA,
 // and the live interpolated step itself, refreshed every second between 30s fetches) ──────────────────
@@ -381,6 +420,7 @@ async function load(){
   window._evals = s.recent || [];
   window._champs = new Set((s.winners||[]).map(w=>w.name));
   renderEvals();
+  renderOploop(d);                        // OPERATOR LOOP card — the agent data (proposals + how we screened)
   if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
   renderWorkers();                       // phase / eta / live step are derived + interpolated client-side
 }
