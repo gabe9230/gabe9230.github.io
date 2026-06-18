@@ -134,11 +134,15 @@ function showSheet(i){
   // identifier (the difficulty the round targets), not the one task this ran on. Surface the per-task
   // breakdown + the worst (binding) task so it's clear the score is the worst-case across all tasks.
   const pts = r.per_task_skill;
+  // RULE-2: when wiki is DEMOTED, the worst-case excludes it (wiki still shown in the per-task breakdown,
+  // just not binding) — label it so "min across tasks" isn't misread as including wiki.
+  const demoteWiki = !!((window._d||{}).control||{}).demote_wiki;
+  const exclW = demoteWiki ? " excl. wiki" : "";
   const taskStr = pts ? Object.entries(pts).map(([k,v])=>`${k.replace('synth:recall:','recall:')} ${(100*v).toFixed(0)}%`).join(" · ") + (r.worst_task?` — worst: ${r.worst_task}`:"") : null;
   const F = [
     ["net", r.name], ["ops", r.ops],
     ["capability (rung + skill)", r.cap!=null ? r.cap.toFixed(3) : null],
-    [pts ? "worst-case skill (min across tasks)" : "skill", r.skill!=null ? (100*r.skill).toFixed(2)+"%" : null],
+    [pts ? `worst-case skill (min across tasks${exclW})` : "skill", r.skill!=null ? (100*r.skill).toFixed(2)+"%" : null],
     ["per-task skill", taskStr],
     [pts ? "agg-loss (1 − worst skill)" : "loss (cross-entropy)", r.val], ["perplexity", r.ppl],
     [pts ? "rung (difficulty targeted; runs full suite)" : "level / corpus", r.corpus], ["task kind", r.kind],
