@@ -85,7 +85,7 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v12 · round/phase/eta · scale-continuity · capability evals · worker phases</span></footer>
+<footer><span id="pagever">v13 · live interpolated progress · client-derived phase/eta · round/phase/eta</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -160,6 +160,59 @@ function renderInventions(){
     (sec(`ATOMS — invented primitives (${(inv.atoms||[]).length})`, inv.atoms)
    + sec("TASKS — self-posed", inv.tasks)
    + sec("CORPUSES", inv.corpuses)) || "<div class='small'>nothing invented yet</div>";
+}
+// ── CLIENT-SIDE derivations (the publisher ships only raw step/steps/sps; the page computes phase, ETA,
+// and the live interpolated step itself, refreshed every second between 30s fetches) ──────────────────
+function phaseBudgets(d){               // [[budget, label], ...] from the data the page already has
+  const lv = (d.control||{}).live || {};
+  const scl = ((d.control||{}).scale_continuity||{}).scale_steps;
+  return [[lv.screen_steps,"1 · screen"],[lv.steps,"2 · probe"],[scl,"3 · scale"]]
+    .filter(b=>b[0]).map(b=>[+b[0], b[1]]);
+}
+function nearestPhase(steps, budgets){  // map a worker's step budget to the nearest known phase budget
+  if(!steps || !budgets.length) return null;
+  return budgets.reduce((a,b)=> Math.abs(b[0]-steps) < Math.abs(a[0]-steps) ? b : a)[1];
+}
+const PHASE_RANK = {"init":0, "1 · screen":1, "2 · probe":2, "3 · scale":3};
+function renderWorkers(){
+  const d = window._d; if(!d) return;
+  const c = d.cluster || {}, budgets = phaseBudgets(d);
+  // how stale each worker's step reading is RIGHT NOW = published-data age + the cluster mirror's own age at
+  // publish. Recomputed every tick, so the interpolated step advances ~sps steps/sec for a smooth bar.
+  const stepAge = Math.max(0, (Date.now()/1000 - (d.ts||0)) + (c.status_age||0));
+  let fleetRank = -1, fleetPhase = "idle", roundEta = null;
+  const rows = (c.workers||[]).map(w=>{
+    const off = w.age > 60;
+    const sc = off ? "stat-off" : (w.status==="ready"||w.status==="running") ? "stat-ready" : "stat-warn";
+    const st = off ? `OFFLINE ${ago(w.age)} — last: ${w.status}` : w.status;
+    const tcol = w.temp>=83?"var(--red)":w.temp>=75?"var(--amber)":"var(--dim)";
+    const running = w.status==="running";
+    const stepping = (w.step!=null && w.steps);
+    const liveStep = stepping ? Math.min(w.steps, Math.round(w.step + (w.sps||0)*stepAge)) : w.step;  // INTERPOLATED
+    const pctw = stepping ? Math.min(100, 100*liveStep/w.steps) : 0;
+    const phase = !running ? "idle" : (stepping ? nearestPhase(w.steps, budgets) : "init");
+    const eta = (stepping && w.sps>0 && w.steps>liveStep) ? (w.steps-liveStep)/w.sps : null;
+    if(running){ const r = PHASE_RANK[phase] ?? 0; if(r>fleetRank){ fleetRank=r; fleetPhase=phase; }
+                 if(eta!=null) roundEta = Math.max(roundEta ?? 0, eta); }
+    const phaseBadge = (phase && phase!=="idle") ? `<span style="color:var(--green);font-weight:600">phase ${esc(phase)}</span> · ` : "";
+    const etaB = eta!=null ? ` · eta ~${ago(eta)}` : "";
+    const netLine = stepping
+      ? `<div class="small" style="margin-top:3px">${phaseBadge}net <b style="color:var(--amber)">${esc(w.net||"?")}</b>${w.sps!=null?` · ${w.sps} st/s`:""} · step ${liveStep}/${w.steps}${etaB}</div>
+         <div class="bar" style="height:4px"><i style="width:${pctw}%;background:var(--amber);transition:width .9s linear"></i></div>`
+      : (w.job && !off)
+        ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ phase init — ${w.net?`<b>${esc(w.net)}</b> · `:""}loading model &amp; data…</div>`
+        : `<div class="small" style="margin-top:3px;color:var(--dim)">idle — no net being evaluated</div>`;
+    return `<div class="wk"><div class="nm">${esc(w.id)} <span class="${sc}">● ${esc(st)}</span></div>
+      <div class="bar"><i style="width:${w.util||0}%"></i></div>
+      <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div>
+      ${netLine}</div>`;
+  }).join("");
+  const rnd = (d.control||{}).round;
+  const roundStr = rnd!=null ? `round <b>${rnd}</b> · ` : "";
+  const phaseStr = `phase <b style="color:var(--green)">${esc(fleetPhase)}</b>`;
+  const etaStr = roundEta!=null ? ` · eta ~${ago(roundEta)}` : "";
+  const summary = `<div class="small" style="margin-top:4px">${roundStr}${phaseStr}${etaStr} · queue ${c.queued??0} · running ${c.running??0} · done ${c.done??0}</div>`;
+  document.getElementById("workers").innerHTML = rows + summary;
 }
 async function load(){
   let d;
@@ -261,38 +314,10 @@ async function load(){
   window._champs = new Set((s.winners||[]).map(w=>w.name));
   renderEvals();
   if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
-  // workers
-  document.getElementById("workers").innerHTML = (d.cluster?.workers||[]).map(w=>{
-    const off = w.age > 60;
-    const sc = off ? "stat-off" : (w.status==="ready"||w.status==="running") ? "stat-ready" : "stat-warn";
-    const st = off ? `OFFLINE ${ago(w.age)} — last: ${w.status}` : w.status;
-    const tcol = w.temp>=83?"var(--red)":w.temp>=75?"var(--amber)":"var(--dim)";
-    const stepping = (w.step!=null && w.steps);                 // training underway (progress reported)
-    const stepPct = stepping ? Math.min(100, 100*w.step/w.steps) : 0;
-    // PHASE badge: which of the round's 3 phases this worker is on (screen / probe / scale), inferred
-    // server-side from the eval's step budget. Shown so it's clear whether a worker is doing cheap breadth
-    // (phase 1-2) or the full-budget scale-continuity validation (phase 3).
-    const phaseBadge = w.phase ? `<span style="color:var(--green);font-weight:600">phase ${esc(w.phase)}</span> · ` : "";
-    const netLine = stepping
-      ? `<div class="small" style="margin-top:3px">${phaseBadge}net <b style="color:var(--amber)">${esc(w.net||"?")}</b>${w.sps!=null?` · ${w.sps} st/s`:""} · step ${w.step}/${w.steps}</div>
-         <div class="bar" style="height:4px"><i style="width:${stepPct}%;background:var(--amber)"></i></div>`
-      : (w.job && !off)                                          // has a job but no step yet = booting the eval (torch import / model build / CUDA ctx)
-        ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ phase init — ${w.net?`<b>${esc(w.net)}</b> · `:""}loading model &amp; data…</div>`
-        : `<div class="small" style="margin-top:3px;color:var(--dim)">idle — no net being evaluated</div>`;
-    return `<div class="wk"><div class="nm">${esc(w.id)} <span class="${sc}">● ${esc(st)}</span></div>
-      <div class="bar"><i style="width:${w.util||0}%"></i></div>
-      <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div>
-      ${netLine}</div>`;
-  }).join("") + (()=>{ const c = d.cluster||{};
-    // round summary line: which round, the fleet's current phase, ETA of the phase's slowest in-flight eval,
-    // then the queue/running/done job counts.
-    const phaseStr = c.phase ? `phase <b style="color:var(--green)">${esc(c.phase)}</b>` : "";
-    const etaStr = c.eta_sec!=null ? ` · eta ~${ago(c.eta_sec)}` : "";
-    const roundStr = c.round!=null ? `round <b>${c.round}</b> · ` : "";
-    return `<div class="small" style="margin-top:4px">${roundStr}${phaseStr}${etaStr} · queue ${c.queued??0} · running ${c.running??0} · done ${c.done??0}</div>`;
-  })();
+  renderWorkers();                       // phase / eta / live step are derived + interpolated client-side
 }
-load(); setInterval(load, 30000);
+load(); setInterval(load, 30000);        // fetch fresh data every 30s
+setInterval(renderWorkers, 1000);        // re-interpolate the live step / progress bar / ETA every second
 </script>
 </body>
 </html>
