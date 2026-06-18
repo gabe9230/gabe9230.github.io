@@ -298,8 +298,12 @@ async function load(){
     x.moveTo(8,Y(0.40)); x.lineTo(c.width-8,Y(0.40)); x.stroke(); x.setLineDash([]);
     x.fillStyle="rgba(88,166,255,.45)";                                           // individual evals (capability)
     EV.forEach(p=>{ x.beginPath(); x.arc(X(p.ts),Y(p.cap),2,0,7); x.fill(); });
-    if (EV.length){                                                               // YELLOW: champion capability (running max)
-      let rb=-Infinity; x.strokeStyle="#e3b341"; x.lineWidth=2; x.beginPath();
+    if (EV.length){
+      const win = Math.max(3, Math.round(EV.length*0.15));                        // PURPLE: MEAN capability (trailing-window population trend)
+      x.strokeStyle="#d2a8ff"; x.lineWidth=1.5; x.beginPath();
+      EV.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=EV[j].cap;
+        const m=s/(i-a+1); i?x.lineTo(X(p.ts),Y(m)):x.moveTo(X(p.ts),Y(m)); }); x.stroke();
+      let rb=-Infinity; x.strokeStyle="#e3b341"; x.lineWidth=2; x.beginPath();    // YELLOW: champion capability (running max)
       EV.forEach((p,i)=>{ rb=Math.max(rb,p.cap); i?x.lineTo(X(p.ts),Y(rb)):x.moveTo(X(p.ts),Y(rb)); });
       x.lineTo(X(t1),Y(rb)); x.stroke();
     }
@@ -315,6 +319,7 @@ async function load(){
   document.getElementById("sparkleg").innerHTML =
     `<span style="color:#3fb950">▬</span> handoff (&rarr; seat) &nbsp; `+
     `<span style="color:#e3b341">▬</span> champion capability &nbsp; `+
+    `<span style="color:#d2a8ff">▬</span> mean capability &nbsp; `+
     `<span style="color:rgba(88,166,255,.8)">●</span> evals &nbsp; `+
     `<span style="color:var(--dim)">- - chance &asymp; 0.40 · x = time</span>`;
   // compounding engine — archive coverage + learned motif library
