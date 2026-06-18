@@ -85,7 +85,7 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v11 · scale-continuity · capability evals · worker phases · difficulty value</span></footer>
+<footer><span id="pagever">v12 · round/phase/eta · scale-continuity · capability evals · worker phases</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -283,7 +283,14 @@ async function load(){
       <div class="bar"><i style="width:${w.util||0}%"></i></div>
       <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div>
       ${netLine}</div>`;
-  }).join("") + `<div class="small">queue ${d.cluster?.queued??0} · running ${d.cluster?.running??0} · done ${d.cluster?.done??0}</div>`;
+  }).join("") + (()=>{ const c = d.cluster||{};
+    // round summary line: which round, the fleet's current phase, ETA of the phase's slowest in-flight eval,
+    // then the queue/running/done job counts.
+    const phaseStr = c.phase ? `phase <b style="color:var(--green)">${esc(c.phase)}</b>` : "";
+    const etaStr = c.eta_sec!=null ? ` · eta ~${ago(c.eta_sec)}` : "";
+    const roundStr = c.round!=null ? `round <b>${c.round}</b> · ` : "";
+    return `<div class="small" style="margin-top:4px">${roundStr}${phaseStr}${etaStr} · queue ${c.queued??0} · running ${c.running??0} · done ${c.done??0}</div>`;
+  })();
 }
 load(); setInterval(load, 30000);
 </script>
