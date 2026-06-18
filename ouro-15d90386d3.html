@@ -85,9 +85,10 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v15 · incomplete-design marker · per-task breakdown · live interpolated progress · client-derived phase/eta · round/phase/eta</span></footer>
+<footer><span id="pagever">v16 · realtime relay (~3s) · incomplete-design marker · per-task breakdown · live interpolated progress · client-derived phase/eta · round/phase/eta</span></footer>
 <script>
-const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
+const RELAY = "https://sunny-bumblebee-5647.gabe9230.deno.net/status";   // realtime (laptop POSTs ~every 5s)
+const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";  // ~5min fallback
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
 function esc(t){ const d=document.createElement("div"); d.textContent=t??""; return d.innerHTML; }
 function pct(v){ return v==null ? "—" : (100*v).toFixed(1)+"%"; }
@@ -230,9 +231,18 @@ function renderWorkers(){
   const summary = `<div class="small" style="margin-top:4px">${roundStr}${phaseStr}${etaStr} · queue ${c.queued??0} · running ${c.running??0} · done ${c.done??0}</div>`;
   document.getElementById("workers").innerHTML = rows + summary;
 }
+async function fetchStatus(){
+  // REALTIME relay first (laptop POSTs here every ~5s; no CDN cache) -> fall back to the GitHub raw
+  // (~5-min CDN cache) if the relay is unreachable or returns its cold-isolate {} (no `ts`).
+  try {
+    const r = await fetch(RELAY + "?t=" + Date.now(), {cache:"no-store"});
+    if (r.ok) { const d = await r.json(); if (d && d.ts) return d; }
+  } catch(e){}
+  return await (await fetch(RAW + "?t=" + Date.now(), {cache:"no-store"})).json();
+}
 async function load(){
   let d;
-  try { d = await (await fetch(SRC + "?t=" + Date.now(), {cache:"no-store"})).json(); }
+  try { d = await fetchStatus(); }
   catch(e){ document.getElementById("upd").textContent = "fetch failed"; return; }
   const age = Date.now()/1000 - d.ts;
   const upd = document.getElementById("upd");
@@ -332,7 +342,7 @@ async function load(){
   if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
   renderWorkers();                       // phase / eta / live step are derived + interpolated client-side
 }
-load(); setInterval(load, 30000);        // fetch fresh data every 30s
+load(); setInterval(load, 3000);         // fetch fresh data every 3s (realtime relay; raw fallback is ~5min)
 setInterval(renderWorkers, 1000);        // re-interpolate the live step / progress bar / ETA every second
 </script>
 </body>
