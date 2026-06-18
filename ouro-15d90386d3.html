@@ -68,7 +68,7 @@
 <div class="card">
   <div class="bignums">
     <div><div class="v" id="best">—</div><div class="l">CAPABILITY</div><div class="l" id="bestsk" style="opacity:.6;margin-top:2px">—</div></div>
-    <div><div class="v" id="gate">—</div><div class="l">LEVEL</div></div>
+    <div><div class="v" id="gate">—</div><div class="l">DIFFICULTY</div></div>
     <div><div class="v" id="ppl">—</div><div class="l">CHAMPION LOSS</div></div>
   </div>
   <div class="small" id="phase"></div>
@@ -79,12 +79,13 @@
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">ENGINE STATS</div><div id="compound" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
+<div class="card" id="scalecard" style="display:none"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">SCALE-CONTINUITY <span style="opacity:.5">· do probe winners hold at full scale?</span></div><div id="scalecont" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CONTROL <span style="opacity:.5">· read-only mirror</span></div><div id="control" class="small">—</div></div>
 </div>
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">TASKS — what the system is learning</div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v9 · tasks + inventions</span></footer>
+<footer><span id="pagever">v10 · scale-continuity · capability evals · worker phases</span></footer>
 <script>
 const SRC = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
@@ -100,8 +101,11 @@ function renderEvals(){
     const col = champs.has(r.name) ? "#ffd33d" : (r.lme!=null && r.lme<-0.05) ? "var(--green)" : "var(--fg)";
     const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
     const tags = [champs.has(r.name)?"champion":"", r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
-    const extra = [r.val!=null?`loss ${r.val.toFixed(3)}`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
-    return `<div class="row erow" onclick="showSheet(${gi})"><span style="color:${col}"><b>${pct(r.skill)}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
+    const extra = [r.skill!=null?`${pct(r.skill)} skill`:"", r.val!=null?`loss ${r.val.toFixed(3)}`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""].filter(Boolean).join(" ");
+    // HEADLINE = capability (rung difficulty + skill), the difficulty-agnostic metric — NOT a raw skill%
+    // (a harder-rung eval has lower skill% but higher capability, so skill% misreads an advance as a drop).
+    const capStr = (r.cap!=null ? r.cap.toFixed(2) : (r.skill!=null ? pct(r.skill) : "—"));
+    return `<div class="row erow" onclick="showSheet(${gi})"><span style="color:${col}"><b>${capStr}</b></span><span class="ops">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
   }).join("") || "<div class='small'>no evals yet</div>";
   const pager = all.length > PER
     ? `<div class="pager"><button onclick="pageRecent(-1)" ${recentPage<=0?"disabled":""}>◀ newer</button>`
@@ -115,7 +119,9 @@ function showSheet(i){
   const r = (window._evals||[])[i]; if(!r) return;
   const yn = v => v===true ? "yes" : v===false ? "no" : v;
   const F = [
-    ["net", r.name], ["ops", r.ops], ["skill", r.skill!=null ? (100*r.skill).toFixed(2)+"%" : null],
+    ["net", r.name], ["ops", r.ops],
+    ["capability (rung + skill)", r.cap!=null ? r.cap.toFixed(3) : null],
+    ["skill", r.skill!=null ? (100*r.skill).toFixed(2)+"%" : null],
     ["loss (cross-entropy)", r.val], ["perplexity", r.ppl], ["level / corpus", r.corpus], ["task kind", r.kind],
     ["window", r.window], ["topology", r.topo], ["external memory", r.ext], ["attention stack", r.stack],
     ["synth op (L2)", r.synth], ["context Δ (late−early)", r.lme], ["val σ (seed noise)", r.val_std],
@@ -225,6 +231,28 @@ async function load(){
       `<span style="color:var(--dim)">queue:</span> <b>${ctl.queue_depth??0}</b>${qh?` — ${qh}`:""}<br>`+
       `<span style="color:var(--dim);opacity:.7">fixed (restart to change): d ${im.d} · L ${im.n_layer} · batch ${im.batch} · seed ${im.seed} · ${im.device} · ${im.cluster?'cluster':'local'}</span>`;
   } else { ctlEl.textContent = "no control state yet"; }
+  // SCALE-CONTINUITY (phase-3): do the round's best PROBE designs hold their capability when re-trained at
+  // FULL scale? held_frac = share that held (Δ within noise of/above probe); mean Δcap = avg probe→scale
+  // skill change; recent rows = per-design probe→scale. Hidden unless phase-3 is on with data.
+  const scEl = document.getElementById("scalecont"), scCard = document.getElementById("scalecard");
+  const sc = ctl.scale_continuity;
+  if (sc && sc.on && sc.n>0){
+    scCard.style.display="";
+    const hf = sc.held_frac!=null ? (100*sc.held_frac).toFixed(0)+"%" : "—";
+    const md = sc.mean_delta!=null ? (sc.mean_delta>=0?"+":"")+sc.mean_delta.toFixed(3) : "—";
+    const mdcol = sc.mean_delta!=null ? (sc.mean_delta>=-0.01?"var(--green)":"#f85149") : "var(--dim)";
+    const rows = (sc.recent||[]).slice().reverse().map(r=>{
+      const d = r.scale_delta;
+      const col = d==null?"var(--dim)":d>=-0.01?"var(--green)":d<=-0.05?"#f85149":"var(--amber)";
+      const dd = d==null?"—":(d>=0?"+":"")+d.toFixed(3);
+      const ps = r.probe_skill!=null?(100*r.probe_skill).toFixed(0)+"%":"—";
+      const ss = r.scale_skill!=null?(100*r.scale_skill).toFixed(0)+"%":"—";
+      return `<div class="row"><span style="color:${col}"><b>${dd}</b></span><span class="ops">${esc(r.name||"")}</span><span style="color:var(--dim)">probe ${ps} → scale ${ss}</span></div>`;
+    }).join("");
+    scEl.innerHTML =
+      `<span style="color:var(--dim)">held at scale:</span> <b style="color:${sc.held_frac>=0.5?'var(--green)':'var(--amber)'}">${hf}</b> of last ${sc.n} · <span style="color:var(--dim)">mean Δcap</span> <b style="color:${mdcol}">${md}</b> · <span style="color:var(--dim)">${sc.probe_steps}→${sc.scale_steps} steps</span>`+
+      (rows?`<div style="margin-top:5px">${rows}</div>`:"");
+  } else if (scCard) { scCard.style.display="none"; }
   // evals — paginated list (10/page); tap a row for the full data sheet (renderEvals/showSheet, top of script)
   window._evals = s.recent || [];
   window._champs = new Set((s.winners||[]).map(w=>w.name));
@@ -238,11 +266,15 @@ async function load(){
     const tcol = w.temp>=83?"var(--red)":w.temp>=75?"var(--amber)":"var(--dim)";
     const stepping = (w.step!=null && w.steps);                 // training underway (progress reported)
     const stepPct = stepping ? Math.min(100, 100*w.step/w.steps) : 0;
+    // PHASE badge: which of the round's 3 phases this worker is on (screen / probe / scale), inferred
+    // server-side from the eval's step budget. Shown so it's clear whether a worker is doing cheap breadth
+    // (phase 1-2) or the full-budget scale-continuity validation (phase 3).
+    const phaseBadge = w.phase ? `<span style="color:var(--green);font-weight:600">phase ${esc(w.phase)}</span> · ` : "";
     const netLine = stepping
-      ? `<div class="small" style="margin-top:3px">net <b style="color:var(--amber)">${esc(w.net||"?")}</b>${w.sps!=null?` · ${w.sps} st/s`:""} · step ${w.step}/${w.steps}</div>
+      ? `<div class="small" style="margin-top:3px">${phaseBadge}net <b style="color:var(--amber)">${esc(w.net||"?")}</b>${w.sps!=null?` · ${w.sps} st/s`:""} · step ${w.step}/${w.steps}</div>
          <div class="bar" style="height:4px"><i style="width:${stepPct}%;background:var(--amber)"></i></div>`
       : (w.job && !off)                                          // has a job but no step yet = booting the eval (torch import / model build / CUDA ctx)
-        ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ initializing${w.net?` <b>${esc(w.net)}</b>`:""} — loading model &amp; data…</div>`
+        ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ phase init — ${w.net?`<b>${esc(w.net)}</b> · `:""}loading model &amp; data…</div>`
         : `<div class="small" style="margin-top:3px;color:var(--dim)">idle — no net being evaluated</div>`;
     return `<div class="wk"><div class="nm">${esc(w.id)} <span class="${sc}">● ${esc(st)}</span></div>
       <div class="bar"><i style="width:${w.util||0}%"></i></div>
