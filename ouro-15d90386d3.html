@@ -87,7 +87,7 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">PLAN — strategic roadmap + tactical backlog <span style="opacity:.5">· the staircase to the operator seat</span></div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v19 · Plan tab (roadmap + backlog) · operator-loop card · relay poll 15s (Deno free-tier quota) · per-task breakdown</span></footer>
+<footer><span id="pagever">v20 · champion-core thermometer (search→core loop) · Plan tab · operator-loop card · relay poll 15s · per-task breakdown</span></footer>
 <script>
 const RELAY = "https://sunny-bumblebee-5647.gabe9230.deno.net/status";   // realtime (laptop POSTs ~every 5s)
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";  // ~5min fallback
@@ -216,10 +216,28 @@ function renderInventions(){
 // below chance), so we screen on MERIT, not the model's order — the card stays honest about that.
 function renderOploop(d){
   const op = (d && d.proposals) || null;
+  const ct = (d && d.search && d.search.core_thermo) || null;     // champion-core thermometer (search->core loop)
   const card = document.getElementById("oploopcard");
   if(!card) return;
-  if(!op){ card.style.display="none"; return; }
+  if(!op && !ct){ card.style.display="none"; return; }
   card.style.display="";
+  // CHAMPION-CORE THERMOMETER: the search-DERIVED core (built from the scale-champion) — the compounding loop's
+  // output. The headline is best-of-all cores, so this is the only place its trajectory shows while it trails.
+  let thermo = "";
+  if(ct && ct.score!=null){
+    const tgt = ct.target||0.60, bs = ct.best_static_score, lead = ct.leads_static;
+    const gap = bs!=null ? (lead
+        ? `<span style="color:var(--green)">leads ${esc(ct.best_static||"static")} by ${(ct.score-bs).toFixed(2)} — adopt-ready</span>`
+        : `<span style="color:var(--dim)">${(bs-ct.score).toFixed(2)} below ${esc(ct.best_static||"static")} (the bar to beat)</span>`) : "";
+    const dm = ct.diagnosis_match!=null ? `dx-match ${(100*ct.diagnosis_match).toFixed(0)}%` : "";
+    const fm = ct.fix_match!=null ? `fix-match ${(100*ct.fix_match).toFixed(0)}%` : "";
+    thermo = `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line,#222)">`
+      + `<span style="color:var(--dim);font-size:11px;letter-spacing:.06em">CHAMPION CORE</span> `
+      + `<b>${ct.score.toFixed(2)}</b> <span style="color:var(--dim)">/ ${tgt.toFixed(2)} seat</span> &nbsp; ${gap}`
+      + `<div class="small" style="color:var(--dim);margin-top:2px">search-derived core (compounding loop). `
+      + [dm,fm].filter(Boolean).join(" · ") + `</div></div>`;
+  }
+  if(!op){ document.getElementById("oploopbody").innerHTML = thermo + "<div class='small' style='color:var(--dim)'>no proposal slate yet</div>"; return; }
   const CH = {discrim:0.5, fix:0.333, behavior:0.333};                    // per-axis chance on operator_bench
   const ax = (name,v)=> v==null ? "" :
     `<span style="color:${v>=CH[name]-1e-6?'var(--green)':'var(--red)'}">${name} ${(100*v).toFixed(0)}%</span>`;
@@ -244,7 +262,7 @@ function renderOploop(d){
       + `<span style="color:var(--dim);font-size:11px">${esc(r.area||"")}</span></div>`
       + `<div class="inv-what">${esc(r.text||"")}</div>${reason}</div>`;
   }).join("");
-  document.getElementById("oploopbody").innerHTML = head + ctrl
+  document.getElementById("oploopbody").innerHTML = thermo + head + ctrl
     + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.06em;margin-bottom:2px">LATEST SLATE — what the model proposed, in its own ranked order (we screen)</div>`
     + (rows || "<div class='small'>no slate yet</div>");
 }
