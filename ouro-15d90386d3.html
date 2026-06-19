@@ -87,7 +87,7 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">PLAN — strategic roadmap + tactical backlog <span style="opacity:.5">· the staircase to the operator seat</span></div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v20 · champion-core thermometer (search→core loop) · Plan tab · operator-loop card · relay poll 15s · per-task breakdown</span></footer>
+<footer><span id="pagever">v21 · self-ref parity axes on handoff (dx/fix-match vs chance) · champion-core thermometer · Plan tab · operator-loop card</span></footer>
 <script>
 const RELAY = "https://sunny-bumblebee-5647.gabe9230.deno.net/status";   // realtime (laptop POSTs ~every 5s)
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";  // ~5min fallback
@@ -346,9 +346,14 @@ async function load(){
   const ho = s.handoff;
   document.getElementById("best").textContent = (ho && ho.score!=null) ? ho.score.toFixed(2)
                                                : (s.capability!=null ? s.capability.toFixed(2) : "—");
-  document.getElementById("bestsk").textContent = (ho && ho.score!=null)
-    ? ((s.capability!=null ? "cap "+s.capability.toFixed(2) : "") + (s.best_skill!=null ? " · "+pct(s.best_skill)+" skill" : "")).trim()
-    : (s.best_skill!=null ? pct(s.best_skill)+" skill" : "");
+  // SELF-REF "can it do OUR job" parity axes (governing principle): honest companion to the proxy headline —
+  // a fluent LM scores ~0.43 on code-likelihood yet sits at ~chance (25%) here. Appended to the sub-line.
+  const _mx = (ho && (ho.diagnosis_match!=null || ho.fix_match!=null))
+    ? " · " + [ho.diagnosis_match!=null?("dx "+pct(ho.diagnosis_match)):"", ho.fix_match!=null?("fix "+pct(ho.fix_match)):""]
+        .filter(Boolean).join(" ") + " vs 25%" : "";
+  document.getElementById("bestsk").textContent = ((ho && ho.score!=null)
+    ? ((s.capability!=null ? "cap "+s.capability.toFixed(2) : "") + (s.best_skill!=null ? " · "+pct(s.best_skill)+" skill" : "")).trim() + _mx
+    : (s.best_skill!=null ? pct(s.best_skill)+" skill" : ""));
   const lv = s.level;
   // DIFFICULTY = the bare rung VALUE that is added to skill to form capability (capability = difficulty +
   // skill). Show the number itself (e.g. 1), with the task kind as a small sub-label for context.
