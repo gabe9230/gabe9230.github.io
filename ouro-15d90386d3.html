@@ -477,9 +477,9 @@ async function load(){
   if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
   renderWorkers();                       // phase / eta / live step are derived + interpolated client-side
 }
-load(); setInterval(load, 15000);        // fetch every 15s — matches the publisher's status.json write cadence
-                                         // (laptop Funnel has no request quota now; faster polling needs a faster
-                                         // publisher loop to actually be fresher). raw GitHub fallback is ~5min.
+load(); setInterval(load, 5000);         // fetch every 5s — matches the publisher's --loop 5 status.json write
+                                         // cadence (laptop Funnel has no request quota now, so 5s is fresh end-to-end:
+                                         // publisher writes status.json every 5s, page polls every 5s). raw GitHub fallback ~5min.
 setInterval(renderWorkers, 1000);        // re-interpolate the live step / progress bar / ETA every second
 </script>
 </body>
