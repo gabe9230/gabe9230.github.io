@@ -87,9 +87,9 @@
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">PLAN — strategic roadmap + tactical backlog <span style="opacity:.5">· the staircase to the operator seat</span></div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v21 · self-ref parity axes on handoff (dx/fix-match vs chance) · champion-core thermometer · Plan tab · operator-loop card</span></footer>
+<footer><span id="pagever">v22 · realtime via laptop endpoint (Tailscale Funnel, Deno retired) · self-ref parity axes · champion-core thermometer · Plan tab</span></footer>
 <script>
-const RELAY = "https://sunny-bumblebee-5647.gabe9230.deno.net/status";   // realtime (laptop POSTs ~every 5s)
+const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";   // realtime — laptop-hosted (local_relay :8799 via Tailscale Funnel; Deno retired, was suspended)
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";  // ~5min fallback
 function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
 function esc(t){ const d=document.createElement("div"); d.textContent=t??""; return d.innerHTML; }
@@ -477,8 +477,9 @@ async function load(){
   if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
   renderWorkers();                       // phase / eta / live step are derived + interpolated client-side
 }
-load(); setInterval(load, 15000);        // fetch every 15s: keeps the relay under the Deno free-tier quota
-                                         // (the 3s poll suspended it — USAGE_EXCEEDED); raw fallback is ~5min
+load(); setInterval(load, 15000);        // fetch every 15s — matches the publisher's status.json write cadence
+                                         // (laptop Funnel has no request quota now; faster polling needs a faster
+                                         // publisher loop to actually be fresher). raw GitHub fallback is ~5min.
 setInterval(renderWorkers, 1000);        // re-interpolate the live step / progress bar / ETA every second
 </script>
 </body>
