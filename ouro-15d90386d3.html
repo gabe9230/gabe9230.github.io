@@ -77,7 +77,6 @@
   <canvas id="spark" width="600" height="150"></canvas>
   <div class="small" id="sparkleg" style="text-align:center"></div>
 </div>
-<div class="card" id="oploopcard" style="display:none"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">OPERATOR LOOP <span style="opacity:.5">· the model proposes its own next steps, we screen them (shared seat)</span></div><div id="oploopbody" class="small">—</div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">ENGINE STATS</div><div id="compound" class="small"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
 <div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
@@ -473,7 +472,6 @@ async function load(){
   window._evals = s.recent || [];
   window._champs = new Set((s.winners||[]).map(w=>w.name));
   renderEvals();
-  renderOploop(d);                        // OPERATOR LOOP card — the agent data (proposals + how we screened)
   if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
   renderWorkers();                       // phase / eta / live step are derived + interpolated client-side
 }
