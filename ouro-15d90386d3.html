@@ -311,7 +311,7 @@ function renderWorkers(){
     const stepping = (w.step!=null && w.steps);
     const liveStep = stepping ? Math.min(w.steps, Math.round(w.step + (w.sps||0)*stepAge)) : w.step;  // INTERPOLATED
     const pctw = stepping ? Math.min(100, 100*liveStep/w.steps) : 0;
-    const phase = !running ? "idle" : (stepping ? nearestPhase(w.steps, budgets) : "init");
+    const phase = !running ? "idle" : (stepping ? nearestPhase(w.steps, budgets) : (w.activity || "init"));
     const eta = (stepping && w.sps>0 && w.steps>liveStep) ? (w.steps-liveStep)/w.sps : null;
     if(running){ const r = PHASE_RANK[phase] ?? 0; if(r>fleetRank){ fleetRank=r; fleetPhase=phase; }
                  if(eta!=null) roundEta = Math.max(roundEta ?? 0, eta); }
@@ -320,9 +320,11 @@ function renderWorkers(){
     const netLine = stepping
       ? `<div class="small" style="margin-top:3px">${phaseBadge}net <b style="color:var(--amber)">${esc(w.net||"?")}</b>${w.sps!=null?` · ${w.sps} st/s`:""} · step ${liveStep}/${w.steps}${etaB}</div>
          <div class="bar" style="height:4px"><i style="width:${pctw}%;background:var(--amber);transition:width .9s linear"></i></div>`
-      : (w.job && !off)
-        ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ phase init — ${w.net?`<b>${esc(w.net)}</b> · `:""}loading model &amp; data…</div>`
-        : `<div class="small" style="margin-top:3px;color:var(--dim)">idle — no net being evaluated</div>`;
+      : (w.activity && !off)
+        ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ running <b>${esc(w.activity)}</b>${w.job_kind&&w.job_kind!=='shell'?` <span style="color:var(--dim)">· ${esc(w.job_kind)}</span>`:''}</div>`
+        : (w.job && !off)
+          ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ working… <span style="color:var(--dim)">(job ${esc(w.job)})</span></div>`
+          : `<div class="small" style="margin-top:3px;color:var(--dim)">idle</div>`;
     return `<div class="wk"><div class="nm">${esc(w.id)} <span class="${sc}">● ${esc(st)}</span></div>
       <div class="bar"><i style="width:${w.util||0}%"></i></div>
       <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div>
