@@ -419,7 +419,14 @@ function renderCore(){
     + (core.note?`<div class="small">${esc(core.note)}</div>`:"")
     + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em;margin-top:14px">LIVE DESKTOP FEED · desktop-3080 mirror</div>${deskBox}`
     + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em;margin-top:14px">LIVE EXPERTS · loaded in the runtime</div>`
-    + `<div class="small">${(core.live_experts&&core.live_experts.length)?core.live_experts.map(esc).join(", "):"pending runtime — which experts are loaded will appear here"}</div>`;
+    + `<div class="small">${(core.live_experts&&core.live_experts.length)?core.live_experts.map(esc).join(", "):"pending runtime — which experts are loaded will appear here"}</div>`
+    + (o.own_code ? `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em;margin-top:14px">OWN-CODE EXPERTS · the seat learning its OWN code from execution</div>`
+        + `<div class="bignums" style="margin-top:6px"><div><div class="v" style="color:var(--green)">${o.own_code.experts_built}</div><div class="l">BUILT</div></div>`
+        + `<div><div class="v">${o.own_code.serving}</div><div class="l">SERVING</div></div>`
+        + `<div><div class="v">${o.own_code.of_functions}</div><div class="l">OF FNS</div></div></div>`
+        + `<div class="small">${esc((o.own_code.functions||[]).join(", "))}</div>`
+        + (o.own_code.repair?`<div class="small" style="margin-top:4px;color:var(--dim)">${esc(o.own_code.repair)}</div>`:"")
+        + (o.own_code.note?`<div class="small" style="color:var(--dim)">${esc(o.own_code.note)}</div>`:"") : "");
 }
 async function fetchStatus(){
   // REALTIME relay first (laptop POSTs here every ~5s; no CDN cache) -> fall back to the GitHub raw
