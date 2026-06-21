@@ -62,8 +62,9 @@
 </head>
 <body>
 <h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
-<div class="tabs"><button class="tab active" onclick="showView('main')">Dashboard</button><button class="tab" onclick="showView('tasks')">Plan</button><button class="tab" onclick="showView('inv')">Inventions</button></div>
+<div class="tabs"><button class="tab active" data-view="main" onclick="showView('main')">Dash</button><button class="tab" data-view="library" onclick="showView('library')">Library</button><button class="tab" data-view="core" onclick="showView('core')">Core</button><button class="tab" data-view="tasks" onclick="showView('tasks')">Plan</button><button class="tab" data-view="inv" onclick="showView('inv')">Inv</button></div>
 <div id="view-main">
+<div id="ovbuild" class="card" style="display:none"></div>
 <div id="banner" class="card banner" style="display:none"></div>
 <div class="card">
   <div class="bignums">
@@ -84,8 +85,23 @@
 </div>
 <div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">PLAN — strategic roadmap + tactical backlog <span style="opacity:.5">· the staircase to the operator seat</span></div><div id="tasksbody"></div></div></div>
 <div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
+<div id="view-library" style="display:none">
+  <div class="card">
+    <div class="bignums" id="lib-counts"></div>
+    <input id="lib-search" placeholder="search skill / field…" oninput="renderLibrary()" autocomplete="off"
+           style="width:100%;margin-top:10px;background:var(--bg);color:var(--fg);border:1px solid var(--grid);border-radius:8px;padding:8px;font:inherit;font-size:12px">
+    <div class="tabs" id="lib-status" style="margin-top:8px">
+      <button class="tab active" data-st="all" onclick="libStatus('all')">all</button>
+      <button class="tab" data-st="done" onclick="libStatus('done')">done</button>
+      <button class="tab" data-st="pending" onclick="libStatus('pending')">pending</button>
+    </div>
+    <div id="lib-fields" class="small" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
+    <div id="lib-rows" style="margin-top:8px"></div>
+  </div>
+</div>
+<div id="view-core" style="display:none"><div class="card" id="core-body"><div class="small">loading core…</div></div></div>
 <div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v22 · realtime via laptop endpoint (Tailscale Funnel, Deno retired) · self-ref parity axes · champion-core thermometer · Plan tab</span></footer>
+<footer><span id="pagever">v23 · overhaul mode — Library + Core tabs + build status (expert library / desktop expert) folded into this page</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";   // realtime — laptop-hosted (local_relay :8799 via Tailscale Funnel; Deno retired, was suspended)
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";  // ~5min fallback
@@ -159,11 +175,13 @@ function showSheet(i){
 }
 function closeSheet(e){ if(!e || e.target.id==="sheet") document.getElementById("sheet").style.display="none"; }
 let curView = "main";
+const VIEWS = ["main","library","core","tasks","inv"];
 function showView(v){
   curView = v;
-  for (const n of ["main","tasks","inv"]) { const el=document.getElementById("view-"+n); if(el) el.style.display=(n===v)?"":"none"; }
-  document.querySelectorAll(".tab").forEach((t,i)=> t.classList.toggle("active", ["main","tasks","inv"][i]===v));
+  for (const n of VIEWS) { const el=document.getElementById("view-"+n); if(el) el.style.display=(n===v)?"":"none"; }
+  document.querySelectorAll(".tab[data-view]").forEach(t=> t.classList.toggle("active", t.dataset.view===v));
   if (v==="tasks") renderTasks(); else if (v==="inv") renderInventions();
+  else if (v==="library") openLibrary(); else if (v==="core") renderCore();
 }
 // PLAN tab — the project's STRATEGIC roadmap (stages) + TACTICAL backlog (TODO open items by priority),
 // parsed from ROADMAP.md + TODO.md by the publisher (d.plan). Replaces the old learning-tasks view: this is
@@ -317,6 +335,92 @@ function renderWorkers(){
   const summary = `<div class="small" style="margin-top:4px">${roundStr}${phaseStr}${etaStr} · queue ${c.queued??0} · running ${c.running??0} · done ${c.done??0}</div>`;
   document.getElementById("workers").innerHTML = rows + summary;
 }
+// ── OVERHAUL MODE (core + expert-library): build status + library + core. The search (status.json) is
+// PAUSED, so this is the active work. overhaul.json is small (polled every 15s); library.json is large
+// (~540KB) so it's fetched LAZILY when the Library tab is opened (then cached ~60s). Both from the data
+// branch via GitHub raw (the realtime relay carries only status.json). ───────────────────────────────
+const OV_RAW  = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/overhaul.json";
+const LIB_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/library.json";
+let libFetchedAt = 0, libStat = "all", libCap = 60, libF = "";
+function fieldColor(f){ let h=0; for(const c of (f||"")) h=(h*31+c.charCodeAt(0))>>>0; return `hsl(${h%360},55%,62%)`; }
+async function fetchOverhaul(){
+  try { const r = await fetch(OV_RAW + "?t=" + Date.now(), {cache:"no-store"});
+        if (r.ok){ window._ov = await r.json(); renderOverhaul(); if(curView==="core") renderCore(); } }
+  catch(e){}
+}
+function renderOverhaul(){
+  const o = window._ov, el = document.getElementById("ovbuild"); if(!o||!el) return;
+  const L = o.library||{}, done=L.experts_done||0, tot=L.experts_total||0, pc = tot? 100*done/tot : 0, c = o.cluster||{};
+  el.style.display="";
+  el.innerHTML = `<div style="color:var(--gold);font-weight:bold;text-align:center;margin-bottom:8px">■ ${esc(o.mode||"overhaul")}</div>`
+    + `<div class="bignums"><div><div class="v">${done}</div><div class="l">EXPERTS BUILT</div></div>`
+    + `<div><div class="v">${tot}</div><div class="l">TOTAL</div></div>`
+    + `<div><div class="v">${L.skills??"—"}</div><div class="l">SKILLS</div></div></div>`
+    + `<div class="bar" style="margin-top:8px"><i style="width:${pc.toFixed(1)}%;background:var(--green)"></i></div>`
+    + `<div class="small" style="text-align:center">${pc.toFixed(1)}% of experts built · queue ${c.queued??0} · running ${c.running??0}</div>`;
+}
+async function openLibrary(){
+  if (!window._lib || Date.now()-libFetchedAt > 60000){
+    document.getElementById("lib-rows").innerHTML = "<div class='small'>loading library…</div>";
+    try { const r = await fetch(LIB_RAW + "?t=" + Date.now(), {cache:"no-store"});
+          if (r.ok){ window._lib = await r.json(); libFetchedAt = Date.now(); } }
+    catch(e){ document.getElementById("lib-rows").innerHTML = "<div class='small'>library fetch failed</div>"; return; }
+  }
+  renderLibrary();
+}
+function libStatus(s){ libStat=s; libCap=60;
+  document.querySelectorAll("#lib-status .tab").forEach(t=> t.classList.toggle("active", t.dataset.st===s)); renderLibrary(); }
+function libField(f){ libF = (libF===f)?"":f; libCap=60; renderLibrary(); }
+function libMore(){ libCap += 100; renderLibrary(); }
+function renderLibrary(){
+  const all = window._lib || []; if(!all.length) return;
+  const q = (document.getElementById("lib-search").value||"").toLowerCase().trim();
+  const nDone = all.filter(r=>r.status==="done").length;
+  document.getElementById("lib-counts").innerHTML =
+    `<div><div class="v" style="color:var(--green)">${nDone}</div><div class="l">DONE</div></div>`
+   +`<div><div class="v">${all.length-nDone}</div><div class="l">PENDING</div></div>`
+   +`<div><div class="v">${all.length}</div><div class="l">TOTAL</div></div>`;
+  const fc = {}; all.forEach(r=> fc[r.field]=(fc[r.field]||0)+1);
+  const fields = Object.entries(fc).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("lib-fields").innerHTML =
+    `<span onclick="libField('')" style="cursor:pointer;color:${libF?'var(--dim)':'var(--fg)'}">all ${all.length}</span>`
+    + fields.map(([f,n])=> `<span onclick="libField('${esc(f)}')" style="cursor:pointer">●<span style="color:${fieldColor(f)};${libF===f?'font-weight:bold':''}"> ${esc(f)}</span> <span style="color:var(--dim)">${n}</span></span>`).join("");
+  let rows = all;
+  if (libStat!=="all") rows = rows.filter(r=>r.status===libStat);
+  if (libF) rows = rows.filter(r=>r.field===libF);
+  if (q) rows = rows.filter(r=> (r.skill||"").toLowerCase().includes(q) || (r.field||"").toLowerCase().includes(q));
+  const shown = rows.slice(0, libCap);
+  const body = shown.map(r=>{
+    const stcol = r.status==="done"?"var(--green)":"var(--dim)";
+    const sub = [r.window?("w"+r.window):"", r.origin].filter(Boolean).join(" · ");
+    return `<div class="row"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(r.skill)}</b> <span style="color:var(--dim);font-size:11px">${esc(sub)}</span></span>`
+      + `<span style="color:${fieldColor(r.field)};font-size:11px">${esc(r.field)}</span>`
+      + `<span style="color:${stcol};font-size:11px">${esc(r.status)}</span></div>`;
+  }).join("") || "<div class='small'>no experts match</div>";
+  const more = rows.length>libCap ? `<div class="pager"><button onclick="libMore()">show more (+${rows.length-libCap} hidden)</button></div>` : "";
+  document.getElementById("lib-rows").innerHTML = `<div class="small" style="color:var(--dim)">showing ${shown.length} of ${rows.length}</div>` + body + more;
+}
+function renderCore(){
+  const o = window._ov || {}, core = o.core||{}, c = o.cluster||{};
+  const el = document.getElementById("core-body"); if(!el) return;
+  const desk = (c.workers||[]).find(w=> /desktop|3080/i.test(w.id||"") || /desktop|3080/i.test(w.host||""));
+  const g = (desk && desk.gpus && desk.gpus[0]) || {};   // raw cluster_status carries gpus[] (not flat util/temp)
+  const tcol = g.temp>=83?"var(--red)":g.temp>=75?"var(--amber)":"var(--dim)";
+  const deskBox = desk
+    ? `<div class="wk"><div class="nm">${esc(desk.id)} <span class="stat-ready">● ${esc(desk.status||"")}</span></div>`
+      + `<div class="bar"><i style="width:${g.util||0}%"></i></div>`
+      + `<div class="small">gpu ${g.util??"—"}% · <span style="color:${tcol}">${g.temp??"—"}°C</span> · ${g.mem_used??"—"}/${g.mem_total??"—"} MiB${desk.current_job?" · job "+esc(desk.current_job):" · idle"}</div></div>`
+    : "<div class='small'>desktop worker not reporting</div>";
+  el.innerHTML =
+    `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CORE STATUS</div>`
+    + `<div class="bignums" style="margin-top:8px"><div><div class="v" style="color:${core.trained?'var(--green)':'var(--dim)'}">${core.trained?"YES":"NO"}</div><div class="l">TRAINED</div></div>`
+    + `<div><div class="v">${core.routing_acc!=null?(100*core.routing_acc).toFixed(0)+"%":"—"}</div><div class="l">ROUTING ACC</div></div>`
+    + `<div><div class="v">${core.score!=null?core.score.toFixed(2):"—"}</div><div class="l">CORE SCORE</div></div></div>`
+    + (core.note?`<div class="small">${esc(core.note)}</div>`:"")
+    + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em;margin-top:14px">LIVE DESKTOP FEED · desktop-3080 mirror</div>${deskBox}`
+    + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em;margin-top:14px">LIVE EXPERTS · loaded in the runtime</div>`
+    + `<div class="small">${(core.live_experts&&core.live_experts.length)?core.live_experts.map(esc).join(", "):"pending runtime — which experts are loaded will appear here"}</div>`;
+}
 async function fetchStatus(){
   // REALTIME relay first (laptop POSTs here every ~5s; no CDN cache) -> fall back to the GitHub raw
   // (~5-min CDN cache) if the relay is unreachable or returns its cold-isolate {} (no `ts`).
@@ -461,6 +565,7 @@ async function load(){
   if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
   renderWorkers();                       // phase / eta / live step are derived + interpolated client-side
 }
+fetchOverhaul(); setInterval(fetchOverhaul, 15000);   // overhaul build status (decoupled from the paused search status)
 load(); setInterval(load, 5000);         // fetch every 5s — matches the publisher's --loop 5 status.json write
                                          // cadence (laptop Funnel has no request quota now, so 5s is fresh end-to-end:
                                          // publisher writes status.json every 5s, page polls every 5s). raw GitHub fallback ~5min.
