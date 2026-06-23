@@ -56,6 +56,7 @@
   <div class="card" id="dcard">
     <div class="l">CURRENT DIRECTIVE <span id="dlive" class="muted"></span></div>
     <div class="dtext" id="dtext">—</div>
+    <div class="small" id="dsub" style="color:var(--blue);margin:2px 0 4px"></div>
     <div class="bignums" id="dnums"></div>
     <div class="l" id="dgraphlabel" style="margin-top:6px">LADDER HEIGHT OVER TIME <span class="muted">· unbounded — climbs as families master harder difficulty</span></div>
     <canvas id="ladchart" width="540" height="150"></canvas>
@@ -112,6 +113,8 @@ function renderDirective(dt){
   const card=document.getElementById("dcard");
   if(!dt){ document.getElementById("dtext").textContent="(no active directive)"; document.getElementById("dnums").innerHTML=""; document.getElementById("dplan").innerHTML="<span class='muted'>idle</span>"; return; }
   document.getElementById("dtext").textContent = dt.directive || "—";
+  document.getElementById("dsub").innerHTML = dt.sub_directive
+    ? `&#8627; <b>now:</b> ${esc(dt.sub_directive)}${dt.sub_reason?(" <span class='muted'>("+esc(dt.sub_reason)+")</span>"):""}` : "";
   document.getElementById("dlive").textContent = dt.live ? "· live" : "· idle (loop down)";
   document.getElementById("dlive").className = dt.live ? "green" : "amber";
   let nums="";
