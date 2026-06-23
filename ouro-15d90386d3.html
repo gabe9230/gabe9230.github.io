@@ -11,574 +11,216 @@
 <style>
   :root { --bg:#0d1117; --bg2:#161b22; --fg:#c9d1d9; --dim:#8b949e; --grid:#21262d;
           --blue:#58a6ff; --green:#3fb950; --amber:#e3b341; --red:#f85149; --gold:#ffd33d; }
-  * { box-sizing:border-box; margin:0; }
+  * { box-sizing:border-box; }
   body { background:var(--bg); color:var(--fg); font:14px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; padding:14px; max-width:560px; margin:0 auto; }
   h1 { font-size:15px; letter-spacing:.06em; color:var(--dim); display:flex; justify-content:space-between; align-items:center; }
   .pill { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--bg2); border:1px solid var(--grid); }
-  .pill.stale { color:var(--red); border-color:var(--red); }
-  .card { background:var(--bg2); border:1px solid var(--grid); border-radius:10px; padding:12px; margin-top:12px; }
-  .banner { border-color:var(--gold); color:var(--gold); font-weight:bold; text-align:center; }
-  .bignums { display:flex; gap:10px; }
-  .bignums div { flex:1; text-align:center; }
-  .bignums .v { font-size:26px; font-weight:bold; }
-  .bignums .l { font-size:10px; color:var(--dim); letter-spacing:.08em; }
-  .gap-good { color:var(--green); } .gap-bad { color:var(--red); }
-  canvas { width:100%; height:120px; margin-top:8px; }
-  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--grid); font-size:12.5px; gap:8px; }
-  .row:last-child { border-bottom:none; }
-  .row .ops { color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
-  .wk { margin-top:8px; padding:10px; border:1px solid var(--grid); border-radius:8px; }
-  .wk .nm { font-weight:bold; }
-  .bar { height:8px; background:var(--bg); border-radius:4px; margin-top:6px; overflow:hidden; }
-  .bar i { display:block; height:100%; background:var(--blue); }
-  .small { font-size:11px; color:var(--dim); margin-top:4px; }
-  .stat-ready { color:var(--green); } .stat-warn { color:var(--amber); } .stat-off { color:var(--red); }
-  footer { color:var(--grid); font-size:10px; text-align:center; margin-top:18px; }
-  .erow { cursor:pointer; }
-  .erow:active, .erow:hover { background:var(--bg); }
-  .pager { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 0 8px; font-size:11px; color:var(--dim); }
-  .pager button { background:var(--bg); color:var(--fg); border:1px solid var(--grid); border-radius:6px; padding:4px 10px; font:inherit; font-size:11px; cursor:pointer; }
-  .pager button:disabled { opacity:.35; cursor:default; }
-  .sheet-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); display:flex; align-items:center; justify-content:center; padding:16px; z-index:50; }
-  .sheet-card { background:var(--bg2); border:1px solid var(--grid); border-radius:12px; padding:16px; max-width:520px; width:100%; max-height:85vh; overflow:auto; }
-  .shh { font-size:14px; margin-bottom:8px; word-break:break-word; color:var(--amber); }
-  .srow { display:flex; justify-content:space-between; gap:12px; padding:5px 0; border-bottom:1px solid var(--grid); font-size:12.5px; }
-  .srow:last-child { border-bottom:none; }
-  .srow .sk { color:var(--dim); flex-shrink:0; }
-  .srow .sv { text-align:right; word-break:break-word; }
-  .sclose { margin-top:14px; width:100%; background:var(--bg); color:var(--fg); border:1px solid var(--grid); border-radius:8px; padding:9px; font:inherit; cursor:pointer; }
-  .tabs { display:flex; gap:6px; margin-top:10px; }
-  .tab { flex:1; background:var(--bg2); color:var(--dim); border:1px solid var(--grid); border-radius:8px; padding:7px; font:inherit; font-size:12px; cursor:pointer; }
+  .pill.stale { color:var(--amber); border-color:var(--amber); }
+  .tabs { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .tab { flex:1; min-width:64px; background:var(--bg2); color:var(--dim); border:1px solid var(--grid); border-radius:8px; padding:8px 4px; font:inherit; font-size:12px; cursor:pointer; }
   .tab.active { color:var(--fg); border-color:var(--blue); }
-  .inv-sec { color:var(--dim); font-size:11px; letter-spacing:.08em; margin:16px 0 6px; }
-  .inv-sec:first-child { margin-top:0; }
-  .inv-item { padding:9px 0; border-bottom:1px solid var(--grid); }
-  .inv-item:last-child { border-bottom:none; }
-  .inv-h { font-weight:bold; font-size:13px; }
-  .inv-d { color:var(--dim); font-weight:normal; font-size:11px; }
-  .inv-what { font-size:12px; color:var(--fg); margin-top:3px; word-break:break-word; }
-  .inv-why { color:var(--green); font-size:11px; margin-top:3px; word-break:break-word; }
+  .tabs.sub .tab { flex:none; padding:4px 10px; font-size:11px; }
+  .card { background:var(--bg2); border:1px solid var(--grid); border-radius:10px; padding:12px; margin-top:12px; }
+  .l { font-size:11px; color:var(--dim); letter-spacing:.08em; }
+  .bignums { display:flex; justify-content:space-around; text-align:center; margin:8px 0; }
+  .bignums .v { font-size:26px; font-weight:600; }
+  .bignums .ll { font-size:10px; color:var(--dim); letter-spacing:.08em; }
+  .dtext { font-size:17px; color:var(--green); margin:5px 0; word-break:break-word; }
+  .small { font-size:12px; }
+  .dim { color:var(--dim); }
+  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--grid); font-size:12px; gap:8px; }
+  .row:last-child { border-bottom:none; }
+  .row .a { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .row .b { color:var(--dim); white-space:nowrap; }
+  .chip { display:inline-block; font-size:10px; padding:1px 6px; border-radius:6px; background:var(--bg); border:1px solid var(--grid); color:var(--dim); margin-right:4px; }
+  .green { color:var(--green); } .amber { color:var(--amber); } .red { color:var(--red); } .blue { color:var(--blue); }
+  input { width:100%; margin-top:8px; background:var(--bg); color:var(--fg); border:1px solid var(--grid); border-radius:8px; padding:8px; font:inherit; font-size:12px; }
+  canvas { width:100%; height:auto; margin-top:8px; }
+  img.vm { width:100%; border-radius:8px; border:1px solid var(--grid); display:block; }
+  .gbar { height:7px; background:var(--bg); border-radius:4px; overflow:hidden; margin-top:3px; }
+  .gbar > span { display:block; height:100%; background:var(--green); }
+  footer { color:var(--dim); font-size:10px; text-align:center; margin-top:16px; }
+  .muted { color:var(--dim); font-size:11px; }
 </style>
 </head>
 <body>
 <h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
-<div class="tabs"><button class="tab active" data-view="main" onclick="showView('main')">Dash</button><button class="tab" data-view="library" onclick="showView('library')">Library</button><button class="tab" data-view="core" onclick="showView('core')">Core</button><button class="tab" data-view="tasks" onclick="showView('tasks')">Plan</button><button class="tab" data-view="inv" onclick="showView('inv')">Inv</button></div>
-<div id="view-main">
-<div id="ovbuild" class="card" style="display:none"></div>
-<div id="banner" class="card banner" style="display:none"></div>
-<div class="card">
-  <div class="bignums">
-    <div><div class="v" id="best">—</div><div class="l">HANDOFF&nbsp;&rarr;&nbsp;SEAT</div><div class="l" id="bestsk" style="opacity:.6;margin-top:2px">—</div></div>
-    <div><div class="v" id="gate">—</div><div class="l">DIFFICULTY</div><div class="l" id="gatekind" style="opacity:.6;margin-top:2px">—</div></div>
-    <div><div class="v" id="ppl">—</div><div class="l">CHAMPION LOSS</div></div>
+<div class="tabs">
+  <button class="tab active" data-v="directive" onclick="show('directive')">Directive</button>
+  <button class="tab" data-v="library" onclick="show('library')">Library</button>
+  <button class="tab" data-v="loop" onclick="show('loop')">Loop</button>
+  <button class="tab" data-v="workers" onclick="show('workers')">Workers</button>
+</div>
+
+<div id="v-directive">
+  <div class="card" id="dcard">
+    <div class="l">CURRENT DIRECTIVE <span id="dlive" class="muted"></span></div>
+    <div class="dtext" id="dtext">—</div>
+    <div class="bignums" id="dnums"></div>
+    <div class="l" id="dgraphlabel" style="margin-top:6px">LADDER HEIGHT OVER TIME <span class="muted">· unbounded — climbs as families master harder difficulty</span></div>
+    <canvas id="ladchart" width="540" height="150"></canvas>
+    <div class="small dim" id="dprog" style="margin-top:4px"></div>
   </div>
-  <div class="small" id="phase"></div>
-  <div class="small" id="oploop" style="opacity:.85"></div>
-  <div class="small" id="thr"></div>
-  <canvas id="spark" width="600" height="150"></canvas>
-  <div class="small" id="sparkleg" style="text-align:center"></div>
+  <div class="card"><div class="l">IN-PROGRESS PLAN + TASKS <span class="muted">· what the loop is dispatching now</span></div><div id="dplan" style="margin-top:6px"></div></div>
 </div>
-<div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">ENGINE STATS</div><div id="compound" class="small"></div></div>
-<div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">RECENT EVALS</div><div id="evals"></div></div>
-<div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CLUSTER</div><div id="workers"></div></div>
-<div class="card" id="scalecard" style="display:none"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">SCALE-CONTINUITY <span style="opacity:.5">· do probe winners hold at full scale?</span></div><div id="scalecont" class="small"></div></div>
-</div>
-<div id="view-tasks" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">PLAN — strategic roadmap + tactical backlog <span style="opacity:.5">· the staircase to the operator seat</span></div><div id="tasksbody"></div></div></div>
-<div id="view-inv" style="display:none"><div class="card"><div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">INVENTIONS — what the system has created</div><div id="invbody"></div></div></div>
-<div id="view-library" style="display:none">
+
+<div id="v-library" style="display:none">
   <div class="card">
-    <div class="bignums" id="lib-counts"></div>
-    <input id="lib-search" placeholder="search skill / field…" oninput="renderLibrary()" autocomplete="off"
-           style="width:100%;margin-top:10px;background:var(--bg);color:var(--fg);border:1px solid var(--grid);border-radius:8px;padding:8px;font:inherit;font-size:12px">
-    <div class="tabs" id="lib-status" style="margin-top:8px">
-      <button class="tab active" data-st="all" onclick="libStatus('all')">all</button>
-      <button class="tab" data-st="done" onclick="libStatus('done')">done</button>
-      <button class="tab" data-st="pending" onclick="libStatus('pending')">pending</button>
+    <div class="bignums" id="libcounts"></div>
+    <input id="libsearch" placeholder="search family / purpose / topology…" oninput="renderLib()" autocomplete="off">
+    <div class="tabs sub" style="margin-top:8px">
+      <button class="tab active" data-s="all" onclick="libFilter('all')">all</button>
+      <button class="tab" data-s="done" onclick="libFilter('done')">done</button>
+      <button class="tab" data-s="pending" onclick="libFilter('pending')">pending</button>
     </div>
-    <div id="lib-fields" class="small" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
-    <div id="lib-rows" style="margin-top:8px"></div>
+    <div id="librows" style="margin-top:8px"></div>
   </div>
 </div>
-<div id="view-core" style="display:none"><div class="card" id="core-body"><div class="small">loading core…</div></div></div>
-<div id="sheet" class="sheet-overlay" style="display:none" onclick="closeSheet(event)"><div class="sheet-card" id="sheetbody"></div></div>
-<footer><span id="pagever">v23 · overhaul mode — Library + Core tabs + build status (expert library / desktop expert) folded into this page</span></footer>
+
+<div id="v-loop" style="display:none">
+  <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
+  <div class="card"><div class="l">LATEST EXPERTS</div><div id="loopexperts" style="margin-top:6px"></div></div>
+  <div class="card"><div class="l">LATEST PLANS</div><div id="loopplans" style="margin-top:6px"></div></div>
+  <div class="card"><div class="l">LATEST TASKS</div><div id="looptasks" style="margin-top:6px"></div></div>
+</div>
+
+<div id="v-workers" style="display:none">
+  <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
+</div>
+
+<footer><span id="pagever">v24 · Directive · Library · Loop · Workers</span></footer>
 <script>
-const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";   // realtime — laptop-hosted (local_relay :8799 via Tailscale Funnel; Deno retired, was suspended)
-const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";  // ~5min fallback
-function ago(s){ return s<90 ? Math.round(s)+"s" : s<5400 ? Math.round(s/60)+"m" : Math.round(s/3600)+"h"; }
-function esc(t){ const d=document.createElement("div"); d.textContent=t??""; return d.innerHTML; }
-function pct(v){ return v==null ? "—" : (100*v).toFixed(1)+"%"; }
-let recentPage = 0;
-function renderEvals(){
-  const all = window._evals || [], champs = window._champs || new Set();
-  const PER = 10, nPages = Math.max(1, Math.ceil(all.length/PER));
-  recentPage = Math.min(Math.max(0, recentPage), nPages-1);
-  const body = all.slice(recentPage*PER, recentPage*PER+PER).map((r,j)=>{
-    const gi = recentPage*PER + j;
-    // INCOMPLETE = the design didn't finish all suite tasks (one diverged/OOM'd/timed out -> the all-present
-    // gate fires -> no worst-case capability). Marked '✗' + 'incomplete' rather than a bare '—' so it reads as
-    // a FAILED design, not missing data; the extra line shows which tasks it DID complete (so the gap is clear).
-    const incomplete = (r.val == null);
-    const col = incomplete ? "var(--dim)" : (champs.has(r.name) ? "#ffd33d" : (r.lme!=null && r.lme<-0.05) ? "var(--green)" : "var(--fg)");
-    const memTag = (r.lme!=null) ? (r.lme < -0.05 ? "uses-ctx" : r.lme > 0.05 ? "degr" : "flat") : "";
-    const gotStr = (r.per_task_skill && Object.keys(r.per_task_skill).length)
-      ? "got " + Object.entries(r.per_task_skill).map(([k,v])=>`${k.replace('synth:recall:','recall:')} ${(100*v).toFixed(0)}%`).join(" ")
-      : "no task finished";
-    const tags = [champs.has(r.name)?"champion":"", incomplete?"incomplete":"", r.topo==="loop"?"loop":"", r.ext&&r.ext!=="none"?r.ext:"", r.stack?"⊗attn":"", r.synth?"L2":"", r.pruned?"pruned":"", memTag].filter(Boolean).join(" ");
-    const extra = (incomplete
-      ? [gotStr, r.cost!=null?`c${r.cost}`:""]
-      : [r.skill!=null?`${pct(r.skill)} skill`:"", r.val!=null?`loss ${r.val.toFixed(3)}`:"", r.lme!=null?`Δ${r.lme.toFixed(3)}`:"", r.cost!=null?`c${r.cost}`:""]).filter(Boolean).join(" ");
-    // HEADLINE = capability (rung difficulty + skill) for completed designs; '✗' for incomplete (no score).
-    const capStr = incomplete ? "✗" : (r.cap!=null ? r.cap.toFixed(2) : (r.skill!=null ? pct(r.skill) : "—"));
-    const capCol = incomplete ? "var(--red)" : col;
-    return `<div class="row erow" onclick="showSheet(${gi})"><span style="color:${capCol}"><b>${capStr}</b></span><span class="ops" style="color:${incomplete?'var(--dim)':'inherit'}">${esc(r.name)} ${esc(r.ops)}</span><span style="color:var(--dim)">${esc(tags)}${extra?" · "+esc(extra):""}</span></div>`;
-  }).join("") || "<div class='small'>no evals yet</div>";
-  const pager = all.length > PER
-    ? `<div class="pager"><button onclick="pageRecent(-1)" ${recentPage<=0?"disabled":""}>◀ newer</button>`
-      + `<span>page ${recentPage+1}/${nPages} · ${all.length} evals</span>`
-      + `<button onclick="pageRecent(1)" ${recentPage>=nPages-1?"disabled":""}>older ▶</button></div>`
-    : "";
-  document.getElementById("evals").innerHTML = pager + body;
-}
-function pageRecent(delta){ recentPage += delta; renderEvals(); }
-function showSheet(i){
-  const r = (window._evals||[])[i]; if(!r) return;
-  const yn = v => v===true ? "yes" : v===false ? "no" : v;
-  // SUITE rows are evaluated on EVERY task (chat + wiki + the synth rung); r.corpus is only the RUNG
-  // identifier (the difficulty the round targets), not the one task this ran on. Surface the per-task
-  // breakdown + the worst (binding) task so it's clear the score is the worst-case across all tasks.
-  const pts = r.per_task_skill;
-  // RULE-2: when wiki is DEMOTED, the worst-case excludes it (wiki still shown in the per-task breakdown,
-  // just not binding) — label it so "min across tasks" isn't misread as including wiki.
-  const demoteWiki = !!((window._d||{}).control||{}).demote_wiki;
-  const exclW = demoteWiki ? " excl. wiki" : "";
-  const taskStr = pts ? Object.entries(pts).map(([k,v])=>`${k.replace('synth:recall:','recall:')} ${(100*v).toFixed(0)}%`).join(" · ") + (r.worst_task?` — worst: ${r.worst_task}`:"") : null;
-  const F = [
-    ["net", r.name], ["ops", r.ops],
-    ["capability (rung + skill)", r.cap!=null ? r.cap.toFixed(3) : null],
-    [pts ? `worst-case skill (min across tasks${exclW})` : "skill", r.skill!=null ? (100*r.skill).toFixed(2)+"%" : null],
-    ["per-task skill", taskStr],
-    [pts ? "agg-loss (1 − worst skill)" : "loss (cross-entropy)", r.val], ["perplexity", r.ppl],
-    [pts ? "rung (difficulty targeted; runs full suite)" : "level / corpus", r.corpus], ["task kind", r.kind],
-    ["window", r.window], ["topology", r.topo], ["external memory", r.ext], ["attention stack", r.stack],
-    ["synth op (L2)", r.synth], ["context Δ (late−early)", r.lme], ["val σ (seed noise)", r.val_std],
-    ["pos loss", r.pos_loss], ["cost", r.cost], ["steps/sec", r.st_per_s], ["pruned", r.pruned],
-    ["d (width)", r.d], ["layers", r.n_layer], ["train steps", r.steps], ["seed", r.seed],
-    ["params", r.params], ["score (−val)", r.score],
-    ["evaluated", r.ts ? new Date(r.ts*1000).toLocaleString() : null],
-  ];
-  const rows = F.filter(([k,v]) => v!=null && v!=="").map(([k,v]) =>
-    `<div class="srow"><span class="sk">${esc(k)}</span><span class="sv">${esc(yn(v))}</span></div>`).join("");
-  document.getElementById("sheetbody").innerHTML =
-    `<div class="shh">${esc(r.name)}</div>` + rows + `<button class="sclose" onclick="closeSheet()">close</button>`;
-  document.getElementById("sheet").style.display = "flex";
-}
-function closeSheet(e){ if(!e || e.target.id==="sheet") document.getElementById("sheet").style.display="none"; }
-let curView = "main";
-const VIEWS = ["main","library","core","tasks","inv"];
-function showView(v){
-  curView = v;
-  for (const n of VIEWS) { const el=document.getElementById("view-"+n); if(el) el.style.display=(n===v)?"":"none"; }
-  document.querySelectorAll(".tab[data-view]").forEach(t=> t.classList.toggle("active", t.dataset.view===v));
-  if (v==="tasks") renderTasks(); else if (v==="inv") renderInventions();
-  else if (v==="library") openLibrary(); else if (v==="core") renderCore();
-}
-// PLAN tab — the project's STRATEGIC roadmap (stages) + TACTICAL backlog (TODO open items by priority),
-// parsed from ROADMAP.md + TODO.md by the publisher (d.plan). Replaces the old learning-tasks view: this is
-// the staircase + the to-do list the system is actually being driven by, mirrored read-only to the phone.
-function renderTasks(){
-  const p = (window._d && window._d.plan) || null;
-  const el = document.getElementById("tasksbody");
-  if(!p){ el.innerHTML = "<div class='small'>plan not published yet</div>"; return; }
-  // ── ROADMAP staircase ──
-  const stages = (p.roadmap||[]).map(s=>{
-    const badge = s.here ? ` <span style="color:#3fb950;font-weight:bold">◀ WE ARE HERE</span>` : "";
-    return `<div class="inv-item"><div class="inv-h" style="${s.here?'color:#3fb950':''}">${esc(s.name)}${badge}</div>`
-      + (s.status?`<div class="inv-what" style="color:var(--dim)">${esc(s.status)}</div>`:"") + `</div>`;
-  }).join("");
-  const position = (p.position||[]).length
-    ? `<div class="inv-sec">HONEST CURRENT POSITION</div>` + (p.position||[]).map(b=>
-        `<div class="inv-what" style="color:var(--dim);padding:4px 0">• ${esc(b)}</div>`).join("")
-    : "";
-  // ── TACTICAL backlog, grouped by priority ──
-  const PCOL = {P1:"#f85149", P2:"#e3b341", P3:"#8b949e"};
-  const open = (p.open||[]);
-  const byPri = ord => open.filter(o=>o.pri===ord);
-  const grp = ord => { const items = byPri(ord); if(!items.length) return "";
-    return items.map(o=>
-      `<div class="inv-item"><div class="inv-h"><span style="color:${PCOL[o.pri]||'var(--dim)'};font-weight:bold">[${o.pri}]</span> ${esc(o.title)}</div>`
-      + (o.status?`<div class="inv-what" style="color:var(--dim)">${esc(o.status)}</div>`:"") + `</div>`).join("");
-  };
-  const tdl = `<div class="inv-sec">BACKLOG — ${open.length} open · ${p.done||0} done</div>`
-    + grp("P1") + grp("P2") + grp("P3");
-  el.innerHTML = `<div class="inv-sec">ROADMAP — Stage 0 → 3</div>` + stages + position
-    + `<div style="height:10px"></div>` + tdl
-    || "<div class='small'>—</div>";
-}
-function renderInventions(){
-  const inv = (window._d && window._d.inventions) || {};
-  const item = x => `<div class="inv-item"><div class="inv-h">${esc(x.name)} <span class="inv-d">${esc(x.kind||x.when||"")}</span></div>`
-    + (x.what ? `<div class="inv-what">${esc(x.what)}</div>` : "")
-    + (x.why ? `<div class="inv-why">why: ${esc(x.why)}</div>` : "") + `</div>`;
-  const sec = (title, arr) => (arr && arr.length) ? `<div class="inv-sec">${title}</div>` + arr.map(item).join("") : "";
-  document.getElementById("invbody").innerHTML =
-    (sec(`ATOMS — invented primitives (${(inv.atoms||[]).length})`, inv.atoms)
-   + sec("TASKS — self-posed", inv.tasks)
-   + sec("CORPUSES", inv.corpuses)) || "<div class='small'>nothing invented yet</div>";
-}
-// OPERATOR LOOP — the AGENT data (distinct from the token-prediction search): the model reads our actual
-// next-step candidates and RANKS them by how well its own core predicts each; we then SCREEN that slate
-// (accept / reject / build) and the verdicts become its training corpus. v0's rank-control FAILS (core is
-// below chance), so we screen on MERIT, not the model's order — the card stays honest about that.
-function renderOploop(d){
-  const op = (d && d.proposals) || null;
-  const ct = (d && d.search && d.search.core_thermo) || null;     // champion-core thermometer (search->core loop)
-  const card = document.getElementById("oploopcard");
-  if(!card) return;
-  if(!op && !ct){ card.style.display="none"; return; }
-  card.style.display="";
-  // CHAMPION-CORE THERMOMETER: the search-DERIVED core (built from the scale-champion) — the compounding loop's
-  // output. The headline is best-of-all cores, so this is the only place its trajectory shows while it trails.
-  let thermo = "";
-  if(ct && ct.score!=null){
-    const tgt = ct.target||0.60, bs = ct.best_static_score, lead = ct.leads_static;
-    const gap = bs!=null ? (lead
-        ? `<span style="color:var(--green)">leads ${esc(ct.best_static||"static")} by ${(ct.score-bs).toFixed(2)} — adopt-ready</span>`
-        : `<span style="color:var(--dim)">${(bs-ct.score).toFixed(2)} below ${esc(ct.best_static||"static")} (the bar to beat)</span>`) : "";
-    const dm = ct.diagnosis_match!=null ? `dx-match ${(100*ct.diagnosis_match).toFixed(0)}%` : "";
-    const fm = ct.fix_match!=null ? `fix-match ${(100*ct.fix_match).toFixed(0)}%` : "";
-    thermo = `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line,#222)">`
-      + `<span style="color:var(--dim);font-size:11px;letter-spacing:.06em">CHAMPION CORE</span> `
-      + `<b>${ct.score.toFixed(2)}</b> <span style="color:var(--dim)">/ ${tgt.toFixed(2)} seat</span> &nbsp; ${gap}`
-      + `<div class="small" style="color:var(--dim);margin-top:2px">search-derived core (compounding loop). `
-      + [dm,fm].filter(Boolean).join(" · ") + `</div></div>`;
-  }
-  if(!op){ document.getElementById("oploopbody").innerHTML = thermo + "<div class='small' style='color:var(--dim)'>no proposal slate yet</div>"; return; }
-  const CH = {discrim:0.5, fix:0.333, behavior:0.333};                    // per-axis chance on operator_bench
-  const ax = (name,v)=> v==null ? "" :
-    `<span style="color:${v>=CH[name]-1e-6?'var(--green)':'var(--red)'}">${name} ${(100*v).toFixed(0)}%</span>`;
-  const head = `<div style="margin-bottom:6px">proposer <b>${esc(op.proposer||"core")}</b> `
-    + `<span style="color:var(--dim)">vs chance:</span> ${[ax('discrim',op.discrim),ax('fix',op.fix),ax('behavior',op.behavior)].filter(Boolean).join(" · ")}</div>`
-    + `<div style="margin-bottom:8px">${op.slates} slate(s) · ${op.screened} screened — `
-    + `<b style="color:var(--green)">${op.accepted||0}✓</b> / <b style="color:var(--red)">${op.rejected||0}✗</b> · `
-    + `<b style="color:#ffd33d">${op.built||0} built</b></div>`;
-  const ctrl = op.control_passed
-    ? `<div class="small" style="color:var(--green);margin-bottom:8px">✓ rank-control PASS — the proposer's ordering beat the planted controls</div>`
-    : `<div class="small" style="color:var(--red);margin-bottom:8px">✗ rank-control FAIL — ${esc(op.caveat||"ordering is ~random")}. We screen on MERIT, not the model's order (babysat shared seat).</div>`;
-  const rows = (op.ranking||[]).map(r=>{
-    const badge = r.built ? `<span style="color:#ffd33d">★ built</span>`
-      : r.verdict==="accept" ? `<span style="color:var(--green)">✓ accept</span>`
-      : r.verdict==="reject" ? `<span style="color:var(--red)">✗ reject</span>`
-      : `<span style="color:var(--dim)">· pending</span>`;
-    const ctag = r.control==="good" ? ` <span style="color:var(--dim)">[ctrl✓]</span>`
-      : r.control==="bad" ? ` <span style="color:var(--dim)">[ctrl✗]</span>` : "";
-    const commit = r.commit ? ` <span style="color:var(--dim)">@${esc(String(r.commit).slice(0,9))}</span>` : "";
-    const reason = r.reason ? `<div class="small" style="color:var(--dim);margin-top:2px">${esc(r.reason)}</div>` : "";
-    return `<div class="inv-item"><div><span style="color:var(--dim)">#${r.rank}</span> ${badge}${ctag}${commit} `
-      + `<span style="color:var(--dim);font-size:11px">${esc(r.area||"")}</span></div>`
-      + `<div class="inv-what">${esc(r.text||"")}</div>${reason}</div>`;
-  }).join("");
-  document.getElementById("oploopbody").innerHTML = thermo + head + ctrl
-    + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.06em;margin-bottom:2px">LATEST SLATE — what the model proposed, in its own ranked order (we screen)</div>`
-    + (rows || "<div class='small'>no slate yet</div>");
-}
-// ── CLIENT-SIDE derivations (the publisher ships only raw step/steps/sps; the page computes phase, ETA,
-// and the live interpolated step itself, refreshed every second between 30s fetches) ──────────────────
-function phaseBudgets(d){               // [[budget, label], ...] from the data the page already has
-  const lv = (d.control||{}).live || {};
-  const scl = ((d.control||{}).scale_continuity||{}).scale_steps;
-  return [[lv.screen_steps,"1 · screen"],[lv.steps,"2 · probe"],[scl,"3 · scale"]]
-    .filter(b=>b[0]).map(b=>[+b[0], b[1]]);
-}
-function nearestPhase(steps, budgets){  // map a worker's step budget to the nearest known phase budget
-  if(!steps || !budgets.length) return null;
-  return budgets.reduce((a,b)=> Math.abs(b[0]-steps) < Math.abs(a[0]-steps) ? b : a)[1];
-}
-const PHASE_RANK = {"init":0, "1 · screen":1, "2 · probe":2, "3 · scale":3};
-function renderWorkers(){
-  const d = window._d; if(!d) return;
-  const c = d.cluster || {}, budgets = phaseBudgets(d);
-  // how stale each worker's step reading is RIGHT NOW = published-data age + the cluster mirror's own age at
-  // publish. Recomputed every tick, so the interpolated step advances ~sps steps/sec for a smooth bar.
-  const stepAge = Math.max(0, (Date.now()/1000 - (d.ts||0)) + (c.status_age||0));
-  let fleetRank = -1, fleetPhase = "idle", roundEta = null;
-  const rows = (c.workers||[]).map(w=>{
-    const off = w.age > 60;
-    const sc = off ? "stat-off" : (w.status==="ready"||w.status==="running") ? "stat-ready" : "stat-warn";
-    const st = off ? `OFFLINE ${ago(w.age)} — last: ${w.status}` : w.status;
-    const tcol = w.temp>=83?"var(--red)":w.temp>=75?"var(--amber)":"var(--dim)";
-    const running = w.status==="running";
-    const stepping = (w.step!=null && w.steps);
-    const liveStep = stepping ? Math.min(w.steps, Math.round(w.step + (w.sps||0)*stepAge)) : w.step;  // INTERPOLATED
-    const pctw = stepping ? Math.min(100, 100*liveStep/w.steps) : 0;
-    const phase = !running ? "idle" : (stepping ? nearestPhase(w.steps, budgets) : (w.activity || "init"));
-    const eta = (stepping && w.sps>0 && w.steps>liveStep) ? (w.steps-liveStep)/w.sps : null;
-    if(running){ const r = PHASE_RANK[phase] ?? 0; if(r>fleetRank){ fleetRank=r; fleetPhase=phase; }
-                 if(eta!=null) roundEta = Math.max(roundEta ?? 0, eta); }
-    const phaseBadge = (phase && phase!=="idle") ? `<span style="color:var(--green);font-weight:600">phase ${esc(phase)}</span> · ` : "";
-    const etaB = eta!=null ? ` · eta ~${ago(eta)}` : "";
-    const netLine = stepping
-      ? `<div class="small" style="margin-top:3px">${phaseBadge}net <b style="color:var(--amber)">${esc(w.net||"?")}</b>${w.sps!=null?` · ${w.sps} st/s`:""} · step ${liveStep}/${w.steps}${etaB}</div>
-         <div class="bar" style="height:4px"><i style="width:${pctw}%;background:var(--amber);transition:width .9s linear"></i></div>`
-      : (w.activity && !off)
-        ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ running <b>${esc(w.activity)}</b>${w.job_kind&&w.job_kind!=='shell'?` <span style="color:var(--dim)">· ${esc(w.job_kind)}</span>`:''}</div>`
-        : (w.job && !off)
-          ? `<div class="small" style="margin-top:3px;color:var(--amber)">⟳ working… <span style="color:var(--dim)">(job ${esc(w.job)})</span></div>`
-          : `<div class="small" style="margin-top:3px;color:var(--dim)">idle</div>`;
-    return `<div class="wk"><div class="nm">${esc(w.id)} <span class="${sc}">● ${esc(st)}</span></div>
-      <div class="bar"><i style="width:${w.util||0}%"></i></div>
-      <div class="small">gpu ${w.util??"—"}% · <span style="color:${tcol}">${w.temp??"—"}°C</span> · ${w.mem_used??"—"}/${w.mem_total??"—"} MiB · ${esc((w.caps||[]).join(","))}${w.job?" · job "+esc(w.job):""}</div>
-      ${netLine}</div>`;
-  }).join("");
-  const rnd = (d.control||{}).round;
-  const roundStr = rnd!=null ? `round <b>${rnd}</b> · ` : "";
-  const phaseStr = `phase <b style="color:var(--green)">${esc(fleetPhase)}</b>`;
-  const etaStr = roundEta!=null ? ` · eta ~${ago(roundEta)}` : "";
-  const summary = `<div class="small" style="margin-top:4px">${roundStr}${phaseStr}${etaStr} · queue ${c.queued??0} · running ${c.running??0} · done ${c.done??0}</div>`;
-  document.getElementById("workers").innerHTML = rows + summary;
-}
-// ── OVERHAUL MODE (core + expert-library): build status + library + core. The search (status.json) is
-// PAUSED, so this is the active work. overhaul.json is small (polled every 15s); library.json is large
-// (~540KB) so it's fetched LAZILY when the Library tab is opened (then cached ~60s). Both from the data
-// branch via GitHub raw (the realtime relay carries only status.json). ───────────────────────────────
-const OV_RAW  = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/overhaul.json";
+const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
+const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 const LIB_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/library.json";
-let libFetchedAt = 0, libStat = "all", libCap = 60, libF = "";
-function fieldColor(f){ let h=0; for(const c of (f||"")) h=(h*31+c.charCodeAt(0))>>>0; return `hsl(${h%360},55%,62%)`; }
-async function fetchOverhaul(){
-  try { const r = await fetch(OV_RAW + "?t=" + Date.now(), {cache:"no-store"});
-        if (r.ok){ window._ov = await r.json(); renderOverhaul(); if(curView==="core") renderCore(); } }
-  catch(e){}
+const VM_RELAY = "https://gabeslaptop.tail46cb76.ts.net/vm.jpg";     // realtime (laptop relay)
+const VM_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/vm.jpg";  // fallback
+let curV = "directive", _lib = null, _libFilter = "all";
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function ago(s){ s=Math.max(0,s|0); if(s<90) return s+"s"; if(s<5400) return (s/60|0)+"m"; if(s<172800) return (s/3600|0)+"h"; return (s/86400|0)+"d"; }
+function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
+
+function show(v){
+  curV = v;
+  ["directive","library","loop","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
+  if(v==="library") renderLib();
 }
-function renderOverhaul(){
-  const o = window._ov, el = document.getElementById("ovbuild"); if(!o||!el) return;
-  const L = o.library||{}, done=L.experts_done||0, tot=L.experts_total||0, pc = tot? 100*done/tot : 0, c = o.cluster||{};
-  el.style.display="";
-  el.innerHTML = `<div style="color:var(--gold);font-weight:bold;text-align:center;margin-bottom:8px">■ ${esc(o.mode||"overhaul")}</div>`
-    + `<div class="bignums"><div><div class="v">${done}</div><div class="l">EXPERTS BUILT</div></div>`
-    + `<div><div class="v">${tot}</div><div class="l">TOTAL</div></div>`
-    + `<div><div class="v">${L.skills??"—"}</div><div class="l">SKILLS</div></div></div>`
-    + `<div class="bar" style="margin-top:8px"><i style="width:${pc.toFixed(1)}%;background:var(--green)"></i></div>`
-    + `<div class="small" style="text-align:center">${pc.toFixed(1)}% of experts built · queue ${c.queued??0} · running ${c.running??0}</div>`;
-}
-async function openLibrary(){
-  if (!window._lib || Date.now()-libFetchedAt > 60000){
-    document.getElementById("lib-rows").innerHTML = "<div class='small'>loading library…</div>";
-    try { const r = await fetch(LIB_RAW + "?t=" + Date.now(), {cache:"no-store"});
-          if (r.ok){ window._lib = await r.json(); libFetchedAt = Date.now(); } }
-    catch(e){ document.getElementById("lib-rows").innerHTML = "<div class='small'>library fetch failed</div>"; return; }
+function libFilter(s){ _libFilter=s; document.querySelectorAll(".tabs.sub .tab").forEach(t=>t.classList.toggle("active", t.dataset.s===s)); renderLib(); }
+
+// ── DIRECTIVE TAB ──────────────────────────────────────────────────────────
+function renderDirective(dt){
+  const card=document.getElementById("dcard");
+  if(!dt){ document.getElementById("dtext").textContent="(no active directive)"; document.getElementById("dnums").innerHTML=""; document.getElementById("dplan").innerHTML="<span class='muted'>idle</span>"; return; }
+  document.getElementById("dtext").textContent = dt.directive || "—";
+  document.getElementById("dlive").textContent = dt.live ? "· live" : "· idle (loop down)";
+  document.getElementById("dlive").className = dt.live ? "green" : "amber";
+  let nums="";
+  if(dt.mode==="comprehension"){
+    nums = `<div><div class="v green">${dt.ladder_height??"—"}</div><div class="ll">LADDER HEIGHT</div><div class="ll">${dt.avg_difficulty!=null?("avg D"+dt.avg_difficulty):""}</div></div>`
+         + `<div><div class="v">${dt.families??"—"}</div><div class="ll">FAMILIES</div></div>`
+         + `<div><div class="v ${dt.at_wall>0?'amber':''}">${dt.at_wall??"—"}</div><div class="ll">AT WALL</div><div class="ll">&rarr; atom-search</div></div>`;
   }
-  renderLibrary();
+  document.getElementById("dnums").innerHTML = nums;
+  document.getElementById("dprog").textContent = `mode: ${dt.mode||"?"} · iter ${dt.iter??"?"} · dispatched ${dt.dispatched??0}`;
+  drawLadder(dt.history||[]);
+  const plan = dt.plan||[];
+  document.getElementById("dplan").innerHTML = plan.length
+    ? plan.map(p=>`<div class="row"><span class="a">${esc(p.family)} <span class="chip">D${p.difficulty}</span></span><span class="b">tier ${p.tier??0}</span></div>`).join("")
+    : "<span class='muted'>climbing from difficulty 1 — experts dispatching/building on the workers…</span>";
 }
-function libStatus(s){ libStat=s; libCap=60;
-  document.querySelectorAll("#lib-status .tab").forEach(t=> t.classList.toggle("active", t.dataset.st===s)); renderLibrary(); }
-function libField(f){ libF = (libF===f)?"":f; libCap=60; renderLibrary(); }
-function libMore(){ libCap += 100; renderLibrary(); }
-function renderLibrary(){
-  const all = window._lib || []; if(!all.length) return;
-  const q = (document.getElementById("lib-search").value||"").toLowerCase().trim();
-  const nDone = all.filter(r=>r.status==="done").length;
-  document.getElementById("lib-counts").innerHTML =
-    `<div><div class="v" style="color:var(--green)">${nDone}</div><div class="l">DONE</div></div>`
-   +`<div><div class="v">${all.length-nDone}</div><div class="l">PENDING</div></div>`
-   +`<div><div class="v">${all.length}</div><div class="l">TOTAL</div></div>`;
-  const fc = {}; all.forEach(r=> fc[r.field]=(fc[r.field]||0)+1);
-  const fields = Object.entries(fc).sort((a,b)=>b[1]-a[1]);
-  document.getElementById("lib-fields").innerHTML =
-    `<span onclick="libField('')" style="cursor:pointer;color:${libF?'var(--dim)':'var(--fg)'}">all ${all.length}</span>`
-    + fields.map(([f,n])=> `<span onclick="libField('${esc(f)}')" style="cursor:pointer">●<span style="color:${fieldColor(f)};${libF===f?'font-weight:bold':''}"> ${esc(f)}</span> <span style="color:var(--dim)">${n}</span></span>`).join("");
-  let rows = all;
-  if (libStat!=="all") rows = rows.filter(r=>r.status===libStat);
-  if (libF) rows = rows.filter(r=>r.field===libF);
-  if (q) rows = rows.filter(r=> (r.skill||"").toLowerCase().includes(q) || (r.field||"").toLowerCase().includes(q));
-  const shown = rows.slice(0, libCap);
-  const body = shown.map(r=>{
-    const stcol = r.status==="done"?"var(--green)":"var(--dim)";
-    const sub = [r.window?("w"+r.window):"", r.origin].filter(Boolean).join(" · ");
-    return `<div class="row"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(r.skill)}</b> <span style="color:var(--dim);font-size:11px">${esc(sub)}</span></span>`
-      + `<span style="color:${fieldColor(r.field)};font-size:11px">${esc(r.field)}</span>`
-      + `<span style="color:${stcol};font-size:11px">${esc(r.status)}</span></div>`;
-  }).join("") || "<div class='small'>no experts match</div>";
-  const more = rows.length>libCap ? `<div class="pager"><button onclick="libMore()">show more (+${rows.length-libCap} hidden)</button></div>` : "";
-  document.getElementById("lib-rows").innerHTML = `<div class="small" style="color:var(--dim)">showing ${shown.length} of ${rows.length}</div>` + body + more;
+function drawLadder(hist){
+  const c=document.getElementById("ladchart"), x=c.getContext("2d");
+  x.clearRect(0,0,c.width,c.height);
+  const H=(hist||[]).filter(p=>p&&p.h!=null&&p.ts);
+  if(H.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting…", 8, 20); return; }
+  const t0=H[0].ts, t1=Math.max(H[H.length-1].ts, t0+1), maxH=Math.max(2,...H.map(p=>p.h));
+  const X=t=>8+((t-t0)/(t1-t0))*(c.width-16), Y=v=>c.height-12-(v/maxH)*(c.height-24);
+  x.strokeStyle="#21262d"; x.lineWidth=1;
+  for(let g=0;g<=4;g++){ const yy=12+g*(c.height-24)/4; x.beginPath(); x.moveTo(8,yy); x.lineTo(c.width-8,yy); x.stroke(); }
+  x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();
+  H.forEach((p,i)=>{ const px=X(p.ts),py=Y(p.h); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
+  x.fillStyle="#3fb950"; const last=H[H.length-1]; x.beginPath(); x.arc(X(last.ts),Y(last.h),3,0,7); x.fill();
+  x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+maxH, 10, 14);
 }
-function renderCore(){
-  const o = window._ov || {}, core = o.core||{}, c = o.cluster||{};
-  const el = document.getElementById("core-body"); if(!el) return;
-  const desk = (c.workers||[]).find(w=> /desktop|3080/i.test(w.id||"") || /desktop|3080/i.test(w.host||""));
-  const g = (desk && desk.gpus && desk.gpus[0]) || {};   // raw cluster_status carries gpus[] (not flat util/temp)
-  const tcol = g.temp>=83?"var(--red)":g.temp>=75?"var(--amber)":"var(--dim)";
-  const deskBox = desk
-    ? `<div class="wk"><div class="nm">${esc(desk.id)} <span class="stat-ready">● ${esc(desk.status||"")}</span></div>`
-      + `<div class="bar"><i style="width:${g.util||0}%"></i></div>`
-      + `<div class="small">gpu ${g.util??"—"}% · <span style="color:${tcol}">${g.temp??"—"}°C</span> · ${g.mem_used??"—"}/${g.mem_total??"—"} MiB${desk.current_job?" · job "+esc(desk.current_job):" · idle"}</div></div>`
-    : "<div class='small'>desktop worker not reporting</div>";
-  el.innerHTML =
-    `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em">CORE STATUS</div>`
-    + `<div class="bignums" style="margin-top:8px"><div><div class="v" style="color:${core.trained?'var(--green)':'var(--dim)'}">${core.trained?"YES":"NO"}</div><div class="l">TRAINED</div></div>`
-    + `<div><div class="v">${core.routing_acc!=null?(100*core.routing_acc).toFixed(0)+"%":"—"}</div><div class="l">ROUTING ACC</div></div>`
-    + `<div><div class="v">${core.score!=null?core.score.toFixed(2):"—"}</div><div class="l">CORE SCORE</div></div></div>`
-    + (core.note?`<div class="small">${esc(core.note)}</div>`:"")
-    + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em;margin-top:14px">LIVE DESKTOP FEED · desktop-3080 mirror</div>${deskBox}`
-    + `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em;margin-top:14px">LIVE EXPERTS · loaded in the runtime</div>`
-    + `<div class="small">${(core.live_experts&&core.live_experts.length)?core.live_experts.map(esc).join(", "):"pending runtime — which experts are loaded will appear here"}</div>`
-    + (o.own_code ? `<div class="l" style="color:var(--dim);font-size:11px;letter-spacing:.08em;margin-top:14px">OWN-CODE EXPERTS · the seat learning its OWN code from execution</div>`
-        + `<div class="bignums" style="margin-top:6px"><div><div class="v" style="color:var(--green)">${o.own_code.experts_built}</div><div class="l">BUILT</div></div>`
-        + `<div><div class="v">${o.own_code.serving}</div><div class="l">SERVING</div></div>`
-        + `<div><div class="v">${o.own_code.of_functions}</div><div class="l">OF FNS</div></div></div>`
-        + `<div class="small">${esc((o.own_code.functions||[]).join(", "))}</div>`
-        + (o.own_code.repair?`<div class="small" style="margin-top:4px;color:var(--dim)">${esc(o.own_code.repair)}</div>`:"")
-        + (o.own_code.note?`<div class="small" style="color:var(--dim)">${esc(o.own_code.note)}</div>`:"") : "");
+
+// ── LIBRARY TAB ────────────────────────────────────────────────────────────
+async function fetchLib(){ try{ const r=await fetch(LIB_RAW+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const j=await r.json(); _lib = Array.isArray(j)? j : (j.rows||j.library||[]); } }catch(e){} }
+function renderLib(){
+  const rows=_lib||[]; const done=rows.filter(r=>r.status==="done").length;
+  document.getElementById("libcounts").innerHTML =
+    `<div><div class="v green">${done}</div><div class="ll">BUILT</div></div>`
+   +`<div><div class="v">${rows.length-done}</div><div class="ll">PENDING</div></div>`
+   +`<div><div class="v">${rows.length}</div><div class="ll">TOTAL</div></div>`;
+  const q=(document.getElementById("libsearch").value||"").toLowerCase();
+  let f=rows;
+  if(_libFilter!=="all") f=f.filter(r=>r.status===_libFilter);
+  if(q) f=f.filter(r=>((r.skill||"")+" "+(r.purpose||"")+" "+(r.field||"")+" "+(r.topology||"")).toLowerCase().includes(q));
+  f = f.slice().sort((a,b)=>(b.created||0)-(a.created||0));
+  const N=80, shown=f.slice(0,N);
+  document.getElementById("librows").innerHTML = shown.map(r=>
+    `<div class="row"><span class="a">${esc(r.purpose||r.skill)} `
+    + `<span class="chip">${esc(r.field)}</span>`
+    + (r.topology?`<span class="chip">${esc(r.topology)}</span>`:"")
+    + `</span><span class="b">`
+    + (r.status==="done"?`<span class="green">built</span>`:`<span class="dim">pending</span>`)
+    + ` · ${r.uses!=null?(r.uses+" uses"):"uses n/a"}`
+    + (r.created?` · ${when(r.created)}`:"")
+    + `</span></div>`).join("") || "<span class='muted'>no experts match</span>";
+  if(f.length>N) document.getElementById("librows").innerHTML += `<div class="muted" style="margin-top:6px">+${f.length-N} more (refine search)</div>`;
 }
+
+// ── LOOP TAB ───────────────────────────────────────────────────────────────
+function renderLoop(lf){
+  const vm=document.getElementById("vmfeed");
+  const av = lf && lf.vm && lf.vm.available;
+  vm.innerHTML = av
+    ? `<img class="vm" src="${VM_RELAY}?t=${Date.now()}" onerror="this.onerror=null;this.src='${VM_RAW}?t=${Date.now()}'"><div class="muted" style="margin-top:4px">updated ${when(lf.vm.ts)}</div>`
+    : `<div class="muted">VM idle — the comprehension loop builds experts on the cluster, not the desktop VM. (feed appears when the VM is in use.)</div>`;
+  const fmtE = r=>`<div class="row"><span class="a">${esc(r.event||"")} ${r.family?("· "+esc(r.family)):""} ${r.difficulty!=null?("<span class='chip'>D"+r.difficulty+"</span>"):""}</span><span class="b">it ${r.iter??"?"} ${r.tier!=null?("· t"+r.tier):""}</span></div>`;
+  const fmtP = r=>`<div class="row"><span class="a">${esc(r.event||"")} ${r.family?("· "+esc(r.family)):""}</span><span class="b">it ${r.iter??"?"} ${r.ladder_height!=null?("· h"+r.ladder_height):""} ${r.dispatched!=null?("· +"+r.dispatched):""}</span></div>`;
+  const fmtT = r=>`<div class="row"><span class="a">${esc(r.intent||r.niche||"")}</span><span class="b">it ${r.iter??"?"}</span></div>`;
+  document.getElementById("loopexperts").innerHTML = (lf&&lf.experts&&lf.experts.length)? lf.experts.map(fmtE).join("") : "<span class='muted'>—</span>";
+  document.getElementById("loopplans").innerHTML = (lf&&lf.plans&&lf.plans.length)? lf.plans.map(fmtP).join("") : "<span class='muted'>—</span>";
+  document.getElementById("looptasks").innerHTML = (lf&&lf.tasks&&lf.tasks.length)? lf.tasks.map(fmtT).join("") : "<span class='muted'>—</span>";
+}
+
+// ── WORKERS TAB (read-only stats) ──────────────────────────────────────────
+function renderWorkers(cl){
+  const ws=(cl&&cl.workers)||[];
+  document.getElementById("workerrows").innerHTML = ws.length ? ws.map(w=>{
+    const g=(w.gpus&&w.gpus[0])||{}, util=g.util??0, temp=g.temp, mem=g.mem_used, memt=g.mem_total;
+    const st=w.status||"", running=/running/.test(st);
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--grid)">`
+      + `<div class="row" style="border:none;padding:2px 0"><span class="a"><b>${esc(w.id)}</b></span>`
+      + `<span class="b ${running?'green':(/owner active/.test(st)?'amber':'dim')}">${esc(st)}</span></div>`
+      + `<div class="gbar"><span style="width:${util}%;background:${util>80?'var(--amber)':'var(--green)'}"></span></div>`
+      + `<div class="row" style="border:none;padding:2px 0"><span class="a muted">GPU ${util}% · ${temp!=null?temp+"&deg;C":"—"} · ${mem!=null?mem+"/"+memt+"MB":""}</span>`
+      + `<span class="b muted">${w.current_job?("job "+esc(String(w.current_job).slice(-8))):"idle"} ${w.activity?("· "+esc(w.activity)):""}</span></div>`
+      + ((w.capabilities&&w.capabilities.length)?`<div class="muted" style="font-size:10px">${w.capabilities.map(esc).join(" · ")}</div>`:"")
+      + `</div>`;
+  }).join("") : "<span class='muted'>no workers reporting</span>";
+}
+
+// ── fetch loop ─────────────────────────────────────────────────────────────
 async function fetchStatus(){
-  // REALTIME relay first (laptop POSTs here every ~5s; no CDN cache) -> fall back to the GitHub raw
-  // (~5-min CDN cache) if the relay is unreachable or returns its cold-isolate {} (no `ts`).
-  try {
-    const r = await fetch(RELAY + "?t=" + Date.now(), {cache:"no-store"});
-    if (r.ok) { const d = await r.json(); if (d && d.ts) return d; }
-  } catch(e){}
-  return await (await fetch(RAW + "?t=" + Date.now(), {cache:"no-store"})).json();
+  try { const r=await fetch(RELAY+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); if(d&&d.ts) return d; } } catch(e){}
+  return await (await fetch(RAW+"?t="+Date.now(),{cache:"no-store"})).json();
 }
 async function load(){
   let d;
-  try { d = await fetchStatus(); }
-  catch(e){ document.getElementById("upd").textContent = "fetch failed"; return; }
-  const age = Date.now()/1000 - d.ts;
-  const upd = document.getElementById("upd");
-  upd.textContent = "data " + ago(age) + " old";
-  upd.className = "pill" + (age > 900 ? " stale" : "");
-  const s = d.search || {};
-  window._d = d;                                                // for the Tasks / Inventions subpages
-  const champ = s.champion ?? s.best_val;                       // raw loss (cross-entropy) of the best net
-  // HEADLINE = STAGE 1->2 HANDOFF READINESS (operator_bench: how close a core is to taking the seat —
-  // read code, tell correct from buggy, pick the fix). The north-star metric: ~chance (~0.4) until real
-  // Stage-1 progress, then climbs. CAPABILITY (live substrate progress) is demoted to the sub-line. If no
-  // handoff score yet (older payload / unscored) -> fall back to the capability headline.
-  const ho = s.handoff;
-  document.getElementById("best").textContent = (ho && ho.score!=null) ? ho.score.toFixed(2)
-                                               : (s.capability!=null ? s.capability.toFixed(2) : "—");
-  // SELF-REF "can it do OUR job" parity axes (governing principle): honest companion to the proxy headline —
-  // a fluent LM scores ~0.43 on code-likelihood yet sits at ~chance (25%) here. Appended to the sub-line.
-  const _mx = (ho && (ho.diagnosis_match!=null || ho.fix_match!=null))
-    ? " · " + [ho.diagnosis_match!=null?("dx "+pct(ho.diagnosis_match)):"", ho.fix_match!=null?("fix "+pct(ho.fix_match)):""]
-        .filter(Boolean).join(" ") + " vs 25%" : "";
-  document.getElementById("bestsk").textContent = ((ho && ho.score!=null)
-    ? ((s.capability!=null ? "cap "+s.capability.toFixed(2) : "") + (s.best_skill!=null ? " · "+pct(s.best_skill)+" skill" : "")).trim() + _mx
-    : (s.best_skill!=null ? pct(s.best_skill)+" skill" : ""));
-  const lv = s.level;
-  // DIFFICULTY = the bare rung VALUE that is added to skill to form capability (capability = difficulty +
-  // skill). Show the number itself (e.g. 1), with the task kind as a small sub-label for context.
-  document.getElementById("gate").textContent = (lv && lv.difficulty!=null) ? lv.difficulty : "—";
-  const gk = document.getElementById("gatekind"); if (gk) gk.textContent = (lv && lv.kind) ? lv.kind : "";
-  document.getElementById("ppl").textContent  = champ?.toFixed(4) ?? "—";       // raw loss, for reference
-  document.getElementById("phase").textContent = s.phase ? `phase: ${s.phase}` : "";
-  // SHARED-SEAT operator loop (the model proposes, humans screen). v0 ranking is ~random until the core
-  // improves — show the falsifiable rank-control verdict so it stays honest.
-  const op = d.proposals;
-  document.getElementById("oploop").innerHTML = op
-    ? `operator loop: ${op.slates} slate(s) · ${op.screened} screened (${op.accepted}✓/${op.rejected}✗) · `
-      + `proposer ${op.proposer_score!=null?op.proposer_score.toFixed(2):"?"} · `
-      + (op.control_passed ? `<span style="color:#3fb950">rank-control PASS</span>`
-                           : `<span style="color:#f85149">rank-control FAIL → ordering ~random (babysat)</span>`)
-    : "";
-  document.getElementById("thr").textContent =
-    `σ ${s.sigma?.toFixed(4)}   d${s.d}/b${s.batch}/${s.steps} steps   ${(d.cluster?.workers||[]).length} GPU(s)`;
-  const bn = document.getElementById("banner");
-  if (s.plateau) { bn.style.display=""; bn.textContent = `■ ARCHITECTURE PLATEAU — ${s.plateau.champion} (val ${s.plateau.val}, ppl ${s.plateau.ppl}) is final · ready for scale training`; }
-  else { bn.style.display="none"; }
-  // sparkline — TWO trajectories on a shared time-X / value-Y (both "higher = better"):
-  //   GREEN line  = HANDOFF readiness (operator_score 0..1 -> the seat; ~chance 0.40, flat until Stage-1
-  //                 progress, then climbs). recorded on-change.
-  //   YELLOW line = CHAMPION capability (running-max of per-eval capability = DIFF_MULT*rung + skill, the
-  //                 difficulty-AGNOSTIC monotonic metric). The difficulty multiplier is small (publisher
-  //                 DIFF_MULT) so capability lands in the handoff's 0..1 band and the lines track; it can
-  //                 still climb past 1 as rungs clear (unbounded — no upper clamp on the axis).
-  //   blue dots   = individual evals (each design's capability). dashed = chance (~0.40) for the handoff line.
-  const c = document.getElementById("spark"), x = c.getContext("2d");
-  x.clearRect(0,0,c.width,c.height);
-  const EV = (d.history||[]).filter(p=>p.cap!=null && p.val<9 && p.ts);                        // per-eval capability
-  const HH = ((d.search&&d.search.handoff_history)||[]).filter(p=>p&&p.score!=null&&p.ts);    // handoff trend
-  const allTs = [...EV.map(p=>p.ts), ...HH.map(p=>p.ts)];
-  if (allTs.length >= 1){
-    const nowS = Date.now()/1000;
-    let t0 = Math.min(...allTs), t1 = Math.max(nowS, ...allTs);
-    if (t1-t0 < 60){ t0 = t1 - 3600; }                          // a single flat point still gets a span
-    const vals = [.35,.55].concat(EV.map(p=>p.cap)).concat(HH.map(p=>p.score));   // anchor the chance band
-    const lo = Math.max(0, Math.min(...vals)-.05), hi = Math.max(...vals)+.05;    // no upper clamp (capability is unbounded)
-    const X = t => 8 + ((t-t0)/Math.max(t1-t0,1e-9))*(c.width-16);
-    const Y = v => c.height-10-((v-lo)/Math.max(hi-lo,1e-9))*(c.height-20);   // higher = higher up
-    x.strokeStyle="rgba(139,148,158,.4)"; x.setLineDash([4,4]); x.beginPath();    // chance reference (~0.40)
-    x.moveTo(8,Y(0.40)); x.lineTo(c.width-8,Y(0.40)); x.stroke(); x.setLineDash([]);
-    x.fillStyle="rgba(88,166,255,.45)";                                           // individual evals (capability)
-    EV.forEach(p=>{ x.beginPath(); x.arc(X(p.ts),Y(p.cap),2,0,7); x.fill(); });
-    if (EV.length){
-      const win = Math.max(3, Math.round(EV.length*0.15));                        // PURPLE: MEAN capability (trailing-window population trend)
-      x.strokeStyle="#d2a8ff"; x.lineWidth=1.5; x.beginPath();
-      EV.forEach((p,i)=>{ const a=Math.max(0,i-win+1); let s=0; for(let j=a;j<=i;j++) s+=EV[j].cap;
-        const m=s/(i-a+1); i?x.lineTo(X(p.ts),Y(m)):x.moveTo(X(p.ts),Y(m)); }); x.stroke();
-      let rb=-Infinity; x.strokeStyle="#e3b341"; x.lineWidth=2; x.beginPath();    // YELLOW: champion capability (running max)
-      EV.forEach((p,i)=>{ rb=Math.max(rb,p.cap); i?x.lineTo(X(p.ts),Y(rb)):x.moveTo(X(p.ts),Y(rb)); });
-      x.lineTo(X(t1),Y(rb)); x.stroke();
-    }
-    if (HH.length){                                                               // GREEN: handoff readiness trend
-      const sc = HH.map(p=>p.score);
-      x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();
-      HH.forEach((p,i)=>{ i?x.lineTo(X(p.ts),Y(p.score)):x.moveTo(X(p.ts),Y(p.score)); });
-      x.lineTo(X(t1), Y(sc[sc.length-1])); x.stroke();
-      x.fillStyle="#3fb950"; HH.forEach(p=>{ x.beginPath(); x.arc(X(p.ts),Y(p.score),2.5,0,7); x.fill(); });
-    }
-    x.lineWidth=1;
-  }
-  document.getElementById("sparkleg").innerHTML =
-    `<span style="color:#3fb950">▬</span> handoff (&rarr; seat) &nbsp; `+
-    `<span style="color:#e3b341">▬</span> champion capability &nbsp; `+
-    `<span style="color:#d2a8ff">▬</span> mean capability &nbsp; `+
-    `<span style="color:rgba(88,166,255,.8)">●</span> evals &nbsp; `+
-    `<span style="color:var(--dim)">- - chance &asymp; 0.40 · x = time</span>`;
-  // compounding engine — archive coverage + learned motif library
-  const cp = d.compounding || {};
-  const cpEl = document.getElementById("compound");
-  if (cp.niches!=null || cp.motifs!=null){
-    const ab = (cp.archive_best||[]).map(v=> (typeof v==="number"? v.toFixed(3): v)).join(" · ");
-    const sp = cp.archive_spread;
-    const spread = sp ? ` &nbsp;<span style="color:var(--dim)">spread ${sp.min}…${sp.med}…${sp.max}</span>` : "";
-    cpEl.innerHTML = `archive: <b>${cp.niches??0}</b> niches filled${ab?` &nbsp;best ${ab}`:""}${spread}<br>`+
-      `library: <b>${cp.motifs??0}</b> motifs${cp.motifs_champion?` (${cp.motifs_champion} from champions)`:""}`;
-  } else { cpEl.textContent = "warming up…"; }
-  // SCALE-CONTINUITY (phase-3): do the round's best PROBE designs hold their capability when re-trained at
-  // FULL scale? held_frac = share that held (Δ within noise of/above probe); mean Δcap = avg probe→scale
-  // skill change; recent rows = per-design probe→scale. Hidden unless phase-3 is on with data.
-  const scEl = document.getElementById("scalecont"), scCard = document.getElementById("scalecard");
-  const sc = ctl.scale_continuity;
-  if (sc && sc.on && sc.n>0){
-    scCard.style.display="";
-    const hf = sc.held_frac!=null ? (100*sc.held_frac).toFixed(0)+"%" : "—";
-    const md = sc.mean_delta!=null ? (sc.mean_delta>=0?"+":"")+sc.mean_delta.toFixed(3) : "—";
-    const mdcol = sc.mean_delta!=null ? (sc.mean_delta>=-0.01?"var(--green)":"#f85149") : "var(--dim)";
-    const rows = (sc.recent||[]).slice().reverse().map(r=>{
-      const d = r.scale_delta;
-      const col = d==null?"var(--dim)":d>=-0.01?"var(--green)":d<=-0.05?"#f85149":"var(--amber)";
-      const dd = d==null?"—":(d>=0?"+":"")+d.toFixed(3);
-      const ps = r.probe_skill!=null?(100*r.probe_skill).toFixed(0)+"%":"—";
-      const ss = r.scale_skill!=null?(100*r.scale_skill).toFixed(0)+"%":"—";
-      return `<div class="row"><span style="color:${col}"><b>${dd}</b></span><span class="ops">${esc(r.name||"")}</span><span style="color:var(--dim)">probe ${ps} → scale ${ss}</span></div>`;
-    }).join("");
-    scEl.innerHTML =
-      `<span style="color:var(--dim)">held at scale:</span> <b style="color:${sc.held_frac>=0.5?'var(--green)':'var(--amber)'}">${hf}</b> of last ${sc.n} · <span style="color:var(--dim)">mean Δcap</span> <b style="color:${mdcol}">${md}</b> · <span style="color:var(--dim)">${sc.probe_steps}→${sc.scale_steps} steps</span>`+
-      (rows?`<div style="margin-top:5px">${rows}</div>`:"");
-  } else if (scCard) { scCard.style.display="none"; }
-  // evals — paginated list (10/page); tap a row for the full data sheet (renderEvals/showSheet, top of script)
-  window._evals = s.recent || [];
-  window._champs = new Set((s.winners||[]).map(w=>w.name));
-  renderEvals();
-  if (curView==="tasks") renderTasks(); else if (curView==="inv") renderInventions();
-  renderWorkers();                       // phase / eta / live step are derived + interpolated client-side
+  try { d=await fetchStatus(); } catch(e){ document.getElementById("upd").textContent="fetch failed"; return; }
+  const age=Date.now()/1000-(d.ts||0), upd=document.getElementById("upd");
+  upd.textContent="data "+ago(age)+" old"; upd.className="pill"+(age>900?" stale":"");
+  window._d=d;
+  renderDirective(d.directive_status);
+  renderLoop(d.loop_feed);
+  renderWorkers(d.cluster);
+  if(!_lib) await fetchLib();
+  if(curV==="library") renderLib();
 }
-fetchOverhaul(); setInterval(fetchOverhaul, 15000);   // overhaul build status (decoupled from the paused search status)
-load(); setInterval(load, 5000);         // fetch every 5s — matches the publisher's --loop 5 status.json write
-                                         // cadence (laptop Funnel has no request quota now, so 5s is fresh end-to-end:
-                                         // publisher writes status.json every 5s, page polls every 5s). raw GitHub fallback ~5min.
-setInterval(renderWorkers, 1000);        // re-interpolate the live step / progress bar / ETA every second
+load(); setInterval(load, 7000); setInterval(()=>{ fetchLib().then(()=>{ if(curV==="library") renderLib(); }); }, 60000);
 </script>
 </body>
 </html>
