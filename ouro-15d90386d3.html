@@ -180,11 +180,21 @@ function renderLoop(lf){
   vm.innerHTML = av
     ? `<img class="vm" src="${VM_RELAY}?t=${Date.now()}" onerror="this.onerror=null;this.src='${VM_RAW}?t=${Date.now()}'"><div class="muted" style="margin-top:4px">updated ${when(lf.vm.ts)}</div>`
     : `<div class="muted">VM idle — the comprehension loop builds experts on the cluster, not the desktop VM. (feed appears when the VM is in use.)</div>`;
+  const sv = lf&&lf.serving;
   const ae = (lf&&lf.active_experts)||[];
-  document.getElementById("activeexperts").innerHTML = ae.length
-    ? ae.map(e=>`<div class="row"><span class="a">${esc(e.family)} <span class="chip">D${e.difficulty}</span></span><span class="b">${esc(e.topology||"")}</span></div>`).join("")
-      + `<div class="muted" style="margin-top:6px">${ae.length} experts plugged in</div>`
-    : "<span class='muted'>no experts plugged in yet — the loop is building them…</span>";
+  const aeEl = document.getElementById("activeexperts");
+  if(sv){                                   // a serving loop is LIVE — show the real VRAM need-set
+    aeEl.innerHTML =
+      `<div class="small" style="color:var(--green);margin-bottom:4px">● LIVE in VRAM · serving <b>${esc(sv.task||"task")}</b></div>`
+      + (sv.experts||[]).map(e=>`<div class="row"><span class="a">${esc(e.id)}</span><span class="b">${esc(e.topology||"")}${e.mb!=null?(" · "+e.mb+" MB"):""}</span></div>`).join("")
+      + `<div class="muted" style="margin-top:6px">${sv.n} experts live in VRAM · ${sv.resident_mb??"?"}${sv.budget_mb?(" / "+sv.budget_mb):""} MB${sv.device?(" · "+esc(sv.device)):""}</div>`;
+  } else {                                  // no serving loop — show the BUILT library (honestly labelled)
+    aeEl.innerHTML = ae.length
+      ? `<div class="small muted" style="margin-bottom:4px">built library (per family) — no task being served right now</div>`
+        + ae.map(e=>`<div class="row"><span class="a">${esc(e.family)} <span class="chip">D${e.difficulty}</span></span><span class="b">${esc(e.topology||"")}</span></div>`).join("")
+        + `<div class="muted" style="margin-top:6px">${ae.length} experts built</div>`
+      : "<span class='muted'>no experts plugged in yet — the loop is building them…</span>";
+  }
 }
 
 // ── WORKERS TAB (read-only stats) ──────────────────────────────────────────
