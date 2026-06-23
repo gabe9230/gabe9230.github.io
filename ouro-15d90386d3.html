@@ -188,17 +188,20 @@ function renderLoop(lf){
 
 // ── WORKERS TAB (read-only stats) ──────────────────────────────────────────
 function renderWorkers(cl){
-  const ws=(cl&&cl.workers)||[];
+  const ws=(cl&&cl.workers)||[];   // publish_web flattens: w.util / w.temp / w.mem_used / w.job / w.activity (NOT nested gpus)
   document.getElementById("workerrows").innerHTML = ws.length ? ws.map(w=>{
-    const g=(w.gpus&&w.gpus[0])||{}, util=g.util??0, temp=g.temp, mem=g.mem_used, memt=g.mem_total;
-    const st=w.status||"", running=/running/.test(st);
+    const st=w.status||"", util=w.util, temp=w.temp, mem=w.mem_used, memt=w.mem_total;
+    const busy = !!(w.activity || w.job) || /running/.test(st);
+    const stColor = /running/.test(st)?'green':(/owner active/.test(st)?'amber':'dim');
+    const right = busy ? (esc(w.activity||"working") + (w.job?(" · "+esc(String(w.job).slice(-8))):"")) : "idle";
+    const ub = util!=null ? util : (busy?100:0);
     return `<div style="padding:8px 0;border-bottom:1px solid var(--grid)">`
       + `<div class="row" style="border:none;padding:2px 0"><span class="a"><b>${esc(w.id)}</b></span>`
-      + `<span class="b ${running?'green':(/owner active/.test(st)?'amber':'dim')}">${esc(st)}</span></div>`
-      + `<div class="gbar"><span style="width:${util}%;background:${util>80?'var(--amber)':'var(--green)'}"></span></div>`
-      + `<div class="row" style="border:none;padding:2px 0"><span class="a muted">GPU ${util}% · ${temp!=null?temp+"&deg;C":"—"} · ${mem!=null?mem+"/"+memt+"MB":""}</span>`
-      + `<span class="b muted">${w.current_job?("job "+esc(String(w.current_job).slice(-8))):"idle"} ${w.activity?("· "+esc(w.activity)):""}</span></div>`
-      + ((w.capabilities&&w.capabilities.length)?`<div class="muted" style="font-size:10px">${w.capabilities.map(esc).join(" · ")}</div>`:"")
+      + `<span class="b ${stColor}">${esc(st)}</span></div>`
+      + `<div class="gbar"><span style="width:${ub}%;background:${ub>80?'var(--amber)':'var(--green)'}"></span></div>`
+      + `<div class="row" style="border:none;padding:2px 0"><span class="a muted">GPU ${util!=null?util+"%":"—"} · ${temp!=null?temp+"&deg;C":"—"} · ${mem!=null?mem+"/"+memt+"MB":""}</span>`
+      + `<span class="b muted">${right}</span></div>`
+      + ((w.caps&&w.caps.length)?`<div class="muted" style="font-size:10px">${w.caps.map(esc).join(" · ")}</div>`:"")
       + `</div>`;
   }).join("") : "<span class='muted'>no workers reporting</span>";
 }
