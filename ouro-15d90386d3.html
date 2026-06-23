@@ -79,9 +79,7 @@
 
 <div id="v-loop" style="display:none">
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
-  <div class="card"><div class="l">LATEST EXPERTS</div><div id="loopexperts" style="margin-top:6px"></div></div>
-  <div class="card"><div class="l">LATEST PLANS</div><div id="loopplans" style="margin-top:6px"></div></div>
-  <div class="card"><div class="l">LATEST TASKS</div><div id="looptasks" style="margin-top:6px"></div></div>
+  <div class="card"><div class="l">ACTIVE EXPERTS <span class="muted">· currently plugged into the core, per family</span></div><div id="activeexperts" style="margin-top:6px"></div></div>
 </div>
 
 <div id="v-workers" style="display:none">
@@ -178,12 +176,11 @@ function renderLoop(lf){
   vm.innerHTML = av
     ? `<img class="vm" src="${VM_RELAY}?t=${Date.now()}" onerror="this.onerror=null;this.src='${VM_RAW}?t=${Date.now()}'"><div class="muted" style="margin-top:4px">updated ${when(lf.vm.ts)}</div>`
     : `<div class="muted">VM idle — the comprehension loop builds experts on the cluster, not the desktop VM. (feed appears when the VM is in use.)</div>`;
-  const fmtE = r=>`<div class="row"><span class="a">${esc(r.event||"")} ${r.family?("· "+esc(r.family)):""} ${r.difficulty!=null?("<span class='chip'>D"+r.difficulty+"</span>"):""}</span><span class="b">it ${r.iter??"?"} ${r.tier!=null?("· t"+r.tier):""}</span></div>`;
-  const fmtP = r=>`<div class="row"><span class="a">${esc(r.event||"")} ${r.family?("· "+esc(r.family)):""}</span><span class="b">it ${r.iter??"?"} ${r.ladder_height!=null?("· h"+r.ladder_height):""} ${r.dispatched!=null?("· +"+r.dispatched):""}</span></div>`;
-  const fmtT = r=>`<div class="row"><span class="a">${esc(r.intent||r.niche||"")}</span><span class="b">it ${r.iter??"?"}</span></div>`;
-  document.getElementById("loopexperts").innerHTML = (lf&&lf.experts&&lf.experts.length)? lf.experts.map(fmtE).join("") : "<span class='muted'>—</span>";
-  document.getElementById("loopplans").innerHTML = (lf&&lf.plans&&lf.plans.length)? lf.plans.map(fmtP).join("") : "<span class='muted'>—</span>";
-  document.getElementById("looptasks").innerHTML = (lf&&lf.tasks&&lf.tasks.length)? lf.tasks.map(fmtT).join("") : "<span class='muted'>—</span>";
+  const ae = (lf&&lf.active_experts)||[];
+  document.getElementById("activeexperts").innerHTML = ae.length
+    ? ae.map(e=>`<div class="row"><span class="a">${esc(e.family)} <span class="chip">D${e.difficulty}</span></span><span class="b">${esc(e.topology||"")}</span></div>`).join("")
+      + `<div class="muted" style="margin-top:6px">${ae.length} experts plugged in</div>`
+    : "<span class='muted'>no experts plugged in yet — the loop is building them…</span>";
 }
 
 // ── WORKERS TAB (read-only stats) ──────────────────────────────────────────
