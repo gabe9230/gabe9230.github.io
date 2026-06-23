@@ -121,14 +121,15 @@ function renderDirective(dt){
   if(dt.mode==="comprehension"){
     nums = `<div><div class="v green">${dt.ladder_height??"—"}</div><div class="ll">LADDER HEIGHT</div><div class="ll">${dt.avg_difficulty!=null?("avg D"+dt.avg_difficulty):""}</div></div>`
          + `<div><div class="v">${dt.families??"—"}</div><div class="ll">FAMILIES</div></div>`
-         + `<div><div class="v ${dt.at_wall>0?'amber':''}">${dt.at_wall??"—"}</div><div class="ll">AT WALL</div><div class="ll">&rarr; atom-search</div></div>`;
+         + `<div><div class="v ${dt.atom_active>0?'blue':''}">${dt.atom_active??"—"}</div><div class="ll">ATOM-SEARCH</div><div class="ll">diverse topologies</div></div>`
+         + `<div><div class="v ${dt.at_wall>0?'amber':''}">${dt.at_wall??"—"}</div><div class="ll">AT WALL</div><div class="ll">atom-search failed</div></div>`;
   }
   document.getElementById("dnums").innerHTML = nums;
   document.getElementById("dprog").textContent = `mode: ${dt.mode||"?"} · iter ${dt.iter??"?"} · dispatched ${dt.dispatched??0}`;
   drawLadder(dt.history||[]);
   const plan = dt.plan||[];
   document.getElementById("dplan").innerHTML = plan.length
-    ? plan.map(p=>`<div class="row"><span class="a">${esc(p.family)} <span class="chip">D${p.difficulty}</span></span><span class="b">tier ${p.tier??0}</span></div>`).join("")
+    ? plan.map(p=>`<div class="row"><span class="a">${esc(p.family)} <span class="chip">D${p.difficulty}</span>${p.atom?" <span class='chip' style='background:var(--blue);color:#fff'>atom-search</span>":""}</span><span class="b">${p.atom?"diverse topo":("tier "+(p.tier??0))}</span></div>`).join("")
     : "<span class='muted'>climbing from difficulty 1 — experts dispatching/building on the workers…</span>";
 }
 function drawLadder(hist){
