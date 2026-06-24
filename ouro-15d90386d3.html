@@ -79,6 +79,7 @@
 </div>
 
 <div id="v-loop" style="display:none">
+  <div class="card" id="agentcard"><div class="l">AGENT LOOP <span class="muted">· poses tasks → detects gaps → BUILDS experts → the library GROWS</span></div><div id="agentbody" style="margin-top:6px"></div></div>
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
   <div class="card"><div class="l">ACTIVE EXPERTS <span class="muted">· currently plugged into the core, per family</span></div><div id="activeexperts" style="margin-top:6px"></div></div>
 </div>
@@ -87,7 +88,7 @@
   <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
 </div>
 
-<footer><span id="pagever">v24 · Directive · Library · Loop · Workers</span></footer>
+<footer><span id="pagever">v25 · Directive · Library · Loop (+Agent) · Workers</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -222,6 +223,18 @@ async function fetchStatus(){
   try { const r=await fetch(RELAY+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); if(d&&d.ts) return d; } } catch(e){}
   return await (await fetch(RAW+"?t="+Date.now(),{cache:"no-store"})).json();
 }
+// ── AGENT LOOP (library-growth operator) — read-only mirror of the operator_* state ──────────
+function renderAgent(a){
+  const el=document.getElementById("agentbody"); if(!el) return;
+  if(!a){ el.innerHTML="<span class='muted'>agent loop idle / no library state yet</span>"; return; }
+  const head = a.paused ? "<span class='amber'>⏸ paused</span>"
+             : (a.live ? "<span class='green'>▶ growing</span>" : "<span class='muted'>■ idle</span>");
+  const deg = (a.degraded&&a.degraded.length) ? " · <span class='amber'>degraded "+esc(a.degraded.join(","))+"</span>" : "";
+  el.innerHTML =
+    "<div class='bignums'><b>"+(a.library_count==null?"?":a.library_count)+"</b> experts <span class='muted'>· difficulty d"+esc(a.difficulty)+"</span></div>"
+    + "<div class='small'>"+head+" · pass@k "+esc(a.last_pass_k)+deg+"</div>"
+    + "<div class='small dim'>last expert built: "+esc(a.last_compounded||"—")+" · "+when(a.compound_ts)+"</div>";
+}
 async function load(){
   let d;
   try { d=await fetchStatus(); } catch(e){ document.getElementById("upd").textContent="fetch failed"; return; }
@@ -230,6 +243,7 @@ async function load(){
   window._d=d;
   renderDirective(d.directive_status);
   renderLoop(d.loop_feed);
+  renderAgent(d.agent);
   renderWorkers(d.cluster);
   if(!_lib) await fetchLib();
   if(curV==="library") renderLib();
