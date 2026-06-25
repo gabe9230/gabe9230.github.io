@@ -202,7 +202,7 @@ function renderLoop(lf){
 function renderWorkers(cl){
   const ws=(cl&&cl.workers)||[];   // publish_web flattens: w.util / w.temp / w.mem_used / w.job / w.activity (NOT nested gpus)
   document.getElementById("workerrows").innerHTML = ws.length ? ws.map(w=>{
-    const st=w.status||"", util=w.util, temp=w.temp, mem=w.mem_used, memt=w.mem_total;
+    const st=w.status||"", util=w.util, cpu=w.cpu, temp=w.temp, mem=w.mem_used, memt=w.mem_total;
     const busy = !!(w.activity || w.job) || /running/.test(st);
     const stColor = /running/.test(st)?'green':(/owner active/.test(st)?'amber':'dim');
     const right = busy ? (esc(w.activity||"working") + (w.job?(" · "+esc(String(w.job).slice(-8))):"")) : "idle";
@@ -211,7 +211,7 @@ function renderWorkers(cl){
       + `<div class="row" style="border:none;padding:2px 0"><span class="a"><b>${esc(w.id)}</b></span>`
       + `<span class="b ${stColor}">${esc(st)}</span></div>`
       + `<div class="gbar"><span style="width:${ub}%;background:${ub>80?'var(--amber)':'var(--green)'}"></span></div>`
-      + `<div class="row" style="border:none;padding:2px 0"><span class="a muted">GPU ${util!=null?util+"%":"—"} · ${temp!=null?temp+"&deg;C":"—"} · ${mem!=null?mem+"/"+memt+"MB":""}</span>`
+      + `<div class="row" style="border:none;padding:2px 0"><span class="a muted">${cpu!=null?"CPU "+cpu+"% · ":""}GPU ${util!=null?util+"%":"—"} · ${temp!=null?temp+"&deg;C":"—"} · ${mem!=null?mem+"/"+memt+"MB":""}</span>`
       + `<span class="b muted">${right}</span></div>`
       + ((w.caps&&w.caps.length)?`<div class="muted" style="font-size:10px">${w.caps.map(esc).join(" · ")}</div>`:"")
       + `</div>`;
