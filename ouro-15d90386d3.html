@@ -413,8 +413,17 @@ function drawCapChart(hist){
 function renderRoadmap(p, claims, rs, cov){
   const el=document.getElementById("roadmapbody"); if(!el) return;
   p = p || {};
-  if(!(p.roadmap||p.open||(rs&&rs.stages))){ el.innerHTML="<span class='muted'>no roadmap data yet</span>"; return; }
-  claims = claims || {};   // {id:{item,status,...}}  -- worker owner markers
+  claims = claims || {};   // {id:{item,status,...}}  -- worker current-work markers
+  // [0.61] LIVE WORK — who's on what, NOW (from worker_claims); shown regardless of roadmap data.
+  const _wcids = Object.keys(claims).sort();
+  let liveWork = "";
+  if(_wcids.length){
+    liveWork = `<div class="card" style="margin-bottom:8px"><div class="l">LIVE WORK <span class="muted">· who's on what, now</span></div>`;
+    _wcids.forEach(id=>{ const c=claims[id]||{};
+      liveWork += `<div class="row" style="border:none;padding:2px 0"><span class="a">#${esc(id)} <span style="color:var(--fg)">${esc((c.item||"—").slice(0,72))}</span></span><span class="b small dim">${esc((c.status||"").slice(0,42))}</span></div>`; });
+    liveWork += `</div>`;
+  }
+  if(!(p.roadmap||p.open||(rs&&rs.stages))){ el.innerHTML = liveWork + "<span class='muted'>no roadmap data yet</span>"; return; }
   const ownerOf = (title)=>{ if(!title) return null;
     for(const id in claims){ const it=((claims[id]||{}).item)||""; if(it && (it.toLowerCase().includes(title.slice(0,18).toLowerCase())||title.toLowerCase().includes(it.slice(0,18).toLowerCase()))) return id; }
     return null; };
@@ -423,7 +432,7 @@ function renderRoadmap(p, claims, rs, cov){
   const COL = {green:"var(--green)", yellow:"var(--amber)", red:"#f78166", dim:"var(--dim,#888)"};
   const dot = (st)=>`<span style="color:${COL[CM[st]]||COL.dim}">●</span>`;
   const here = (rs&&rs.we_are_here) || "";
-  let html = `<div class="l">ROADMAP <span class="muted">· we are here: ${esc(here||"?")} · ●done ●wip ●planned</span></div>`;
+  let html = liveWork + `<div class="l">ROADMAP <span class="muted">· we are here: ${esc(here||"?")} · ●done ●wip ●planned</span></div>`;
   if(rs && rs.we_are_here_note){ html += `<div class="small dim" style="margin:1px 0 4px">${esc(rs.we_are_here_note)}</div>`; }
   // STAGE 1->2 GATE GAUGE — the north-star number: held-out coverage of arbitrary code (gen_acc>=0.8), honest.
   if(cov && cov.distinct){
