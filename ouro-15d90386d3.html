@@ -98,6 +98,7 @@
   <div class="card" id="agentcard"><div class="l">AGENT LOOP <span class="muted">· poses tasks → detects gaps → BUILDS experts → the library GROWS</span></div><div id="agentbody" style="margin-top:6px"></div></div>
   <div class="card"><div class="l">WRITE PROPOSALS <span class="muted">· shared-seat — the model proposes, Gabriel signs off (read-only)</span></div><div id="proposalbody" style="margin-top:6px"></div></div>
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
+  <div class="card"><div class="l">LOOP LOG <span class="muted">· live agent-loop iters (read-only)</span></div><div id="looplog" style="margin-top:6px;font-family:var(--mono,monospace);font-size:10px;line-height:1.5;max-height:220px;overflow:auto"></div></div>
   <div class="card"><div class="l">ACTIVE EXPERTS <span class="muted">· currently plugged into the core, per family</span></div><div id="activeexperts" style="margin-top:6px"></div></div>
 </div>
 
@@ -409,6 +410,17 @@ function renderProposals(p){
     + (it.what?`<div class="small wrap" style="margin-top:1px">${esc(String(it.what).slice(0,200))}</div>`:"")
     + `</div>`).join("");
 }
+// LOOP LOG ([1.10] redesign) — read-only mirror of the app Main's live agent-loop iter log.
+function renderLoopLog(lines){
+  const el=document.getElementById("looplog"); if(!el) return;
+  const ls=lines||[];
+  if(!ls.length){ el.innerHTML="<span class='muted'>no loop log yet</span>"; return; }
+  el.innerHTML = ls.map(l=>{
+    const cls = /verified=True/.test(l) ? "green" : (/verified=False/.test(l) ? "dim" : "");
+    return `<div class="${cls}">${esc(l)}</div>`;
+  }).join("");
+  el.scrollTop = el.scrollHeight;   // newest at the bottom, auto-scroll
+}
 async function load(){
   let d;
   try { d=await fetchStatus(); } catch(e){ document.getElementById("upd").textContent="fetch failed"; return; }
@@ -418,6 +430,7 @@ async function load(){
   renderDirective(d.directive_status);
   renderLoop(d.loop_feed);
   renderAgent(d.agent);
+  renderLoopLog(d.loop_log);
   renderProposals(d.shared_seat_proposals);
   renderWorkers(d.cluster);
   renderSearch(d.search);
