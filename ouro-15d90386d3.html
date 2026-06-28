@@ -73,6 +73,17 @@
   <div class="card">
     <div class="bignums" id="libcounts"></div>
     <input id="libsearch" placeholder="search family / purpose / topology…" oninput="renderLib()" autocomplete="off">
+    <div class="row" style="border:none;padding:5px 0;gap:6px;align-items:center">
+      <span class="muted" style="font-size:11px">sort</span>
+      <select id="libsort" onchange="renderLib()" style="background:var(--bg,#0d1117);color:var(--fg,#e6edf3);border:1px solid var(--grid);border-radius:4px;font-size:11px;padding:2px 5px">
+        <option value="created">date created</option>
+        <option value="uses">uses</option>
+        <option value="name">name</option>
+        <option value="window">param size</option>
+        <option value="val">val (loss)</option>
+      </select>
+      <button id="libdir" class="tab" onclick="libDir()" style="font-size:11px">↓ desc</button>
+    </div>
     <div class="tabs sub" style="margin-top:8px">
       <button class="tab active" data-s="all" onclick="libFilter('all')">all</button>
       <button class="tab" data-s="done" onclick="libFilter('done')">done</button>
@@ -120,6 +131,7 @@ function show(v){
   if(v==="library") renderLib();
 }
 function libFilter(s){ _libFilter=s; document.querySelectorAll(".tabs.sub .tab").forEach(t=>t.classList.toggle("active", t.dataset.s===s)); renderLib(); }
+function libDir(){ window._libDir=(window._libDir==="asc")?"desc":"asc"; const b=document.getElementById("libdir"); if(b) b.textContent=window._libDir==="asc"?"↑ asc":"↓ desc"; renderLib(); }
 
 // ── DIRECTIVE TAB ──────────────────────────────────────────────────────────
 function renderDirective(dt){
@@ -172,7 +184,12 @@ function renderLib(){
   let f=rows;
   if(_libFilter!=="all") f=f.filter(r=>r.status===_libFilter);
   if(q) f=f.filter(r=>((r.skill||"")+" "+(r.purpose||"")+" "+(r.field||"")+" "+(r.topology||"")).toLowerCase().includes(q));
-  f = f.slice().sort((a,b)=>(b.created||0)-(a.created||0));
+  // SORT (Gabriel-directed): by the selected key + direction (created/uses/name/param-size/val).
+  const sk=(document.getElementById("libsort")||{}).value||"created";
+  const desc=(window._libDir!=="asc");
+  const kf={created:r=>r.created||0, uses:r=>r.uses||0, window:r=>r.window||0, val:r=>(r.val==null?Infinity:r.val),
+            name:r=>(r.purpose||r.skill||"").toLowerCase()}[sk]||(r=>r.created||0);
+  f = f.slice().sort((a,b)=>{ const av=kf(a),bv=kf(b); return av<bv?(desc?1:-1):av>bv?(desc?-1:1):0; });
   const N=80, shown=f.slice(0,N);
   document.getElementById("librows").innerHTML = shown.map(r=>
     `<div class="row wrap"><span class="a">${esc(r.purpose||r.skill)} `
