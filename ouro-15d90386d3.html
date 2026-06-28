@@ -48,7 +48,8 @@
 <body>
 <h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
 <div class="tabs">
-  <button class="tab active" data-v="directive" onclick="show('directive')">Directive</button>
+  <button class="tab active" data-v="chat" onclick="show('chat')">💬 Chat</button>
+  <button class="tab" data-v="directive" onclick="show('directive')">Directive</button>
   <button class="tab" data-v="library" onclick="show('library')">Library</button>
   <button class="tab" data-v="loop" onclick="show('loop')">Loop</button>
   <button class="tab" data-v="search" onclick="show('search')">Search</button>
@@ -56,7 +57,21 @@
   <button class="tab" data-v="workers" onclick="show('workers')">Workers</button>
 </div>
 
-<div id="v-directive">
+<div id="v-chat">
+  <div class="card">
+    <div class="l">CHAT <span class="muted">· talk to the local chatbot — read-only, conversation only (it can't run commands)</span></div>
+    <div id="chatlog" style="margin-top:8px;max-height:58vh;overflow:auto;display:flex;flex-direction:column;gap:8px">
+      <div class="small dim">Ask the local Ouroborus chatbot anything. It runs on the laptop — a tiny byte-level expert the loop trains and keeps improving. Read-only: this page can only chat, never command the system.</div>
+    </div>
+    <div class="row" style="border:none;padding:8px 0 0;gap:6px;align-items:center">
+      <input id="chatin" placeholder="say something…" autocomplete="off" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1">
+      <button class="tab" style="flex:none;min-width:64px" id="chatsend" onclick="sendChat()">Send</button>
+    </div>
+    <div class="small dim" id="chatstatus" style="margin-top:4px"></div>
+  </div>
+</div>
+
+<div id="v-directive" style="display:none">
   <div class="card" id="dcard">
     <div class="l">CURRENT DIRECTIVE <span id="dlive" class="muted"></span></div>
     <div class="dtext" id="dtext">—</div>
@@ -114,14 +129,14 @@
   <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
 </div>
 
-<footer><span id="pagever">v27 · Directive · Library · Loop (+Agent) · Search · Roadmap · Workers</span></footer>
+<footer><span id="pagever">v28 · Chat · Directive · Library · Loop · Search · Roadmap · Workers</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 const LIB_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/library.json";
 const VM_RELAY = "https://gabeslaptop.tail46cb76.ts.net/vm.jpg";     // realtime (laptop relay)
 const VM_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/vm.jpg";  // fallback
-let curV = "directive", _lib = null, _libFilter = "all";
+let curV = "chat", _lib = null, _libFilter = "all";
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function ago(s){ s=Math.max(0,s|0); if(s<90) return s+"s"; if(s<5400) return (s/60|0)+"m"; if(s<172800) return (s/3600|0)+"h"; return (s/86400|0)+"d"; }
@@ -129,12 +144,40 @@ function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
 
 function show(v){
   curV = v;
-  ["directive","library","loop","search","roadmap","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  ["chat","directive","library","loop","search","roadmap","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  if(v==="chat"){ const ci=document.getElementById("chatin"); if(ci) setTimeout(()=>ci.focus(),0); }
   document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
   if(v==="library") renderLib();
 }
 function libFilter(s){ _libFilter=s; document.querySelectorAll(".tabs.sub .tab").forEach(t=>t.classList.toggle("active", t.dataset.s===s)); renderLib(); }
 function libDir(){ window._libDir=(window._libDir==="asc")?"desc":"asc"; const b=document.getElementById("libdir"); if(b) b.textContent=window._libDir==="asc"?"↑ asc":"↓ desc"; renderLib(); }
+
+// ── CHAT TAB (read-only; DEMO headline). POST {message} -> {reply} to the laptop's /chat route (same Funnel host
+// as /status, so CORS already works). Purely conversational: NO directive/control/queue/write path exists here. ──
+const CHAT_ENDPOINT = "https://gabeslaptop.tail46cb76.ts.net/chat";
+function _chatBubble(who, text){
+  const d=document.createElement("div");
+  d.style.cssText="max-width:85%;padding:8px 11px;border-radius:12px;font-size:13px;white-space:pre-wrap;word-break:break-word;"
+    +(who==="you"?"align-self:flex-end;background:var(--blue);color:#fff":"align-self:flex-start;background:var(--bg2);color:var(--fg);border:1px solid var(--grid)");
+  d.textContent=text; return d;
+}
+async function sendChat(){
+  const inp=document.getElementById("chatin"), log=document.getElementById("chatlog"),
+        st=document.getElementById("chatstatus"), btn=document.getElementById("chatsend");
+  const msg=(inp.value||"").trim(); if(!msg) return;
+  inp.value=""; log.appendChild(_chatBubble("you", msg)); log.scrollTop=log.scrollHeight;
+  btn.disabled=true; st.textContent="…thinking";
+  try {
+    const r=await fetch(CHAT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    log.appendChild(_chatBubble("bot",(d&&(d.reply||d.text||d.response))||"(no reply)"));
+    st.textContent="";
+  } catch(e){
+    log.appendChild(_chatBubble("bot","⚠ chatbot endpoint not reachable yet ("+e.message+"). Try the desktop app chatbot."));
+    st.textContent="offline";
+  } finally { btn.disabled=false; log.scrollTop=log.scrollHeight; if(inp) inp.focus(); }
+}
 // DESCRIPTIVE NAME (Gabriel [1.50]): a human-readable display label derived from REAL signal (RULE 5 #7 — the
 // skill/fn-name, never a hand table). fetched_<fn>_<n> -> the source fn name (what it does); fld_<family>_<n> ->
 // "<family> #n" (de-cluttered; the full operation name needs the poser-side intent->purpose, flagged). Else the
