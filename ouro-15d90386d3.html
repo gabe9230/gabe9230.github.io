@@ -161,6 +161,33 @@ function _chatBubble(who, text){
     +(who==="you"?"align-self:flex-end;background:var(--blue);color:#fff":"align-self:flex-start;background:var(--bg2);color:var(--fg);border:1px solid var(--grid)");
   d.textContent=text; return d;
 }
+// [0.57] FLAG a reply -> POST to the QUARANTINE queue (status=pending). The page's ONLY write; reviewed before any
+// corpus use (no public poisoning). Optional "better reply" field.
+const FLAG_ENDPOINT = "https://gabeslaptop.tail46cb76.ts.net/chat_flag";
+function _botReply(userMsg, reply){
+  const wrap=document.createElement("div");
+  wrap.style.cssText="align-self:flex-start;max-width:85%;display:flex;flex-direction:column;gap:3px";
+  const bub=_chatBubble("bot", reply); bub.style.maxWidth="100%"; wrap.appendChild(bub);
+  const bar=document.createElement("div"); bar.style.cssText="font-size:10px;color:var(--dim)";
+  const flag=document.createElement("span"); flag.textContent="⚑ flag this reply";
+  flag.style.cssText="cursor:pointer;text-decoration:underline"; bar.appendChild(flag); wrap.appendChild(bar);
+  flag.onclick=()=>{
+    if(wrap.querySelector(".flagform")) return;
+    const form=document.createElement("div"); form.className="flagform";
+    form.style.cssText="display:flex;gap:4px;margin-top:2px";
+    const inp=document.createElement("input"); inp.placeholder="(optional) a better reply?";
+    inp.style.cssText="flex:1;font-size:11px";
+    const sub=document.createElement("button"); sub.className="tab"; sub.textContent="submit";
+    sub.style.cssText="flex:none;font-size:11px;padding:3px 8px";
+    form.appendChild(inp); form.appendChild(sub); wrap.appendChild(form); inp.focus();
+    sub.onclick=async()=>{ sub.disabled=true;
+      try{ await fetch(FLAG_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},
+             body:JSON.stringify({message:userMsg,reply:reply,better:inp.value||""})});
+           bar.textContent="⚑ flagged — thanks (sent for review)"; form.remove();
+      }catch(e){ bar.textContent="⚑ flag failed ("+e.message+")"; sub.disabled=false; } };
+  };
+  return wrap;
+}
 async function sendChat(){
   const inp=document.getElementById("chatin"), log=document.getElementById("chatlog"),
         st=document.getElementById("chatstatus"), btn=document.getElementById("chatsend");
@@ -171,7 +198,7 @@ async function sendChat(){
     const r=await fetch(CHAT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
     if(!r.ok) throw new Error("HTTP "+r.status);
     const d=await r.json();
-    log.appendChild(_chatBubble("bot",(d&&(d.reply||d.text||d.response))||"(no reply)"));
+    log.appendChild(_botReply(msg, (d&&(d.reply||d.text||d.response))||"(no reply)"));
     st.textContent="";
   } catch(e){
     log.appendChild(_chatBubble("bot","⚠ chatbot endpoint not reachable yet ("+e.message+"). Try the desktop app chatbot."));
