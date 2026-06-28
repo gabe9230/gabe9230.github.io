@@ -96,6 +96,7 @@
 
 <div id="v-loop" style="display:none">
   <div class="card" id="agentcard"><div class="l">AGENT LOOP <span class="muted">· poses tasks → detects gaps → BUILDS experts → the library GROWS</span></div><div id="agentbody" style="margin-top:6px"></div></div>
+  <div class="card"><div class="l">WRITE PROPOSALS <span class="muted">· shared-seat — the model proposes, Gabriel signs off (read-only)</span></div><div id="proposalbody" style="margin-top:6px"></div></div>
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
   <div class="card"><div class="l">ACTIVE EXPERTS <span class="muted">· currently plugged into the core, per family</span></div><div id="activeexperts" style="margin-top:6px"></div></div>
 </div>
@@ -387,6 +388,18 @@ function renderAgent(a){
     + "<div class='small'>"+head+" · pass@k "+esc(a.last_pass_k)+deg+"</div>"
     + "<div class='small dim'>last expert built: "+esc(a.last_compounded||"—")+" · "+when(a.compound_ts)+"</div>";
 }
+// WRITE PROPOSALS (shared-seat sign-off surface, [1.20]) — read-only mirror of shared_seat_queue.json ACTIONABLE.
+function renderProposals(p){
+  const el=document.getElementById("proposalbody"); if(!el) return;
+  const items=(p&&p.items)||[];
+  if(!items.length){ el.innerHTML="<span class='muted'>no write proposals pending sign-off</span>"; return; }
+  el.innerHTML = items.map(it=>
+    `<div style="padding:5px 0;border-bottom:1px solid var(--grid)">`
+    + `<div class="row wrap" style="border:none;padding:1px 0"><span class="a"><b>#${esc(it.rank)}</b> ${esc(it.kind||"")}</span></div>`
+    + (it.where?`<div class="small dim">${esc(it.where)}</div>`:"")
+    + (it.what?`<div class="small wrap" style="margin-top:1px">${esc(String(it.what).slice(0,200))}</div>`:"")
+    + `</div>`).join("");
+}
 async function load(){
   let d;
   try { d=await fetchStatus(); } catch(e){ document.getElementById("upd").textContent="fetch failed"; return; }
@@ -396,6 +409,7 @@ async function load(){
   renderDirective(d.directive_status);
   renderLoop(d.loop_feed);
   renderAgent(d.agent);
+  renderProposals(d.shared_seat_proposals);
   renderWorkers(d.cluster);
   renderSearch(d.search);
   renderRoadmap(d.plan, d.worker_claims, d.roadmap_status);
