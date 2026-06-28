@@ -380,7 +380,7 @@ function renderSearch(s){
     + (lv.active?`<span style="color:var(--green)">●</span> <b>ACTIVE</b> search`:`<span class="muted">○ idle (last eval ${lv.age!=null?Math.round(lv.age)+"s ago":"—"})</span>`)
     + ` · ${esc(lv.phase||"—")}</span><span class="b muted">${lv.eta_min!=null?("ETA ~"+Math.round(lv.eta_min)+"m"):""}</span></div>`
     + (lv.frac!=null?`<div class="gbar"><span style="width:${Math.round(100*lv.frac)}%;background:var(--blue)"></span></div>`:"")
-    + `<div class="small dim" style="margin-top:2px">${lv.step!=null?("eval step "+lv.step+"/"+lv.steps):""}${lv.st_per_s!=null?(" · "+(+lv.st_per_s).toFixed(2)+" st/s"):""}${(lv.active&&lv.age!=null)?(" · "+Math.round(lv.age)+"s ago"):""}</div>`
+    + `<div class="small dim" style="margin-top:2px">${lv.step!=null?("eval step "+lv.step+"/"+lv.steps):""}${lv.st_per_s!=null?(" · "+(+lv.st_per_s).toFixed(2)+" st/s"):""}</div>`
     + `</div>` ) : "";
   el.innerHTML = live +
     `<div class="bignums"><b>${champ}</b> champion val <span class="muted">· ${phase}</span></div>`
