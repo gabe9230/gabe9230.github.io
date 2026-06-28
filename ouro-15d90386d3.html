@@ -89,6 +89,7 @@
       <button class="tab" data-s="done" onclick="libFilter('done')">done</button>
       <button class="tab" data-s="pending" onclick="libFilter('pending')">pending</button>
     </div>
+    <div id="libfilters" style="margin-top:6px"></div>
     <div id="librows" style="margin-top:8px"></div>
   </div>
 </div>
@@ -132,6 +133,28 @@ function show(v){
 }
 function libFilter(s){ _libFilter=s; document.querySelectorAll(".tabs.sub .tab").forEach(t=>t.classList.toggle("active", t.dataset.s===s)); renderLib(); }
 function libDir(){ window._libDir=(window._libDir==="asc")?"desc":"asc"; const b=document.getElementById("libdir"); if(b) b.textContent=window._libDir==="asc"?"↑ asc":"↓ desc"; renderLib(); }
+// FILTER (Gabriel [P1]): auto-populating multi-select chips per metric — options DERIVED from live data (RULE 5 #7,
+// never hardcoded). Within a metric = OR (any selected matches); across metrics = AND (all must match).
+const _LIB_FMETRICS = [["field","family"],["topology","topology"]];
+function _libDistinct(rows,key){ const s=new Set(); rows.forEach(r=>{ const v=r[key]; if(v!=null&&v!=="") s.add(String(v)); }); return Array.from(s).sort(); }
+function renderLibFilters(){
+  const el=document.getElementById("libfilters"); if(!el) return;
+  const rows=_lib||[]; window._libF=window._libF||{};
+  _LIB_FMETRICS.forEach(([k])=>{ window._libF[k]=window._libF[k]||new Set(); });
+  if(!rows.length){ el.innerHTML=""; return; }
+  let h="";
+  _LIB_FMETRICS.forEach(([key,label])=>{
+    const vals=_libDistinct(rows,key); if(!vals.length) return;
+    h += `<div style="margin:3px 0;line-height:1.9"><span class="muted" style="font-size:10px">${label}:</span> `
+      + vals.map(v=>{ const on=window._libF[key].has(v);
+          return `<span class="chip" onclick='toggleLibF(${JSON.stringify(key)},${JSON.stringify(v)})' style="cursor:pointer${on?';background:var(--green);color:#000':''}">${esc(v)}</span>`; }).join(" ")
+      + `</div>`;
+  });
+  if(_LIB_FMETRICS.some(([k])=>window._libF[k].size)) h += `<div class="muted" style="font-size:10px;cursor:pointer;margin-top:2px" onclick="clearLibF()">✕ clear filters</div>`;
+  el.innerHTML=h;
+}
+function toggleLibF(key,val){ window._libF=window._libF||{}; window._libF[key]=window._libF[key]||new Set(); const s=window._libF[key]; s.has(val)?s.delete(val):s.add(val); renderLib(); }
+function clearLibF(){ window._libF={}; renderLib(); }
 
 // ── DIRECTIVE TAB ──────────────────────────────────────────────────────────
 function renderDirective(dt){
@@ -181,9 +204,12 @@ function renderLib(){
    +`<div><div class="v">${rows.length-done}</div><div class="ll">PENDING</div></div>`
    +`<div><div class="v">${rows.length}</div><div class="ll">TOTAL</div></div>`;
   const q=(document.getElementById("libsearch").value||"").toLowerCase();
+  renderLibFilters();                                  // populate the auto-generated metric-filter chips
   let f=rows;
   if(_libFilter!=="all") f=f.filter(r=>r.status===_libFilter);
   if(q) f=f.filter(r=>((r.skill||"")+" "+(r.purpose||"")+" "+(r.field||"")+" "+(r.topology||"")).toLowerCase().includes(q));
+  const F=window._libF||{};                            // metric filters: within-metric OR, across-metric AND
+  Object.keys(F).forEach(k=>{ if(F[k]&&F[k].size) f=f.filter(r=>F[k].has(String(r[k]))); });
   // SORT (Gabriel-directed): by the selected key + direction (created/uses/name/param-size/val).
   const sk=(document.getElementById("libsort")||{}).value||"created";
   const desc=(window._libDir!=="asc");
