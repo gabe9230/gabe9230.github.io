@@ -344,17 +344,17 @@ function renderRoadmap(p, claims, rs){
       html += `<div style="padding:5px 0;border-bottom:1px solid var(--grid)"><div class="row" style="border:none;padding:1px 0"><span class="a"><b>${nm}</b>${s.here?' <span class="green">◀ WE ARE HERE</span>':""}</span></div><div class="small dim">${esc((s.status||"").slice(0,170))}</div></div>`;
     });
   }
-  // OPEN JOBS backlog — the full TODO open list by priority + owner overlay.
+  // OPEN JOBS backlog — FLAT ranked list (Gabriel de-stratified to 2-decimal `[1.10]` priorities; _plan sorts
+  // ascending = highest first). Light separators by integer tier; each item shows its [pri] + owner.
   const open = p.open||[];
   if(open.length){
-    html += `<div class="l" style="margin-top:10px">OPEN JOBS <span class="muted">· ${open.length} open · ${p.done||0} done</span></div>`;
-    ["P1","P2","P3"].forEach(pri=>{
-      const items = open.filter(o=>o.pri===pri); if(!items.length) return;
-      html += `<div class="small ${pri==="P1"?"amber":"muted"}" style="margin-top:5px">${pri} · ${items.length}</div>`;
-      items.forEach(o=>{
-        const ow = ownerOf(o.title); const badge = ow ? ` <span class="green">#${esc(ow)}</span>` : "";
-        html += `<div class="row wrap" style="border:none;padding:1px 0"><span class="a">${esc(o.title)}${badge}</span></div>`;
-      });
+    html += `<div class="l" style="margin-top:10px">OPEN JOBS <span class="muted">· ${open.length} open (ranked)</span></div>`;
+    let lastTier=null;
+    open.forEach(o=>{
+      const pf=parseFloat(o.pri); const tier=isNaN(pf)?9:Math.floor(pf);
+      if(tier!==lastTier){ lastTier=tier; html += `<div class="small ${tier<=1?"amber":"muted"}" style="margin-top:5px">~${tier}.xx</div>`; }
+      const ow = ownerOf(o.title); const badge = ow ? ` <span class="green">#${esc(ow)}</span>` : "";
+      html += `<div class="row wrap" style="border:none;padding:1px 0"><span class="a"><span class="muted" style="font-size:10px">[${esc(o.pri)}]</span> ${esc(o.title)}${badge}</span></div>`;
     });
   }
   el.innerHTML = html;
