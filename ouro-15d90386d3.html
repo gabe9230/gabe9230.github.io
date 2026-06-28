@@ -201,21 +201,30 @@ function renderLoop(lf){
 // ── WORKERS TAB (read-only stats) ──────────────────────────────────────────
 function renderWorkers(cl){
   const ws=(cl&&cl.workers)||[];   // publish_web flattens: w.util / w.temp / w.mem_used / w.job / w.activity (NOT nested gpus)
-  document.getElementById("workerrows").innerHTML = ws.length ? ws.map(w=>{
+  // FLEET SUMMARY (match the app's draw_cluster head line): queued / running / done + staleness.
+  const fleet = cl ? (`<div class="row" style="border:none;padding:2px 0;margin-bottom:4px"><span class="a muted">`
+      + `cluster · queued ${cl.queued!=null?cl.queued:0} · running ${cl.running!=null?cl.running:0} · done ${cl.done!=null?cl.done:0}`
+      + (cl.status_age>30?` · <span class="amber">STALE ${Math.round(cl.status_age)}s — coordinator down?</span>`:"")
+      + `</span></div>`) : "";
+  document.getElementById("workerrows").innerHTML = ws.length ? (fleet + ws.map(w=>{
     const st=w.status||"", util=w.util, cpu=w.cpu, temp=w.temp, mem=w.mem_used, memt=w.mem_total;
     const busy = !!(w.activity || w.job) || /running/.test(st);
     const stColor = /running/.test(st)?'green':(/owner active/.test(st)?'amber':'dim');
     const right = busy ? (esc(w.activity||"working") + (w.job?(" · "+esc(String(w.job).slice(-8))):"")) : "idle";
     const ub = util!=null ? util : (busy?100:0);
+    // NET TRAINING PROGRESS (the app shows the eval's net + step/steps + sps; the payload ships them — render here).
+    const prog = (w.net && w.step!=null && w.steps)
+      ? `<div class="muted" style="font-size:10px">${esc(w.net)} · step ${w.step}/${w.steps}${w.sps?(" · "+w.sps+"/s"):""}</div>` : "";
     return `<div style="padding:8px 0;border-bottom:1px solid var(--grid)">`
-      + `<div class="row" style="border:none;padding:2px 0"><span class="a"><b>${esc(w.id)}</b></span>`
+      + `<div class="row" style="border:none;padding:2px 0"><span class="a"><b>${esc(w.id)}</b>${w.host?` <span class="muted">(${esc(w.host)})</span>`:""}</span>`
       + `<span class="b ${stColor}">${esc(st)}</span></div>`
       + `<div class="gbar"><span style="width:${ub}%;background:${ub>80?'var(--amber)':'var(--green)'}"></span></div>`
       + `<div class="row" style="border:none;padding:2px 0"><span class="a muted">${cpu!=null?"CPU "+cpu+"% · ":""}GPU ${util!=null?util+"%":"—"} · ${temp!=null?temp+"&deg;C":"—"} · ${mem!=null?mem+"/"+memt+"MB":""}</span>`
       + `<span class="b muted">${right}</span></div>`
+      + prog
       + ((w.caps&&w.caps.length)?`<div class="muted" style="font-size:10px">${w.caps.map(esc).join(" · ")}</div>`:"")
       + `</div>`;
-  }).join("") : "<span class='muted'>no workers reporting</span>";
+  }).join("")) : "<span class='muted'>no workers reporting</span>";
 }
 
 // ── fetch loop ─────────────────────────────────────────────────────────────
