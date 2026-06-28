@@ -257,32 +257,53 @@ function renderSearch(s){
 // ── ROADMAP TAB (stage tracker + open jobs; owner/status overlay from #02's data when present) ──────
 function renderRoadmap(p, claims, rs){
   const el=document.getElementById("roadmapbody"); if(!el) return;
-  if(!p){ el.innerHTML="<span class='muted'>no roadmap data (ROADMAP.md / TODO.md unparsed)</span>"; return; }
-  claims = claims || {};   // {id:{item,status,...}}  -- owner markers (#02 schema: per-worker claim files)
-  // best-effort owner match: a worker's claimed item-substring vs a job title
+  p = p || {};
+  if(!(p.roadmap||p.open||(rs&&rs.stages))){ el.innerHTML="<span class='muted'>no roadmap data yet</span>"; return; }
+  claims = claims || {};   // {id:{item,status,...}}  -- worker owner markers
   const ownerOf = (title)=>{ if(!title) return null;
     for(const id in claims){ const it=((claims[id]||{}).item)||""; if(it && (it.toLowerCase().includes(title.slice(0,18).toLowerCase())||title.toLowerCase().includes(it.slice(0,18).toLowerCase()))) return id; }
     return null; };
-  // optional per-task status overlay (#02 roadmap_status.json) keyed by title -> done|in_progress|planned
-  const taskStatus = {}; if(rs&&rs.stages){ rs.stages.forEach(s=>(s.tasks||[]).forEach(t=>{ if(t.title) taskStatus[t.title.slice(0,30)]=t.status; })); }
-  const dot = (st)=> st==="done"?'<span class="green">●</span>':st==="in_progress"?'<span class="amber">●</span>':'<span class="dim">●</span>';
-  let html = `<div class="l">ROADMAP <span class="muted">· ${(rs&&rs.we_are_here)?("we are here: "+esc(rs.we_are_here)):"stage tracker"}</span></div>`;
-  (p.roadmap||[]).forEach(s=>{
-    const nm = esc((s.name||"").split("—")[0].trim());
-    const here = s.here ? ` <span class="green">◀ WE ARE HERE</span>` : "";
-    html += `<div style="padding:5px 0;border-bottom:1px solid var(--grid)"><div class="row" style="border:none;padding:1px 0"><span class="a"><b>${nm}</b>${here}</span></div><div class="small dim">${esc((s.status||"").slice(0,170))}</div></div>`;
-  });
-  const open = p.open||[];
-  html += `<div class="l" style="margin-top:10px">OPEN JOBS <span class="muted">· ${open.length} open · ${p.done||0} done</span></div>`;
-  ["P1","P2","P3"].forEach(pri=>{
-    const items = open.filter(o=>o.pri===pri); if(!items.length) return;
-    html += `<div class="small ${pri==="P1"?"amber":"muted"}" style="margin-top:5px">${pri} · ${items.length}</div>`;
-    items.forEach(o=>{
-      const ow = ownerOf(o.title); const badge = ow ? ` <span class="green">#${esc(ow)}</span>` : "";
-      const stt = taskStatus[(o.title||"").slice(0,30)];
-      html += `<div class="row" style="border:none;padding:1px 0"><span class="a">${stt?dot(stt)+" ":""}${esc(o.title)}${badge}</span>${o.status?`<span class="b muted">${esc(o.status).slice(0,40)}</span>`:""}</div>`;
+  // Gabriel's R/Y/G: done=green / in_progress=yellow / planned=red (color_map from #02's roadmap_status).
+  const CM = (rs&&rs.color_map) || {done:"green", in_progress:"yellow", planned:"red"};
+  const COL = {green:"var(--green)", yellow:"var(--amber)", red:"#f78166", dim:"var(--dim,#888)"};
+  const dot = (st)=>`<span style="color:${COL[CM[st]]||COL.dim}">●</span>`;
+  const here = (rs&&rs.we_are_here) || "";
+  let html = `<div class="l">ROADMAP <span class="muted">· we are here: ${esc(here||"?")} · ●done ●wip ●planned</span></div>`;
+  // STAGE TRACKER — authoritative from rs.stages (per-stage progress bar + per-task R/Y/G + owner); else d.plan fallback.
+  if(rs && rs.stages && rs.stages.length){
+    rs.stages.forEach(s=>{
+      const tasks=s.tasks||[], tot=tasks.length||1;
+      const done=tasks.filter(t=>t.status==="done").length, wip=tasks.filter(t=>t.status==="in_progress").length;
+      const isHere = here && s.id===here;
+      html += `<div style="padding:6px 0;border-bottom:1px solid var(--grid)">`
+        + `<div class="row" style="border:none;padding:1px 0"><span class="a">${dot(s.status)} <b>${esc(s.id)}</b> ${esc(s.name||"")}${isHere?' <span style="color:var(--green)">◀ HERE</span>':""}</span>`
+        + `<span class="b muted">${done}/${tasks.length} done${wip?(" · "+wip+" wip"):""}</span></div>`
+        + `<div class="gbar"><span style="width:${Math.round(100*done/tot)}%;background:var(--green)"></span></div>`;
+      tasks.forEach(t=>{
+        const ow = t.owner ? ` <span class="green">#${esc(t.owner)}</span>` : "";
+        html += `<div class="row" style="border:none;padding:1px 0;font-size:11px"><span class="a">${dot(t.status)} ${esc(t.title)}${ow}</span></div>`;
+      });
+      html += `</div>`;
     });
-  });
+  } else {
+    (p.roadmap||[]).forEach(s=>{
+      const nm=esc((s.name||"").split("—")[0].trim());
+      html += `<div style="padding:5px 0;border-bottom:1px solid var(--grid)"><div class="row" style="border:none;padding:1px 0"><span class="a"><b>${nm}</b>${s.here?' <span class="green">◀ WE ARE HERE</span>':""}</span></div><div class="small dim">${esc((s.status||"").slice(0,170))}</div></div>`;
+    });
+  }
+  // OPEN JOBS backlog — the full TODO open list by priority + owner overlay.
+  const open = p.open||[];
+  if(open.length){
+    html += `<div class="l" style="margin-top:10px">OPEN JOBS <span class="muted">· ${open.length} open · ${p.done||0} done</span></div>`;
+    ["P1","P2","P3"].forEach(pri=>{
+      const items = open.filter(o=>o.pri===pri); if(!items.length) return;
+      html += `<div class="small ${pri==="P1"?"amber":"muted"}" style="margin-top:5px">${pri} · ${items.length}</div>`;
+      items.forEach(o=>{
+        const ow = ownerOf(o.title); const badge = ow ? ` <span class="green">#${esc(ow)}</span>` : "";
+        html += `<div class="row" style="border:none;padding:1px 0"><span class="a">${esc(o.title)}${badge}</span>${o.status?`<span class="b muted">${esc(o.status).slice(0,40)}</span>`:""}</div>`;
+      });
+    });
+  }
   el.innerHTML = html;
 }
 
