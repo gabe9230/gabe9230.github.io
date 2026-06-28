@@ -49,6 +49,7 @@
   <button class="tab active" data-v="directive" onclick="show('directive')">Directive</button>
   <button class="tab" data-v="library" onclick="show('library')">Library</button>
   <button class="tab" data-v="loop" onclick="show('loop')">Loop</button>
+  <button class="tab" data-v="search" onclick="show('search')">Search</button>
   <button class="tab" data-v="workers" onclick="show('workers')">Workers</button>
 </div>
 
@@ -84,11 +85,15 @@
   <div class="card"><div class="l">ACTIVE EXPERTS <span class="muted">· currently plugged into the core, per family</span></div><div id="activeexperts" style="margin-top:6px"></div></div>
 </div>
 
+<div id="v-search" style="display:none">
+  <div class="card"><div class="l">SUBSTRATE SEARCH <span class="muted">· the brain — invents/evaluates novel NN topologies on an unbounded difficulty ladder</span></div><div id="searchbody" style="margin-top:8px"></div></div>
+</div>
+
 <div id="v-workers" style="display:none">
   <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
 </div>
 
-<footer><span id="pagever">v25 · Directive · Library · Loop (+Agent) · Workers</span></footer>
+<footer><span id="pagever">v26 · Directive · Library · Loop (+Agent) · Search · Workers</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -103,7 +108,7 @@ function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
 
 function show(v){
   curV = v;
-  ["directive","library","loop","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  ["directive","library","loop","search","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
   document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
   if(v==="library") renderLib();
 }
@@ -227,6 +232,23 @@ function renderWorkers(cl){
   }).join("")) : "<span class='muted'>no workers reporting</span>";
 }
 
+// ── SUBSTRATE SEARCH TAB (the brain — read-only mirror of d.search) ──────────
+function renderSearch(s){
+  const el=document.getElementById("searchbody"); if(!el) return;
+  if(!s){ el.innerHTML="<span class='muted'>no substrate-search state yet (brain paused or starting)</span>"; return; }
+  const fx=(v)=> v!=null ? (+v).toFixed(4) : "—";
+  const champ=fx(s.champion), bar=fx(s.bar), gate=fx(s.ratchet_gate), phase=esc(s.phase||"—");
+  const plateau = s.plateau ? `<div class="small amber" style="margin-top:2px">⚠ architecture plateau · champion ${esc((s.plateau&&s.plateau.champion)||"")}</div>` : "";
+  const wins=(s.winners||[]).slice(0,8).map(w=>
+    `<div class="row" style="border:none;padding:1px 0"><span class="a">${esc(w.name)}</span><span class="b muted">${fx(w.val_mean)}</span></div>`).join("");
+  el.innerHTML =
+    `<div class="bignums"><b>${champ}</b> champion val <span class="muted">· ${phase}</span></div>`
+    + `<div class="small dim">ratchet bar ${bar} · gate ${gate}</div>`
+    + plateau
+    + (wins ? `<div class="l" style="margin-top:8px">RECENT WINNERS <span class="muted">· crowned topologies (val_mean)</span></div>`+wins
+            : `<div class="muted" style="margin-top:6px">no crowned winners yet this run</div>`);
+}
+
 // ── fetch loop ─────────────────────────────────────────────────────────────
 async function fetchStatus(){
   try { const r=await fetch(RELAY+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); if(d&&d.ts) return d; } } catch(e){}
@@ -254,6 +276,7 @@ async function load(){
   renderLoop(d.loop_feed);
   renderAgent(d.agent);
   renderWorkers(d.cluster);
+  renderSearch(d.search);
   if(!_lib) await fetchLib();
   if(curV==="library") renderLib();
 }
