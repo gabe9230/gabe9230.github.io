@@ -146,7 +146,7 @@ function _libName(r){
 }
 // FILTER (Gabriel [P1]): auto-populating multi-select chips per metric — options DERIVED from live data (RULE 5 #7,
 // never hardcoded). Within a metric = OR (any selected matches); across metrics = AND (all must match).
-const _LIB_FMETRICS = [["field","family"],["topology","topology"]];
+const _LIB_FMETRICS = [["field","family"],["topology","topology"],["origin","origin"]];
 function _libDistinct(rows,key){ const s=new Set(); rows.forEach(r=>{ const v=r[key]; if(v!=null&&v!=="") s.add(String(v)); }); return Array.from(s).sort(); }
 function renderLibFilters(){
   const el=document.getElementById("libfilters"); if(!el) return;
