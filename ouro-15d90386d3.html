@@ -32,6 +32,8 @@
   .row:last-child { border-bottom:none; }
   .row .a { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
   .row .b { color:var(--dim); white-space:nowrap; }
+  .row.wrap .a { overflow:visible; text-overflow:clip; white-space:normal; }  /* job/library lists: wrap, no "…" */
+  .row.wrap .b { white-space:normal; }
   .chip { display:inline-block; font-size:10px; padding:1px 6px; border-radius:6px; background:var(--bg); border:1px solid var(--grid); color:var(--dim); margin-right:4px; }
   .green { color:var(--green); } .amber { color:var(--amber); } .red { color:var(--red); } .blue { color:var(--blue); }
   input { width:100%; margin-top:8px; background:var(--bg); color:var(--fg); border:1px solid var(--grid); border-radius:8px; padding:8px; font:inherit; font-size:12px; }
@@ -173,7 +175,7 @@ function renderLib(){
   f = f.slice().sort((a,b)=>(b.created||0)-(a.created||0));
   const N=80, shown=f.slice(0,N);
   document.getElementById("librows").innerHTML = shown.map(r=>
-    `<div class="row"><span class="a">${esc(r.purpose||r.skill)} `
+    `<div class="row wrap"><span class="a">${esc(r.purpose||r.skill)} `
     + `<span class="chip">${esc(r.field)}</span>`
     + (r.topology?`<span class="chip">${esc(r.topology)}</span>`:"")
     + `</span><span class="b">`
@@ -269,6 +271,7 @@ function renderRoadmap(p, claims, rs){
   const dot = (st)=>`<span style="color:${COL[CM[st]]||COL.dim}">●</span>`;
   const here = (rs&&rs.we_are_here) || "";
   let html = `<div class="l">ROADMAP <span class="muted">· we are here: ${esc(here||"?")} · ●done ●wip ●planned</span></div>`;
+  if(rs && rs.we_are_here_note){ html += `<div class="small dim" style="margin:1px 0 4px">${esc(rs.we_are_here_note)}</div>`; }
   // STAGE TRACKER — authoritative from rs.stages (per-stage progress bar + per-task R/Y/G + owner); else d.plan fallback.
   if(rs && rs.stages && rs.stages.length){
     rs.stages.forEach(s=>{
@@ -278,10 +281,17 @@ function renderRoadmap(p, claims, rs){
       html += `<div style="padding:6px 0;border-bottom:1px solid var(--grid)">`
         + `<div class="row" style="border:none;padding:1px 0"><span class="a">${dot(s.status)} <b>${esc(s.id)}</b> ${esc(s.name||"")}${isHere?' <span style="color:var(--green)">◀ HERE</span>':""}</span>`
         + `<span class="b muted">${done}/${tasks.length} done${wip?(" · "+wip+" wip"):""}</span></div>`
+        + (s.what?`<div class="small dim" style="margin:1px 0 3px">${esc(s.what)}</div>`:"")
         + `<div class="gbar"><span style="width:${Math.round(100*done/tot)}%;background:var(--green)"></span></div>`;
+      // CONDITIONS = the stage's definition-of-done (gate criteria), R/Y/G — distinct from the work tasks.
+      if(s.conditions && s.conditions.length){
+        html += `<div class="small muted" style="margin-top:4px">done when:</div>`;
+        s.conditions.forEach(c=>{ html += `<div class="row wrap" style="border:none;padding:1px 0;font-size:11px"><span class="a">${dot(c.status)} ${esc(c.title)}</span></div>`; });
+      }
+      if(tasks.length){ html += `<div class="small muted" style="margin-top:4px">work:</div>`; }
       tasks.forEach(t=>{
         const ow = t.owner ? ` <span class="green">#${esc(t.owner)}</span>` : "";
-        html += `<div class="row" style="border:none;padding:1px 0;font-size:11px"><span class="a">${dot(t.status)} ${esc(t.title)}${ow}</span></div>`;
+        html += `<div class="row wrap" style="border:none;padding:1px 0;font-size:11px"><span class="a">${dot(t.status)} ${esc(t.title)}${ow}</span></div>`;
       });
       html += `</div>`;
     });
@@ -300,7 +310,7 @@ function renderRoadmap(p, claims, rs){
       html += `<div class="small ${pri==="P1"?"amber":"muted"}" style="margin-top:5px">${pri} · ${items.length}</div>`;
       items.forEach(o=>{
         const ow = ownerOf(o.title); const badge = ow ? ` <span class="green">#${esc(ow)}</span>` : "";
-        html += `<div class="row" style="border:none;padding:1px 0"><span class="a">${esc(o.title)}${badge}</span>${o.status?`<span class="b muted">${esc(o.status).slice(0,40)}</span>`:""}</div>`;
+        html += `<div class="row wrap" style="border:none;padding:1px 0"><span class="a">${esc(o.title)}${badge}</span></div>`;
       });
     });
   }
