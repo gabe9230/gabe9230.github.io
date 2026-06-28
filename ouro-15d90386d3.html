@@ -48,7 +48,7 @@
 <body>
 <h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
 <div class="tabs">
-  <button class="tab active" data-v="chat" onclick="show('chat')">💬 Chat</button>
+  <button class="tab active" data-v="chat" onclick="show('chat')">Chat</button>
   <button class="tab" data-v="directive" onclick="show('directive')">Directive</button>
   <button class="tab" data-v="library" onclick="show('library')">Library</button>
   <button class="tab" data-v="loop" onclick="show('loop')">Loop</button>
@@ -169,7 +169,7 @@ function _botReply(userMsg, reply){
   wrap.style.cssText="align-self:flex-start;max-width:85%;display:flex;flex-direction:column;gap:3px";
   const bub=_chatBubble("bot", reply); bub.style.maxWidth="100%"; wrap.appendChild(bub);
   const bar=document.createElement("div"); bar.style.cssText="font-size:10px;color:var(--dim)";
-  const flag=document.createElement("span"); flag.textContent="⚑ flag this reply";
+  const flag=document.createElement("span"); flag.textContent="flag this reply";
   flag.style.cssText="cursor:pointer;text-decoration:underline"; bar.appendChild(flag); wrap.appendChild(bar);
   flag.onclick=()=>{
     if(wrap.querySelector(".flagform")) return;
@@ -183,8 +183,8 @@ function _botReply(userMsg, reply){
     sub.onclick=async()=>{ sub.disabled=true;
       try{ await fetch(FLAG_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},
              body:JSON.stringify({message:userMsg,reply:reply,better:inp.value||""})});
-           bar.textContent="⚑ flagged — thanks (sent for review)"; form.remove();
-      }catch(e){ bar.textContent="⚑ flag failed ("+e.message+")"; sub.disabled=false; } };
+           bar.textContent="flagged — thanks (sent for review)"; form.remove();
+      }catch(e){ bar.textContent="flag failed ("+e.message+")"; sub.disabled=false; } };
   };
   return wrap;
 }
@@ -201,7 +201,7 @@ async function sendChat(){
     log.appendChild(_botReply(msg, (d&&(d.reply||d.text||d.response))||"(no reply)"));
     st.textContent="";
   } catch(e){
-    log.appendChild(_chatBubble("bot","⚠ chatbot endpoint not reachable yet ("+e.message+"). Try the desktop app chatbot."));
+    log.appendChild(_chatBubble("bot","chatbot endpoint not reachable yet ("+e.message+"). Try the desktop app chatbot."));
     st.textContent="offline";
   } finally { btn.disabled=false; log.scrollTop=log.scrollHeight; if(inp) inp.focus(); }
 }
@@ -232,7 +232,7 @@ function renderLibFilters(){
           return `<span class="chip" onclick='toggleLibF(${JSON.stringify(key)},${JSON.stringify(v)})' style="cursor:pointer${on?';background:var(--green);color:#000':''}">${esc(v)}</span>`; }).join(" ")
       + `</div>`;
   });
-  if(_LIB_FMETRICS.some(([k])=>window._libF[k].size)) h += `<div class="muted" style="font-size:10px;cursor:pointer;margin-top:2px" onclick="clearLibF()">✕ clear filters</div>`;
+  if(_LIB_FMETRICS.some(([k])=>window._libF[k].size)) h += `<div class="muted" style="font-size:10px;cursor:pointer;margin-top:2px" onclick="clearLibF()">clear filters</div>`;
   el.innerHTML=h;
 }
 function toggleLibF(key,val){ window._libF=window._libF||{}; window._libF[key]=window._libF[key]||new Set(); const s=window._libF[key]; s.has(val)?s.delete(val):s.add(val); renderLib(); }
@@ -370,7 +370,7 @@ function renderSearch(s){
   if(!s){ el.innerHTML="<span class='muted'>no substrate-search state yet (brain paused or starting)</span>"; return; }
   const fx=(v)=> v!=null ? (+v).toFixed(4) : "—";
   const champ=fx(s.champion), bar=fx(s.bar), gate=fx(s.ratchet_gate), phase=esc(s.phase||"—");
-  const plateau = s.plateau ? `<div class="small amber" style="margin-top:2px">⚠ architecture plateau · champion ${esc((s.plateau&&s.plateau.champion)||"")}</div>` : "";
+  const plateau = s.plateau ? `<div class="small amber" style="margin-top:2px">architecture plateau · champion ${esc((s.plateau&&s.plateau.champion)||"")}</div>` : "";
   const wins=(s.winners||[]).slice(0,8).map(w=>
     `<div class="row" style="border:none;padding:1px 0"><span class="a">${esc(w.name)}</span><span class="b muted">${fx(w.val_mean)}</span></div>`).join("");
   el.innerHTML =
