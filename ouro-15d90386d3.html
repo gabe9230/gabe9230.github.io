@@ -133,6 +133,16 @@ function show(v){
 }
 function libFilter(s){ _libFilter=s; document.querySelectorAll(".tabs.sub .tab").forEach(t=>t.classList.toggle("active", t.dataset.s===s)); renderLib(); }
 function libDir(){ window._libDir=(window._libDir==="asc")?"desc":"asc"; const b=document.getElementById("libdir"); if(b) b.textContent=window._libDir==="asc"?"↑ asc":"↓ desc"; renderLib(); }
+// DESCRIPTIVE NAME (Gabriel [1.50]): a human-readable display label derived from REAL signal (RULE 5 #7 — the
+// skill/fn-name, never a hand table). fetched_<fn>_<n> -> the source fn name (what it does); fld_<family>_<n> ->
+// "<family> #n" (de-cluttered; the full operation name needs the poser-side intent->purpose, flagged). Else the
+// existing purpose (seed experts are already descriptive). The cryptic skill stays the under-the-hood id.
+function _libName(r){
+  const sk=String(r.skill||""); const pu=String(r.purpose||"");
+  if(sk.startsWith("fetched_")) return sk.replace(/^fetched_/,"").replace(/_\d+$/,"").replace(/_/g," ").trim() || pu || sk;
+  if(/^fld_/.test(sk)){ const fam=String(r.field||sk.split("_")[1]||"").replace(/_/g," "); const idx=(sk.match(/_(\d+)$/)||[])[1]; return (fam||"field")+(idx!=null?" #"+idx:""); }
+  return pu || sk;
+}
 // FILTER (Gabriel [P1]): auto-populating multi-select chips per metric — options DERIVED from live data (RULE 5 #7,
 // never hardcoded). Within a metric = OR (any selected matches); across metrics = AND (all must match).
 const _LIB_FMETRICS = [["field","family"],["topology","topology"]];
@@ -218,7 +228,7 @@ function renderLib(){
   f = f.slice().sort((a,b)=>{ const av=kf(a),bv=kf(b); return av<bv?(desc?1:-1):av>bv?(desc?-1:1):0; });
   const N=80, shown=f.slice(0,N);
   document.getElementById("librows").innerHTML = shown.map(r=>
-    `<div class="row wrap"><span class="a">${esc(r.purpose||r.skill)} `
+    `<div class="row wrap"><span class="a">${esc(_libName(r))} `
     + `<span class="chip">${esc(r.field)}</span>`
     + (r.topology?`<span class="chip">${esc(r.topology)}</span>`:"")
     + `</span><span class="b">`
