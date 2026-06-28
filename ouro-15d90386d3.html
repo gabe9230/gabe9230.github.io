@@ -382,12 +382,31 @@ function renderSearch(s){
     + (lv.frac!=null?`<div class="gbar"><span style="width:${Math.round(100*lv.frac)}%;background:var(--blue)"></span></div>`:"")
     + `<div class="small dim" style="margin-top:2px">${lv.step!=null?("eval step "+lv.step+"/"+lv.steps):""}${lv.st_per_s!=null?(" · "+(+lv.st_per_s).toFixed(2)+" st/s"):""}</div>`
     + `</div>` ) : "";
+  const cap=(s.capability_history||[]);
+  const capHtml = cap.length ? `<div class="l" style="margin-top:8px">CORE CAPABILITY OVER BUILDS <span class="muted">· operator-readiness per champion-core build (0→1, seat at 1)</span></div><canvas id="capchart" width="540" height="120"></canvas>` : "";
   el.innerHTML = live +
     `<div class="bignums"><b>${champ}</b> champion val <span class="muted">· ${phase}</span></div>`
     + `<div class="small dim">ratchet bar ${bar} · gate ${gate}</div>`
     + plateau
+    + capHtml
     + (wins ? `<div class="l" style="margin-top:8px">RECENT WINNERS <span class="muted">· crowned topologies (val_mean)</span></div>`+wins
             : `<div class="muted" style="margin-top:6px">no crowned winners yet this run</div>`);
+  if(cap.length) drawCapChart(cap);
+}
+// [0.64] core-capability trajectory (worst-case skill per champion-core build), 0..1 absolute scale.
+function drawCapChart(hist){
+  const c=document.getElementById("capchart"); if(!c) return; const x=c.getContext("2d");
+  x.clearRect(0,0,c.width,c.height);
+  const H=(hist||[]).filter(p=>p&&p.cap!=null&&p.ts);
+  if(H.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting…",8,20); return; }
+  const t0=H[0].ts, t1=Math.max(H[H.length-1].ts,t0+1);
+  const X=t=>8+((t-t0)/(t1-t0))*(c.width-16), Y=v=>c.height-14-Math.max(0,Math.min(1,v))*(c.height-26);
+  x.strokeStyle="#21262d"; x.lineWidth=1;
+  for(let g=0;g<=4;g++){ const yy=12+g*(c.height-26)/4; x.beginPath(); x.moveTo(8,yy); x.lineTo(c.width-8,yy); x.stroke(); }
+  x.strokeStyle="#58a6ff"; x.lineWidth=2; x.beginPath();
+  H.forEach((p,i)=>{ const px=X(p.ts),py=Y(p.cap); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
+  const last=H[H.length-1]; x.fillStyle="#58a6ff"; x.beginPath(); x.arc(X(last.ts),Y(last.cap),3,0,7); x.fill();
+  x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("now "+(+last.cap).toFixed(3),10,14); x.fillText("1.0",c.width-26,14);
 }
 
 // ── ROADMAP TAB (stage tracker + open jobs; owner/status overlay from #02's data when present) ──────
