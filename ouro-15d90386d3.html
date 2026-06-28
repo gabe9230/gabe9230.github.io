@@ -311,7 +311,7 @@ function renderSearch(s){
 }
 
 // ── ROADMAP TAB (stage tracker + open jobs; owner/status overlay from #02's data when present) ──────
-function renderRoadmap(p, claims, rs){
+function renderRoadmap(p, claims, rs, cov){
   const el=document.getElementById("roadmapbody"); if(!el) return;
   p = p || {};
   if(!(p.roadmap||p.open||(rs&&rs.stages))){ el.innerHTML="<span class='muted'>no roadmap data yet</span>"; return; }
@@ -326,6 +326,15 @@ function renderRoadmap(p, claims, rs){
   const here = (rs&&rs.we_are_here) || "";
   let html = `<div class="l">ROADMAP <span class="muted">· we are here: ${esc(here||"?")} · ●done ●wip ●planned</span></div>`;
   if(rs && rs.we_are_here_note){ html += `<div class="small dim" style="margin:1px 0 4px">${esc(rs.we_are_here_note)}</div>`; }
+  // STAGE 1->2 GATE GAUGE — the north-star number: held-out coverage of arbitrary code (gen_acc>=0.8), honest.
+  if(cov && cov.distinct){
+    const pct = Math.round(100*(cov.coverage||0));
+    html += `<div style="padding:6px 0;border-bottom:1px solid var(--grid)">`
+      + `<div class="row" style="border:none;padding:1px 0"><span class="a"><b>Stage 1→2 gate</b> · arbitrary-code coverage</span><span class="b green">${pct}%</span></div>`
+      + `<div class="gbar"><span style="width:${pct}%;background:var(--green)"></span></div>`
+      + `<div class="small dim" style="margin-top:2px">${cov.covered}/${cov.distinct} fns at held-out gen_acc≥0.8 (exact-writer ceiling; climbs as the loop cracks novel-write)</div>`
+      + `</div>`;
+  }
   // STAGE TRACKER — authoritative from rs.stages (per-stage progress bar + per-task R/Y/G + owner); else d.plan fallback.
   if(rs && rs.stages && rs.stages.length){
     rs.stages.forEach(s=>{
@@ -412,7 +421,7 @@ async function load(){
   renderProposals(d.shared_seat_proposals);
   renderWorkers(d.cluster);
   renderSearch(d.search);
-  renderRoadmap(d.plan, d.worker_claims, d.roadmap_status);
+  renderRoadmap(d.plan, d.worker_claims, d.roadmap_status, d.stage12_coverage);
   if(!_lib) await fetchLib();
   if(curV==="library") renderLib();
 }
