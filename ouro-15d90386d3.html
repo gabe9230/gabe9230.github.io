@@ -373,7 +373,16 @@ function renderSearch(s){
   const plateau = s.plateau ? `<div class="small amber" style="margin-top:2px">architecture plateau · champion ${esc((s.plateau&&s.plateau.champion)||"")}</div>` : "";
   const wins=(s.winners||[]).slice(0,8).map(w=>
     `<div class="row" style="border:none;padding:1px 0"><span class="a">${esc(w.name)}</span><span class="b muted">${fx(w.val_mean)}</span></div>`).join("");
-  el.innerHTML =
+  const lv=s.live;
+  const live = lv ? (
+      `<div style="padding:6px 0;border-bottom:1px solid var(--grid);margin-bottom:6px">`
+    + `<div class="row" style="border:none;padding:1px 0"><span class="a">`
+    + (lv.active?`<span style="color:var(--green)">●</span> <b>ACTIVE</b> search`:`<span class="muted">○ idle (last eval ${lv.age!=null?Math.round(lv.age)+"s ago":"—"})</span>`)
+    + ` · ${esc(lv.phase||"—")}</span><span class="b muted">${lv.eta_min!=null?("ETA ~"+Math.round(lv.eta_min)+"m"):""}</span></div>`
+    + (lv.frac!=null?`<div class="gbar"><span style="width:${Math.round(100*lv.frac)}%;background:var(--blue)"></span></div>`:"")
+    + `<div class="small dim" style="margin-top:2px">${lv.step!=null?("eval step "+lv.step+"/"+lv.steps):""}${lv.st_per_s!=null?(" · "+(+lv.st_per_s).toFixed(2)+" st/s"):""}${(lv.active&&lv.age!=null)?(" · "+Math.round(lv.age)+"s ago"):""}</div>`
+    + `</div>` ) : "";
+  el.innerHTML = live +
     `<div class="bignums"><b>${champ}</b> champion val <span class="muted">· ${phase}</span></div>`
     + `<div class="small dim">ratchet bar ${bar} · gate ${gate}</div>`
     + plateau
