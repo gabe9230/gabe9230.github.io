@@ -50,6 +50,7 @@
   <button class="tab" data-v="library" onclick="show('library')">Library</button>
   <button class="tab" data-v="loop" onclick="show('loop')">Loop</button>
   <button class="tab" data-v="search" onclick="show('search')">Search</button>
+  <button class="tab" data-v="roadmap" onclick="show('roadmap')">Roadmap</button>
   <button class="tab" data-v="workers" onclick="show('workers')">Workers</button>
 </div>
 
@@ -89,11 +90,15 @@
   <div class="card"><div class="l">SUBSTRATE SEARCH <span class="muted">· the brain — invents/evaluates novel NN topologies on an unbounded difficulty ladder</span></div><div id="searchbody" style="margin-top:8px"></div></div>
 </div>
 
+<div id="v-roadmap" style="display:none">
+  <div class="card"><div class="l">ROADMAP + OPEN JOBS <span class="muted">· stage tracker (we-are-here) + the open TODO backlog, owner-marked</span></div><div id="roadmapbody" style="margin-top:8px"></div></div>
+</div>
+
 <div id="v-workers" style="display:none">
   <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
 </div>
 
-<footer><span id="pagever">v26 · Directive · Library · Loop (+Agent) · Search · Workers</span></footer>
+<footer><span id="pagever">v27 · Directive · Library · Loop (+Agent) · Search · Roadmap · Workers</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -108,7 +113,7 @@ function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
 
 function show(v){
   curV = v;
-  ["directive","library","loop","search","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  ["directive","library","loop","search","roadmap","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
   document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
   if(v==="library") renderLib();
 }
@@ -249,6 +254,38 @@ function renderSearch(s){
             : `<div class="muted" style="margin-top:6px">no crowned winners yet this run</div>`);
 }
 
+// ── ROADMAP TAB (stage tracker + open jobs; owner/status overlay from #02's data when present) ──────
+function renderRoadmap(p, claims, rs){
+  const el=document.getElementById("roadmapbody"); if(!el) return;
+  if(!p){ el.innerHTML="<span class='muted'>no roadmap data (ROADMAP.md / TODO.md unparsed)</span>"; return; }
+  claims = claims || {};   // {id:{item,status,...}}  -- owner markers (#02 schema: per-worker claim files)
+  // best-effort owner match: a worker's claimed item-substring vs a job title
+  const ownerOf = (title)=>{ if(!title) return null;
+    for(const id in claims){ const it=((claims[id]||{}).item)||""; if(it && (it.toLowerCase().includes(title.slice(0,18).toLowerCase())||title.toLowerCase().includes(it.slice(0,18).toLowerCase()))) return id; }
+    return null; };
+  // optional per-task status overlay (#02 roadmap_status.json) keyed by title -> done|in_progress|planned
+  const taskStatus = {}; if(rs&&rs.stages){ rs.stages.forEach(s=>(s.tasks||[]).forEach(t=>{ if(t.title) taskStatus[t.title.slice(0,30)]=t.status; })); }
+  const dot = (st)=> st==="done"?'<span class="green">●</span>':st==="in_progress"?'<span class="amber">●</span>':'<span class="dim">●</span>';
+  let html = `<div class="l">ROADMAP <span class="muted">· ${(rs&&rs.we_are_here)?("we are here: "+esc(rs.we_are_here)):"stage tracker"}</span></div>`;
+  (p.roadmap||[]).forEach(s=>{
+    const nm = esc((s.name||"").split("—")[0].trim());
+    const here = s.here ? ` <span class="green">◀ WE ARE HERE</span>` : "";
+    html += `<div style="padding:5px 0;border-bottom:1px solid var(--grid)"><div class="row" style="border:none;padding:1px 0"><span class="a"><b>${nm}</b>${here}</span></div><div class="small dim">${esc((s.status||"").slice(0,170))}</div></div>`;
+  });
+  const open = p.open||[];
+  html += `<div class="l" style="margin-top:10px">OPEN JOBS <span class="muted">· ${open.length} open · ${p.done||0} done</span></div>`;
+  ["P1","P2","P3"].forEach(pri=>{
+    const items = open.filter(o=>o.pri===pri); if(!items.length) return;
+    html += `<div class="small ${pri==="P1"?"amber":"muted"}" style="margin-top:5px">${pri} · ${items.length}</div>`;
+    items.forEach(o=>{
+      const ow = ownerOf(o.title); const badge = ow ? ` <span class="green">#${esc(ow)}</span>` : "";
+      const stt = taskStatus[(o.title||"").slice(0,30)];
+      html += `<div class="row" style="border:none;padding:1px 0"><span class="a">${stt?dot(stt)+" ":""}${esc(o.title)}${badge}</span>${o.status?`<span class="b muted">${esc(o.status).slice(0,40)}</span>`:""}</div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+
 // ── fetch loop ─────────────────────────────────────────────────────────────
 async function fetchStatus(){
   try { const r=await fetch(RELAY+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); if(d&&d.ts) return d; } } catch(e){}
@@ -277,6 +314,7 @@ async function load(){
   renderAgent(d.agent);
   renderWorkers(d.cluster);
   renderSearch(d.search);
+  renderRoadmap(d.plan, d.worker_claims, d.roadmap_status);
   if(!_lib) await fetchLib();
   if(curV==="library") renderLib();
 }
