@@ -300,7 +300,7 @@ function renderLib(){
   f = f.slice().sort((a,b)=>{ const av=kf(a),bv=kf(b); return av<bv?(desc?1:-1):av>bv?(desc?-1:1):0; });
   const N=80, shown=f.slice(0,N);
   document.getElementById("librows").innerHTML = shown.map(r=>
-    `<div class="row wrap"><span class="a">${esc(_libName(r))} `
+    `<div class="row wrap" style="cursor:pointer" onclick='libDetail(${JSON.stringify(String(r.id||r.skill||""))})'><span class="a">${esc(_libName(r))} `
     + `<span class="chip">${esc(r.field)}</span>`
     + (r.topology?`<span class="chip">${esc(r.topology)}</span>`:"")
     + `</span><span class="b">`
@@ -310,6 +310,32 @@ function renderLib(){
     + `</span></div>`).join("") || "<span class='muted'>no experts match</span>";
   if(f.length>N) document.getElementById("librows").innerHTML += `<div class="muted" style="margin-top:6px">+${f.length-N} more (refine search)</div>`;
 }
+// [2.42] NET-DETAIL PANEL (Gabriel-directed): click any library row -> modal showing every tracked field for that
+// net. Reads the row already in _lib (no extra fetch). r.detail.* (corpus/tier/router-uses/provenance/verified)
+// renders when the publisher enriches the payload (follow-up). RULE 5 #7: only REAL fields, never fabricated.
+function libDetail(id){
+  const r=(_lib||[]).find(x=>String(x.id||x.skill||"")===String(id)); if(!r) return;
+  const d=r.detail||{};
+  const fields=[
+    ["id",r.id],["skill",r.skill],["purpose",r.purpose],["field",r.field],["origin",r.origin],
+    ["topology",r.topology],["status",r.status],["uses",r.uses],["metric val",r.val],["window",r.window],
+    ["created",r.created?when(r.created):null],
+    ["corpus",d.corpus],["tier",d.tier],["router uses",d.router_uses],["provenance",d.provenance],
+    ["verified",d.verified==null?null:(d.verified?"yes":"no")]
+  ];
+  const body=fields.filter(kv=>kv[1]!=null&&kv[1]!=="").map(kv=>
+    `<div class="row" style="padding:4px 0;border-bottom:1px solid var(--grid)"><span class="a muted">${kv[0]}</span>`
+    +`<span class="b" style="word-break:break-all;text-align:right">${esc(kv[1])}</span></div>`).join("");
+  let m=document.getElementById("libmodal");
+  if(!m){ m=document.createElement("div"); m.id="libmodal"; document.body.appendChild(m);
+    m.onclick=e=>{ if(e.target===m) closeLibModal(); }; }
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px";
+  m.innerHTML=`<div style="background:var(--bg2,#161b22);border:1px solid var(--grid);border-radius:12px;max-width:520px;width:100%;max-height:80vh;overflow:auto;padding:14px 16px">`
+    +`<div class="row" style="border:none;margin-bottom:6px;align-items:center"><span class="a"><b>${esc(_libName(r))}</b></span>`
+    +`<span class="b" style="cursor:pointer;font-size:20px;line-height:1" onclick="closeLibModal()">&times;</span></div>`
+    +body+`</div>`;
+}
+function closeLibModal(){ const m=document.getElementById("libmodal"); if(m) m.remove(); }
 
 // ── LOOP TAB ───────────────────────────────────────────────────────────────
 function renderLoop(lf){
