@@ -364,9 +364,15 @@ function renderLoop(lf){
 // ── WORKERS TAB (read-only stats) ──────────────────────────────────────────
 function renderWorkers(cl){
   const ws=(cl&&cl.workers)||[];   // publish_web flattens: w.util / w.temp / w.mem_used / w.job / w.activity (NOT nested gpus)
-  // FLEET SUMMARY (match the app's draw_cluster head line): queued / running / done + staleness.
+  // [2.10] ETA derived PAGE-SIDE from the raw (step,steps,sps) the payload ships — nothing eta/phase is pre-computed
+  // (publish_web.py:1208 by design). round/phase are search-mode concepts (null in agent-loop mode), so we surface
+  // the one applicable straggler signal: time-to-finish of the slowest in-flight eval (mirrors draw_cluster's head eta).
+  const _etaSec=w=>(w&&w.step!=null&&w.steps&&w.sps>0&&w.steps>w.step)?((w.steps-w.step)/w.sps):null;
+  const _fEtas=ws.map(_etaSec).filter(x=>x!=null); const _fEta=_fEtas.length?Math.max(..._fEtas):null;
+  // FLEET SUMMARY (match the app's draw_cluster head line): queued / running / done + slowest-eta + staleness.
   const fleet = cl ? (`<div class="row" style="border:none;padding:2px 0;margin-bottom:4px"><span class="a muted">`
       + `cluster · queued ${cl.queued!=null?cl.queued:0} · running ${cl.running!=null?cl.running:0} · done ${cl.done!=null?cl.done:0}`
+      + (_fEta!=null?` · eta ~${ago(_fEta)}`:"")
       + (cl.status_age>30?` · <span class="amber">STALE ${Math.round(cl.status_age)}s — coordinator down?</span>`:"")
       + `</span></div>`) : "";
   document.getElementById("workerrows").innerHTML = ws.length ? (fleet + ws.map(w=>{
@@ -376,8 +382,9 @@ function renderWorkers(cl){
     const right = busy ? (esc(w.activity||"working") + (w.job?(" · "+esc(String(w.job).slice(-8))):"")) : "idle";
     const ub = util!=null ? util : (busy?100:0);
     // NET TRAINING PROGRESS (the app shows the eval's net + step/steps + sps; the payload ships them — render here).
+    const _we=_etaSec(w);
     const prog = (w.net && w.step!=null && w.steps)
-      ? `<div class="muted" style="font-size:10px">${esc(w.net)} · step ${w.step}/${w.steps}${w.sps?(" · "+w.sps+"/s"):""}</div>` : "";
+      ? `<div class="muted" style="font-size:10px">${esc(w.net)} · step ${w.step}/${w.steps}${w.sps?(" · "+w.sps+"/s"):""}${_we!=null?(" · eta ~"+ago(_we)):""}</div>` : "";
     return `<div style="padding:8px 0;border-bottom:1px solid var(--grid)">`
       + `<div class="row" style="border:none;padding:2px 0"><span class="a"><b>${esc(w.id)}</b>${w.host?` <span class="muted">(${esc(w.host)})</span>`:""}</span>`
       + `<span class="b ${stColor}">${esc(st)}</span></div>`
