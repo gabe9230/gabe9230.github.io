@@ -444,7 +444,7 @@ function drawCapChart(hist){
 }
 
 // ── ROADMAP TAB (stage tracker + open jobs; owner/status overlay from #02's data when present) ──────
-function renderRoadmap(p, claims, rs, cov){
+function renderRoadmap(p, claims, rs, cov, dec){
   const el=document.getElementById("roadmapbody"); if(!el) return;
   p = p || {};
   claims = claims || {};   // {id:{item,status,...}}  -- worker current-work markers
@@ -475,6 +475,16 @@ function renderRoadmap(p, claims, rs, cov){
       + `<div class="row" style="border:none;padding:1px 0"><span class="a"><b>Stage 1→2 gate</b> · arbitrary-code coverage</span><span class="b green">${pct}%</span></div>`
       + `<div class="gbar"><span style="width:${pct}%;background:var(--green)"></span></div>`
       + `<div class="small dim" style="margin-top:2px">${cov.covered}/${cov.distinct} fns at held-out gen_acc≥0.8 (exact-writer ceiling; climbs as the loop cracks novel-write)</div>`
+      + `</div>`;
+  }
+  // OPERATOR readiness (decision-2, Gabriel-confirmed): execution-grounded coverage×accuracy — NEVER wrong where
+  // covered, ABSTAINS on execution-equivalent mutants (a genuine ceiling). Distinct from the write-coverage gate above.
+  if(dec && dec.coverage_accuracy!=null){
+    const opct = Math.round(100*(dec.coverage_accuracy||0)), acc = Math.round(100*(dec.accuracy||0));
+    html += `<div style="padding:6px 0;border-bottom:1px solid var(--grid)">`
+      + `<div class="row" style="border:none;padding:1px 0"><span class="a"><b>Operator</b> · execution coverage×accuracy</span><span class="b green">${opct}%</span></div>`
+      + `<div class="gbar"><span style="width:${opct}%;background:var(--green)"></span></div>`
+      + `<div class="small dim" style="margin-top:2px">${dec.covered}/${dec.n} real fns × ${acc}% acc — never wrong, abstains on equivalent mutants (vs legacy NLL ~chance)</div>`
       + `</div>`;
   }
   // STAGE TRACKER — authoritative from rs.stages (per-stage progress bar + per-task R/Y/G + owner); else d.plan fallback.
@@ -575,7 +585,7 @@ async function load(){
   renderProposals(d.shared_seat_proposals);
   renderWorkers(d.cluster);
   renderSearch(d.search);
-  renderRoadmap(d.plan, d.worker_claims, d.roadmap_status, d.stage12_coverage);
+  renderRoadmap(d.plan, d.worker_claims, d.roadmap_status, d.stage12_coverage, d.handoff && d.handoff.decomposed);
   if(!_lib) await fetchLib();
   if(curV==="library") renderLib();
 }
