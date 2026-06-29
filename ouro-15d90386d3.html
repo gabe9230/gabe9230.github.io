@@ -318,7 +318,8 @@ function libDetail(id){
   const d=r.detail||{};
   const fields=[
     ["id",r.id],["skill",r.skill],["purpose",r.purpose],["field",r.field],["origin",r.origin],
-    ["topology",r.topology],["status",r.status],["uses",r.uses],["metric val",r.val],["window",r.window],
+    ["topology",r.topology],["atoms",r.atoms],["param count",(r.param_count!=null?Number(r.param_count).toLocaleString():null)],
+    ["status",r.status],["uses",r.uses],["metric val",r.val],["window",r.window],
     ["created",r.created?when(r.created):null],
     ["corpus",d.corpus],["tier",d.tier],["router uses",d.router_uses],["provenance",d.provenance],
     ["verified",d.verified==null?null:(d.verified?"yes":"no")]
