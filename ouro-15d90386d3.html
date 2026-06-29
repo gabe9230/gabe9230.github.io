@@ -213,6 +213,7 @@ function _libName(r){
   const sk=String(r.skill||""); const pu=String(r.purpose||"");
   if(sk.startsWith("fetched_")) return sk.replace(/^fetched_/,"").replace(/_\d+$/,"").replace(/_/g," ").trim() || pu || sk;
   if(/^fld_/.test(sk)){ const fam=String(r.field||sk.split("_")[1]||"").replace(/_/g," "); const idx=(sk.match(/_(\d+)$/)||[])[1]; return (fam||"field")+(idx!=null?" #"+idx:""); }
+  if(r.name && String(r.name).trim()) return String(r.name);   // [2.40] backend expert_names.descriptive_name (RULE-5-#7-clean) for the generic rest
   return pu || sk;
 }
 // FILTER (Gabriel [P1]): auto-populating multi-select chips per metric — options DERIVED from live data (RULE 5 #7,
