@@ -295,9 +295,20 @@ function renderCore(d){
   const ct=document.getElementById("coretask");
   if(ct) ct.textContent = co ? `· iter ${co.last_iter} · d=${co.frontier_d} · ${co.n_code} code-tasks/window (${co.n_escalations} escalated)` : "";
   const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
-  if(vm) vm.innerHTML = (lf&&lf.vm&&lf.vm.available)
-    ? `<img class="vm" src="${VM_RELAY}?t=${Date.now()}" onerror="this.onerror=null;this.src='${VM_RAW}?t=${Date.now()}'"><div class="muted" style="margin-top:4px">updated ${when(lf.vm.ts)}</div>`
-    : `<div class="muted">VM idle — most experts build on the cluster, not the desktop VM. (the feed appears when a computer-use task runs.)</div>`;
+  if(vm){
+    const av = lf&&lf.vm&&lf.vm.available;
+    if(av){
+      let img=vm.querySelector("img.vm");
+      if(!img){                                                  // build the element ONCE (first render / returning from idle)
+        vm.innerHTML = `<img class="vm" onerror="this.onerror=null;this.src='${VM_RAW}?t='+Date.now()"><div class="muted vmts" style="margin-top:4px"></div>`;
+        img=vm.querySelector("img.vm");
+      }
+      img.src = VM_RELAY+"?t="+Date.now();                       // update src IN PLACE -> the old frame stays until the new one decodes (no collapse / no scroll jump)
+      const ts=vm.querySelector(".vmts"); if(ts) ts.textContent = "updated "+when(lf.vm.ts);
+    } else if(!vm.querySelector(".vmidle")){                     // write the idle message only ONCE (don't rewrite the panel every poll)
+      vm.innerHTML = `<div class="muted vmidle">VM idle — most experts build on the cluster, not the desktop VM. (the feed appears when a computer-use task runs.)</div>`;
+    }
+  }
 }
 
 // ── LIBRARY TAB ────────────────────────────────────────────────────────────
