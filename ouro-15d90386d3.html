@@ -48,16 +48,27 @@
 <body>
 <h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
 <div class="tabs">
-  <button class="tab active" data-v="chat" onclick="show('chat')">Chat</button>
-  <button class="tab" data-v="directive" onclick="show('directive')">Directive</button>
+  <button class="tab active" data-v="core" onclick="show('core')">Core</button>
+  <button class="tab" data-v="chat" onclick="show('chat')">Chat</button>
   <button class="tab" data-v="library" onclick="show('library')">Library</button>
-  <button class="tab" data-v="loop" onclick="show('loop')">Loop</button>
-  <button class="tab" data-v="search" onclick="show('search')">Search</button>
   <button class="tab" data-v="roadmap" onclick="show('roadmap')">Roadmap</button>
   <button class="tab" data-v="workers" onclick="show('workers')">Workers</button>
 </div>
 
-<div id="v-chat">
+<div id="v-core">
+  <div class="card">
+    <div class="l">CORE SCORE <span class="muted">· coverage × difficulty — ONE unbounded number; dips when new families land (broaden→master), not a regression</span></div>
+    <div class="bignums" id="corenums"></div>
+    <canvas id="corechart" width="540" height="150"></canvas>
+  </div>
+  <div class="card">
+    <div class="l">CURRENT TASK <span class="muted">· what the loop is doing right now</span> <span class="small dim" id="coretask"></span></div>
+    <div id="looplog" style="margin-top:6px;font-family:var(--mono,monospace);font-size:10px;line-height:1.5;max-height:240px;overflow:auto"></div>
+  </div>
+  <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
+</div>
+
+<div id="v-chat" style="display:none">
   <div class="card">
     <div class="l">CHAT <span class="muted">· talk to the local chatbot — read-only, conversation only (it can't run commands)</span></div>
     <div id="chatlog" style="margin-top:8px;max-height:58vh;overflow:auto;display:flex;flex-direction:column;gap:8px">
@@ -69,19 +80,6 @@
     </div>
     <div class="small dim" id="chatstatus" style="margin-top:4px"></div>
   </div>
-</div>
-
-<div id="v-directive" style="display:none">
-  <div class="card" id="dcard">
-    <div class="l">CURRENT DIRECTIVE <span id="dlive" class="muted"></span></div>
-    <div class="dtext" id="dtext">—</div>
-    <div class="small" id="dsub" style="color:var(--blue);margin:2px 0 4px"></div>
-    <div class="bignums" id="dnums"></div>
-    <div class="l" id="dgraphlabel" style="margin-top:6px">LADDER HEIGHT OVER TIME <span class="muted">· unbounded — climbs as families master harder difficulty</span></div>
-    <canvas id="ladchart" width="540" height="150"></canvas>
-    <div class="small dim" id="dprog" style="margin-top:4px"></div>
-  </div>
-  <div class="card"><div class="l">IN-PROGRESS PLAN + TASKS <span class="muted">· what the loop is dispatching now</span></div><div id="dplan" style="margin-top:6px"></div></div>
 </div>
 
 <div id="v-library" style="display:none">
@@ -109,18 +107,6 @@
   </div>
 </div>
 
-<div id="v-loop" style="display:none">
-  <div class="card" id="agentcard"><div class="l">AGENT LOOP <span class="muted">· poses tasks → detects gaps → BUILDS experts → the library GROWS</span></div><div id="agentbody" style="margin-top:6px"></div></div>
-  <div class="card"><div class="l">WRITE PROPOSALS <span class="muted">· shared-seat — the model proposes, Gabriel signs off (read-only)</span></div><div id="proposalbody" style="margin-top:6px"></div></div>
-  <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
-  <div class="card"><div class="l">LOOP LOG <span class="muted">· live agent-loop iters (read-only)</span></div><div id="looplog" style="margin-top:6px;font-family:var(--mono,monospace);font-size:10px;line-height:1.5;max-height:220px;overflow:auto"></div></div>
-  <div class="card"><div class="l">ACTIVE EXPERTS <span class="muted">· currently plugged into the core, per family</span></div><div id="activeexperts" style="margin-top:6px"></div></div>
-</div>
-
-<div id="v-search" style="display:none">
-  <div class="card"><div class="l">SUBSTRATE SEARCH <span class="muted">· the brain — invents/evaluates novel NN topologies on an unbounded difficulty ladder</span></div><div id="searchbody" style="margin-top:8px"></div></div>
-</div>
-
 <div id="v-roadmap" style="display:none">
   <div class="card"><div class="l">ROADMAP + OPEN JOBS <span class="muted">· stage tracker (we-are-here) + the open TODO backlog, owner-marked</span></div><div id="roadmapbody" style="margin-top:8px"></div></div>
 </div>
@@ -129,14 +115,14 @@
   <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
 </div>
 
-<footer><span id="pagever">v28 · Chat · Directive · Library · Loop · Search · Roadmap · Workers</span></footer>
+<footer><span id="pagever">v29 · Core · Chat · Library · Roadmap · Workers</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 const LIB_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/library.json";
 const VM_RELAY = "https://gabeslaptop.tail46cb76.ts.net/vm.jpg";     // realtime (laptop relay)
 const VM_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/vm.jpg";  // fallback
-let curV = "chat", _lib = null, _libFilter = "all";
+let curV = "core", _lib = null, _libFilter = "all";
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function ago(s){ s=Math.max(0,s|0); if(s<90) return s+"s"; if(s<5400) return (s/60|0)+"m"; if(s<172800) return (s/3600|0)+"h"; return (s/86400|0)+"d"; }
@@ -144,7 +130,7 @@ function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
 
 function show(v){
   curV = v;
-  ["chat","directive","library","loop","search","roadmap","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  ["core","chat","library","roadmap","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
   if(v==="chat"){ const ci=document.getElementById("chatin"); if(ci) setTimeout(()=>ci.focus(),0); }
   document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
   if(v==="library") renderLib();
@@ -276,6 +262,42 @@ function drawLadder(hist){
   H.forEach((p,i)=>{ const px=X(p.ts),py=Y(p.h); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
   x.fillStyle="#3fb950"; const last=H[H.length-1]; x.beginPath(); x.arc(X(last.ts),Y(last.h),3,0,7); x.fill();
   x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+maxH, 10, 14);
+}
+
+// ── CORE TAB ([2.05] Gabriel) — the single headline view: core_score over time + the current task + the VM the
+// system drives. core_score = coverage × (frontier_d/100), computed page-side-agnostic by the publisher (d.core).
+function drawCoreChart(series){
+  const c=document.getElementById("corechart"); if(!c) return; const x=c.getContext("2d");
+  x.clearRect(0,0,c.width,c.height);
+  const S=(series||[]).filter(p=>p&&p.core_score!=null);
+  if(S.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting… (loop warming up)", 8, 20); return; }
+  const xs=S.map((p,i)=>p.t!=null?p.t:i), t0=xs[0], t1=Math.max(xs[xs.length-1], t0+1);
+  const maxV=Math.max(2,...S.map(p=>p.core_score));
+  const X=t=>8+((t-t0)/(t1-t0))*(c.width-16), Y=v=>c.height-12-(v/maxV)*(c.height-24);
+  x.strokeStyle="#21262d"; x.lineWidth=1;
+  for(let g=0;g<=4;g++){ const yy=12+g*(c.height-24)/4; x.beginPath(); x.moveTo(8,yy); x.lineTo(c.width-8,yy); x.stroke(); }
+  x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();
+  S.forEach((p,i)=>{ const px=X(xs[i]),py=Y(p.core_score); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
+  x.fillStyle="#3fb950"; const li=S.length-1; x.beginPath(); x.arc(X(xs[li]),Y(S[li].core_score),3,0,7); x.fill();
+  x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+Math.round(maxV), 10, 14);
+}
+function renderCore(d){
+  const co=d.core;
+  const hn=document.getElementById("corenums");
+  if(hn) hn.innerHTML = co
+    ? `<div><div class="v green">${co.core_score}</div><div class="ll">CORE SCORE</div><div class="ll">coverage × difficulty</div></div>`
+     +`<div><div class="v">${co.coverage}%</div><div class="ll">COVERAGE</div><div class="ll">solved w/o 7B</div></div>`
+     +`<div><div class="v ${co.escalation_rate>0?'amber':''}">${co.escalation_rate}%</div><div class="ll">ESCALATION</div><div class="ll">to 7B / #03</div></div>`
+     +`<div><div class="v">${co.d_multiplier}×</div><div class="ll">DIFFICULTY</div><div class="ll">d=${co.frontier_d}</div></div>`
+    : `<span class="muted">core score collecting… (loop warming up)</span>`;
+  drawCoreChart(co&&co.series);
+  renderLoopLog(d.loop_log);                                  // CURRENT TASK = the live agent-loop iter stream
+  const ct=document.getElementById("coretask");
+  if(ct) ct.textContent = co ? `· iter ${co.last_iter} · d=${co.frontier_d} · ${co.n_code} code-tasks/window (${co.n_escalations} escalated)` : "";
+  const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
+  if(vm) vm.innerHTML = (lf&&lf.vm&&lf.vm.available)
+    ? `<img class="vm" src="${VM_RELAY}?t=${Date.now()}" onerror="this.onerror=null;this.src='${VM_RAW}?t=${Date.now()}'"><div class="muted" style="margin-top:4px">updated ${when(lf.vm.ts)}</div>`
+    : `<div class="muted">VM idle — most experts build on the cluster, not the desktop VM. (the feed appears when a computer-use task runs.)</div>`;
 }
 
 // ── LIBRARY TAB ────────────────────────────────────────────────────────────
@@ -579,13 +601,8 @@ async function load(){
   const age=Date.now()/1000-(d.ts||0), upd=document.getElementById("upd");
   upd.textContent="data "+ago(age)+" old"; upd.className="pill"+(age>900?" stale":"");
   window._d=d;
-  renderDirective(d.directive_status);
-  renderLoop(d.loop_feed);
-  renderAgent(d.agent);
-  renderLoopLog(d.loop_log);
-  renderProposals(d.shared_seat_proposals);
+  renderCore(d);                 // [2.05] the single Core tab: core_score graph + current task (loop log) + VM feed
   renderWorkers(d.cluster);
-  renderSearch(d.search);
   renderRoadmap(d.plan, d.worker_claims, d.roadmap_status, d.stage12_coverage, d.handoff && d.handoff.decomposed);
   if(!_lib) await fetchLib();
   if(curV==="library") renderLib();
