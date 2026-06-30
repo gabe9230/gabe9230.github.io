@@ -271,7 +271,7 @@ function drawCoreChart(series){
   x.clearRect(0,0,c.width,c.height);
   const S=(series||[]).filter(p=>p&&p.core_score!=null);
   if(S.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting… (loop warming up)", 8, 20); return; }
-  const xs=S.map((p,i)=>p.t!=null?p.t:i), t0=xs[0], t1=Math.max(xs[xs.length-1], t0+1);
+  const xs=S.map((p,i)=>i), t0=0, t1=Math.max(S.length-1, 1);   // x = chronological sample index, NOT p.t (iter resets to 1 each loop restart -> the line doubled back to the left; the series is append-only file order, so index is monotonic in time)
   const maxV=Math.max(2,...S.map(p=>p.core_score));
   const X=t=>8+((t-t0)/(t1-t0))*(c.width-16), Y=v=>c.height-12-(v/maxV)*(c.height-24);
   x.strokeStyle="#21262d"; x.lineWidth=1;
