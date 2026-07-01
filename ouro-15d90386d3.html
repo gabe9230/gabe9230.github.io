@@ -62,6 +62,10 @@
     <canvas id="corechart" width="540" height="150"></canvas>
   </div>
   <div class="card">
+    <div class="l">SELF-MODEL <span class="muted">· per-family coverage (know-its-capabilities); struggling = the actionable gaps</span></div>
+    <div id="selfmodelbody" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
     <div class="l">CURRENT TASK <span class="muted">· what the loop is doing right now</span> <span class="small dim" id="coretask"></span></div>
     <div id="looplog" style="margin-top:6px;font-family:var(--mono,monospace);font-size:10px;line-height:1.5;max-height:240px;overflow:auto"></div>
   </div>
@@ -280,6 +284,22 @@ function drawCoreChart(series){
   S.forEach((p,i)=>{ const px=X(xs[i]),py=Y(p.core_score); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
   x.fillStyle="#3fb950"; const li=S.length-1; x.beginPath(); x.arc(X(xs[li]),Y(S[li].core_score),3,0,7); x.fill();
   x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+Math.round(maxV), 10, 14);
+}
+function renderSelfModel(sm){
+  // [1.03] GATE-1 self-model coverage on the phone (RULE 2, #00 3670): per-family coverage_rate, struggling = gaps.
+  const el=document.getElementById("selfmodelbody"); if(!el) return;
+  const fams=(sm&&sm.families)||null;
+  if(!fams){ el.innerHTML="<span class='muted'>no self-model data yet</span>"; return; }
+  let h=`<div class="small dim" style="margin-bottom:5px">${sm.n_solvable}/${sm.n_families} solvable · ${sm.n_struggling} struggling · mean cov ${Math.round(100*(sm.mean_coverage||0))}%</div>`;
+  fams.forEach(f=>{
+    const cov=(f.cov==null)?null:Math.round(100*f.cov);
+    const bpc=String(f.s||"").indexOf("BPC")>=0, strug=f.s==="struggling";
+    const col=strug?"#f78166":(bpc?"var(--dim,#888)":"var(--green)");
+    h+=`<div class="row" style="border:none;padding:2px 0 0"><span class="a"${strug?' style="color:#f78166"':""}>${esc(f.f)}${f.md?` <span class="small dim">d≤${f.md}</span>`:""}</span>`
+     + `<span class="b small">${cov==null?"n/a":cov+"%"}${bpc?" BPC":""}</span></div>`
+     + `<div class="gbar" style="height:3px;margin-top:1px"><span style="width:${cov==null?0:cov}%;background:${col}"></span></div>`;
+  });
+  el.innerHTML=h;
 }
 function renderCore(d){
   const co=d.core;
@@ -615,6 +635,7 @@ async function load(){
   upd.textContent="data "+ago(age)+" old"; upd.className="pill"+(age>900?" stale":"");
   window._d=d;
   renderCore(d);                 // [2.05] the single Core tab: core_score graph + current task (loop log) + VM feed
+  renderSelfModel(d.self_model); // [1.03] GATE-1 self-model coverage (per-family, struggling = gaps)
   renderWorkers(d.cluster);
   renderRoadmap(d.plan, d.worker_claims, d.roadmap_status, d.stage12_coverage, d.handoff && d.handoff.decomposed);
   if(!_lib) await fetchLib();
