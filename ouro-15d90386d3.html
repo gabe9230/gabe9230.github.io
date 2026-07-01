@@ -57,7 +57,7 @@
 
 <div id="v-core">
   <div class="card">
-    <div class="l">CORE SCORE <span class="muted">· coverage × difficulty — ONE unbounded number; dips when new families land (broaden→master), not a regression</span></div>
+    <div class="l">COVERAGE SUM <span class="muted">· Σ family-mastery/10 (unbounded) — a mastered family = 10 pts; grows as families master AND as new families are added (difficulty deprecated)</span></div>
     <div class="bignums" id="corenums"></div>
     <canvas id="corechart" width="540" height="150"></canvas>
   </div>
@@ -272,8 +272,9 @@ function drawLadder(hist){
   x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+maxH, 10, 14);
 }
 
-// ── CORE TAB ([2.05] Gabriel) — the single headline view: core_score over time + the current task + the VM the
-// system drives. core_score = coverage × (frontier_d/100), computed page-side-agnostic by the publisher (d.core).
+// ── CORE TAB ([2.05] Gabriel) — the single headline view: coverage-sum over time + the current task + the VM the
+// system drives. core.core_score = COVERAGE SUM (Σ family coverage_rate × 10, unbounded; difficulty deprecated
+// 2026-07-01), computed by the publisher (seed/agent_loop/coverage_sum.py); d.core.series = the trajectory.
 function drawCoreChart(series){
   const c=document.getElementById("corechart"); if(!c) return; const x=c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
@@ -317,15 +318,15 @@ function renderCore(d){
   const co=d.core;
   const hn=document.getElementById("corenums");
   if(hn) hn.innerHTML = co
-    ? `<div><div class="v green">${co.core_score}</div><div class="ll">CORE SCORE</div><div class="ll">coverage × difficulty</div></div>`
+    ? `<div><div class="v green">${co.core_score}</div><div class="ll">COVERAGE SUM</div><div class="ll">Σ mastery${co.max_possible!=null?(" / "+co.max_possible):""}</div></div>`
      +`<div><div class="v">${co.coverage}%</div><div class="ll">COVERAGE</div><div class="ll">solved w/o 7B</div></div>`
-     +`<div><div class="v ${co.escalation_rate>0?'amber':''}">${co.escalation_rate}%</div><div class="ll">ESCALATION</div><div class="ll">to 7B / #03</div></div>`
-     +`<div><div class="v">${co.d_multiplier}×</div><div class="ll">DIFFICULTY</div><div class="ll">d=${co.frontier_d}</div></div>`
-    : `<span class="muted">core score collecting… (loop warming up)</span>`;
+     +`<div><div class="v ${co.escalation_rate>0?'amber':''}">${co.escalation_rate}%</div><div class="ll">ESCALATION</div><div class="ll">to 7B (crutch)</div></div>`
+     +`<div><div class="v">${co.n_solvable!=null?co.n_solvable:"—"}</div><div class="ll">MASTERED</div><div class="ll">${co.n_struggling!=null?(co.n_struggling+" struggling"):"families"}</div></div>`
+    : `<span class="muted">coverage sum collecting… (loop warming up)</span>`;
   drawCoreChart(co&&co.series);
   renderLoopLog(d.loop_log);                                  // CURRENT TASK = the live agent-loop iter stream
   const ct=document.getElementById("coretask");
-  if(ct) ct.textContent = co ? `· iter ${co.last_iter} · d=${co.frontier_d} · ${co.n_code} code-tasks/window (${co.n_escalations} escalated)` : "";
+  if(ct) ct.textContent = co ? `· iter ${co.last_iter} · ${co.n_code} code-tasks/window (${co.n_escalations} escalated)` : "";
   const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
   if(vm){
     const av = lf&&lf.vm&&lf.vm.available;
