@@ -323,7 +323,7 @@ function renderCore(d){
      +`<div><div class="v ${co.escalation_rate>0?'amber':''}">${co.escalation_rate}%</div><div class="ll">ESCALATION</div><div class="ll">to 7B (crutch)</div></div>`
      +`<div><div class="v">${co.n_solvable!=null?co.n_solvable:"—"}</div><div class="ll">MASTERED</div><div class="ll">${co.n_struggling!=null?(co.n_struggling+" struggling"):"families"}</div></div>`
     : `<span class="muted">coverage sum collecting… (loop warming up)</span>`)
-    + (hyp ? `<div><div class="v green">${hyp.mastered!=null?hyp.mastered:"—"}/${hyp.lib_size!=null?hyp.lib_size:"—"}</div><div class="ll">HYPERNET</div><div class="ll">mastered/lib · ${hyp.iters!=null?hyp.iters:"—"} it · ${hyp.gaps!=null?hyp.gaps:0} gap</div></div>` : "");
+    + (hyp ? `<div><div class="v green">${hyp.main!=null?hyp.main:(hyp.mastered!=null?hyp.mastered+"/"+hyp.lib_size:"—")}</div><div class="ll">${hyp.label!=null?hyp.label:"HYPERNET"}</div><div class="ll">${hyp.detail!=null?hyp.detail:(hyp.mastered!=null?("mastered/lib · "+(hyp.iters!=null?hyp.iters:"—")+" it · "+(hyp.gaps!=null?hyp.gaps:0)+" gap"):"")}</div></div>` : "");
   drawCoreChart(co&&co.series);
   renderLoopLog(d.loop_log);                                  // CURRENT TASK = the live agent-loop iter stream
   const ct=document.getElementById("coretask");
