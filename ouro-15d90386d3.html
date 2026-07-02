@@ -49,6 +49,7 @@
 <h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
 <div class="tabs">
   <button class="tab active" data-v="core" onclick="show('core')">Core</button>
+  <button class="tab" data-v="directive" onclick="show('directive')">Directive</button>
   <button class="tab" data-v="chat" onclick="show('chat')">Chat</button>
   <button class="tab" data-v="library" onclick="show('library')">Library</button>
   <button class="tab" data-v="roadmap" onclick="show('roadmap')">Roadmap</button>
@@ -57,7 +58,7 @@
 
 <div id="v-core">
   <div class="card">
-    <div class="l">COVERAGE SUM <span class="muted">· Σ family-mastery/10 (unbounded) — a mastered family = 10 pts; grows as families master AND as new families are added (difficulty deprecated)</span></div>
+    <div class="l">HYPERNET LIBRARY <span class="muted">· mastered COMPOSITIONS (unbounded accrual — the compounding metric of the hypernet era; each point = a task the loop composed + mastered + saved)</span></div>
     <div class="bignums" id="corenums"></div>
     <canvas id="corechart" width="540" height="150"></canvas>
   </div>
@@ -74,6 +75,18 @@
     <div id="looplog" style="margin-top:6px;font-family:var(--mono,monospace);font-size:10px;line-height:1.5;max-height:240px;overflow:auto"></div>
   </div>
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
+</div>
+
+<div id="v-directive" style="display:none">
+  <div class="card">
+    <div class="l">DIRECTIVE <span class="muted">· the overarching goal (user-provided) → the loop's own decomposition, verbatim</span></div>
+    <div id="dirhead" style="margin-top:6px;font-size:14px;font-weight:600"></div>
+    <div id="dirleaves" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <div class="l">COMPLETED DIRECTIVES <span class="muted">· recent, from the loop's trajectory log (= the planner's training data)</span></div>
+    <div id="dirhist" style="margin-top:6px"></div>
+  </div>
 </div>
 
 <div id="v-chat" style="display:none">
@@ -138,7 +151,7 @@ function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
 
 function show(v){
   curV = v;
-  ["core","chat","library","roadmap","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  ["core","directive","chat","library","roadmap","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
   if(v==="chat"){ const ci=document.getElementById("chatin"); if(ci) setTimeout(()=>ci.focus(),0); }
   document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
   if(v==="library") renderLib();
@@ -314,20 +327,39 @@ function renderHumanTask(t){
   if(!s){ card.style.display="none"; return; }   // no proposal -> hide the card entirely
   card.style.display=""; body.textContent=s;      // textContent = safe (no HTML injection from loop output)
 }
+
+function renderDirective(d){
+  const dt=d.directive_tab, st={done:"green",gap:"amber",pending_upstream:"muted",in_progress:""};
+  const head=document.getElementById("dirhead"), lv=document.getElementById("dirleaves"), hi=document.getElementById("dirhist");
+  if(!head) return;
+  if(!dt){ head.textContent="no directive yet"; if(lv) lv.innerHTML=""; if(hi) hi.innerHTML=""; return; }
+  const cur=dt.current;
+  head.textContent = cur&&cur.directive ? `"${cur.directive}"` : "(no active directive)";
+  if(lv) lv.innerHTML = cur&&cur.leaves&&cur.leaves.length
+    ? cur.leaves.map((l,i)=>`<div style="padding:3px 0;border-bottom:1px solid #1c2128"><span class="muted">${i+1}.</span> <b>${l.name}</b> <span class="muted">${l.kind||""}</span> <span class="${st[l.status]!=null?st[l.status]:""}" style="float:right">${l.status}${l.method?(" · "+l.method):""}</span></div>`).join("")
+      + (cur.n_gaps!=null?`<div class="ll" style="margin-top:6px">${cur.n_gaps} gap(s) of ${cur.n_leaves} task(s)${cur.n_gaps>0?" — the loop has surfaced what it lacks (in-band)":" — complete"}</div>`:"")
+    : `<span class="muted">no decomposition yet</span>`;
+  if(hi) hi.innerHTML = (dt.history&&dt.history.length)
+    ? dt.history.map(h=>`<div style="padding:4px 0;border-bottom:1px solid #1c2128"><b>"${h.directive}"</b> <span class="green" style="float:right">${h.n_gaps===0?"COMPLETE":(h.n_gaps+" gaps")}</span><div class="ll">${(h.leaves||[]).map(l=>l.name+(l.method?(" ("+l.method+")"):"")).join(" → ")}</div></div>`).join("")
+    : `<span class="muted">none completed yet</span>`;
+}
+
 function renderCore(d){
   const co=d.core, hyp=d.hypernet;
   const hn=document.getElementById("corenums");
   if(hn) hn.innerHTML = (co
-    ? `<div><div class="v green">${co.core_score}</div><div class="ll">COVERAGE SUM</div><div class="ll">Σ mastery${co.max_possible!=null?(" / "+co.max_possible):""}</div></div>`
-     +`<div><div class="v">${co.coverage}%</div><div class="ll">COVERAGE</div><div class="ll">solved w/o 7B</div></div>`
-     +`<div><div class="v ${co.escalation_rate>0?'amber':''}">${co.escalation_rate}%</div><div class="ll">ESCALATION</div><div class="ll">to 7B (crutch)</div></div>`
-     +`<div><div class="v">${co.n_solvable!=null?co.n_solvable:"—"}</div><div class="ll">MASTERED</div><div class="ll">${co.n_struggling!=null?(co.n_struggling+" struggling"):"families"}</div></div>`
-    : `<span class="muted">coverage sum collecting… (loop warming up)</span>`)
+    ? `<div><div class="v green">${co.core_score!=null?co.core_score:"—"}</div><div class="ll">HYPERNET LIB</div><div class="ll">mastered compositions</div></div>`
+     +`<div><div class="v">${co.directives_done!=null?co.directives_done:"—"}</div><div class="ll">DIRECTIVES</div><div class="ll">completed e2e</div></div>`
+     +`<div><div class="v ${co.replans>0?'green':''}">${co.replans!=null?co.replans:"—"}</div><div class="ll">REPLANS</div><div class="ll">failure-driven, in-band</div></div>`
+     +`<div><div class="v">${co.gaps_rejected!=null?co.gaps_rejected:"—"}</div><div class="ll">HONEST GAPS</div><div class="ll">rejected, no false-master</div></div>`
+     +(co.coverage_sum!=null?`<div><div class="v muted">${co.coverage_sum}</div><div class="ll">COVERAGE SUM</div><div class="ll">scaffold era${co.coverage_max!=null?(" / "+co.coverage_max):""}</div></div>`:"")
+     +(co.four_roles?`<div style="flex-basis:100%;margin-top:4px" class="ll">ROLES · solve: <b class="green">${co.four_roles.solve}</b> · judge: <b class="green">${co.four_roles.judge}</b> · plan: <b>${co.four_roles.plan}</b> · invent: <b>${co.four_roles.invent}</b> · route: <b>${co.four_roles.route}</b></div>`:"")
+    : `<span class="muted">hypernet library collecting…</span>`)
     + (hyp ? `<div><div class="v green">${hyp.main!=null?hyp.main:(hyp.mastered!=null?hyp.mastered+"/"+hyp.lib_size:"—")}</div><div class="ll">${hyp.label!=null?hyp.label:"HYPERNET"}</div><div class="ll">${hyp.detail!=null?hyp.detail:(hyp.mastered!=null?("mastered/lib · "+(hyp.iters!=null?hyp.iters:"—")+" it · "+(hyp.gaps!=null?hyp.gaps:0)+" gap"):"")}</div></div>` : "");
   drawCoreChart(co&&co.series);
   renderLoopLog(d.loop_log);                                  // CURRENT TASK = the live agent-loop iter stream
   const ct=document.getElementById("coretask");
-  if(ct) ct.textContent = co ? `· iter ${co.last_iter} · ${co.n_code} code-tasks/window (${co.n_escalations} escalated)` : "";
+  if(ct) ct.textContent = (co&&co.last_iter!=null) ? `· iter ${co.last_iter} · ${co.n_code} code-tasks/window (${co.n_escalations} escalated)` : "";
   const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
   if(vm){
     const av = lf&&lf.vm&&lf.vm.available;
@@ -649,6 +681,7 @@ async function load(){
   upd.textContent="data "+ago(age)+" old"; upd.className="pill"+(age>900?" stale":"");
   window._d=d;
   renderCore(d);                 // [2.05] the single Core tab: core_score graph + current task (loop log) + VM feed
+  renderDirective(d);            // DIRECTIVE tab: NL directive -> leaf sequence + history (verbatim from the loop)
   renderSelfModel(d.self_model); // [1.03] GATE-1 self-model coverage (per-family, struggling = gaps)
   renderHumanTask(d.operator_human_task); // [4.05] shared-seat operator->human task (hidden when none)
   renderWorkers(d.cluster);
