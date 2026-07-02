@@ -247,29 +247,6 @@ function toggleLibF(key,val){ window._libF=window._libF||{}; window._libF[key]=w
 function clearLibF(){ window._libF={}; renderLib(); }
 
 // ── DIRECTIVE TAB ──────────────────────────────────────────────────────────
-function renderDirective(dt){
-  const card=document.getElementById("dcard");
-  if(!dt){ document.getElementById("dtext").textContent="(no active directive)"; document.getElementById("dnums").innerHTML=""; document.getElementById("dplan").innerHTML="<span class='muted'>idle</span>"; return; }
-  document.getElementById("dtext").textContent = dt.directive || "—";
-  document.getElementById("dsub").innerHTML = dt.sub_directive
-    ? `&#8627; <b>now:</b> ${esc(dt.sub_directive)}${dt.sub_reason?(" <span class='muted'>("+esc(dt.sub_reason)+")</span>"):""}` : "";
-  document.getElementById("dlive").textContent = dt.live ? "· live" : "· idle (loop down)";
-  document.getElementById("dlive").className = dt.live ? "green" : "amber";
-  let nums="";
-  if(dt.mode==="comprehension"){
-    nums = `<div><div class="v green">${dt.ladder_height??"—"}</div><div class="ll">LADDER HEIGHT</div><div class="ll">${dt.avg_difficulty!=null?("avg D"+dt.avg_difficulty):""}</div></div>`
-         + `<div><div class="v">${dt.families??"—"}</div><div class="ll">FAMILIES</div></div>`
-         + `<div><div class="v ${dt.atom_active>0?'blue':''}">${dt.atom_active??"—"}</div><div class="ll">ATOM-SEARCH</div><div class="ll">diverse topologies</div></div>`
-         + `<div><div class="v ${dt.at_wall>0?'amber':''}">${dt.at_wall??"—"}</div><div class="ll">AT WALL</div><div class="ll">atom-search failed</div></div>`;
-  }
-  document.getElementById("dnums").innerHTML = nums;
-  document.getElementById("dprog").textContent = `mode: ${dt.mode||"?"} · iter ${dt.iter??"?"} · dispatched ${dt.dispatched??0}`;
-  drawLadder(dt.history||[]);
-  const plan = dt.plan||[];
-  document.getElementById("dplan").innerHTML = plan.length
-    ? plan.map(p=>`<div class="row"><span class="a">${esc(p.family)} <span class="chip">D${p.difficulty}</span>${p.atom?" <span class='chip' style='background:var(--blue);color:#fff'>atom-search</span>":""}</span><span class="b">${p.atom?"diverse topo":("tier "+(p.tier??0))}</span></div>`).join("")
-    : "<span class='muted'>climbing from difficulty 1 — experts dispatching/building on the workers…</span>";
-}
 function drawLadder(hist){
   const c=document.getElementById("ladchart"), x=c.getContext("2d");
   x.clearRect(0,0,c.width,c.height);
@@ -329,7 +306,7 @@ function renderHumanTask(t){
 }
 
 function renderDirective(d){
-  const dt=d.directive_tab, st={done:"green",gap:"amber",pending_upstream:"muted",in_progress:""};
+  const dt=d.directive_tab, st={done:"green",gap:"amber",pending_upstream:"muted",in_progress:"",actionable:"green"};
   const head=document.getElementById("dirhead"), lv=document.getElementById("dirleaves"), hi=document.getElementById("dirhist");
   if(!head) return;
   if(!dt){ head.textContent="no directive yet"; if(lv) lv.innerHTML=""; if(hi) hi.innerHTML=""; return; }
