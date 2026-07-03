@@ -53,6 +53,7 @@
   <button class="tab" data-v="chat" onclick="show('chat')">Chat</button>
   <button class="tab" data-v="library" onclick="show('library')">Library</button>
   <button class="tab" data-v="workers" onclick="show('workers')">Workers</button>
+  <button class="tab" data-v="definitions" onclick="show('definitions')">Definitions</button>
 </div>
 
 <div id="v-core">
@@ -134,7 +135,15 @@
   <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v30 · Task · Directive · Chat · Library · Workers</span></footer>
+<div id="v-definitions" style="display:none">
+  <div class="card">
+    <div class="l">DEFINITIONS <span class="muted">· the project's vocabulary, in plain English</span></div>
+    <input id="defsearch" placeholder="filter…" oninput="filterDefs()" autocomplete="off" style="margin-top:6px">
+    <div id="defrows" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v31 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -149,7 +158,7 @@ function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
 
 function show(v){
   curV = v;
-  ["core","directive","chat","library","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  ["core","directive","chat","library","workers","definitions"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
   if(v==="chat"){ const ci=document.getElementById("chatin"); if(ci) setTimeout(()=>ci.focus(),0); }
   document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
   if(v==="library") renderLib();
@@ -424,6 +433,44 @@ function renderCore(d){
     }
   }
 }
+
+// ── DEFINITIONS TAB (Gabriel 2026-07-03: explain the vocab for someone not on the project) ──────────
+const DEFS=[
+["the loop","The autonomous system this page watches. It gives itself tasks, tries to solve them, builds whatever ability it's missing, and repeats — without a person in the cycle."],
+["expert","A small trained neural network that does exactly one thing (compare two numbers, add, count vowels). The basic unit of capability. When used as a building block it's also called an atom."],
+["primitive","One of the base experts (greater-than, less-than, add, subtract…) — built once, reused by everything else. The starter brick set."],
+["minted expert","An expert the loop trained by itself, from real examples, because no combination of existing experts could do the job. It only enters the library if it passes the accept gate."],
+["mint / minting","Training a brand-new expert from a task's real input→output examples. Deliberately a last resort — composing existing experts is always tried first."],
+["composition","Solving a task by arranging existing experts together instead of training anything new. Cheaper and reuses what's already known."],
+["hypernet","A solved task saved as a reusable template: which experts were used, in what arrangement, with the learned routing between them. The library of these is the loop's memory of how to do things."],
+["structure ops (fold / param-fold / multi-fold)","Arrangement patterns, not experts. A fold repeats one expert down a list (sum = fold add). They multiply what the same experts can express — like ways of stacking bricks."],
+["held-out exact","The strict score. Train on half the examples, then grade exact correctness on the unseen half only. Proves an expert generalized instead of memorizing. The ONLY score that admits anything to the library."],
+["dense score","Partial credit for being close (right digits, right shape). Exists purely to give training a slope to climb — never used to accept anything."],
+["accept gate","The held-out threshold a minted expert must beat to be admitted. Below it, the mint is rejected and nothing enters the library."],
+["gen_acc","Held-out exactness for a composition. 1.0 = perfect on examples it never trained on."],
+["wall","An honest 'can't do this yet' verdict after genuinely trying. Walls are recorded, not hidden — they become the loop's to-build list."],
+["gap","A missing capability, discovered when a task walls. Gaps turn into build requests (compose first, mint if composing provably can't work)."],
+["directive","A goal given in plain language — e.g. 'write 500 digits of pi in the notepad'. The loop breaks it into small steps itself."],
+["leaf","One small actionable step a directive gets broken into (compute the digits; open the notepad; type; verify)."],
+["self-posed","Tasks the loop assigns itself — improving its weakest skills — whenever no outside directive is pending. Why it never idles."],
+["escalation","Any step where something more capable than the loop (a big AI model or a human) had to do the thinking. Fewer escalations = more genuinely autonomous."],
+["write gate","The safety rule: the loop may not modify its own code until it completes 35 consecutive directives with zero escalations, passes a deep adversarial review, and Gabriel personally approves. The streak is on the Directive tab."],
+["scaffold","Temporary human-built support the loop still leans on (pre-written plans, helper logic). Meant to be outgrown and removed; anything scaffold-assisted counts as escalated."],
+["judge / checker","Whatever scores an attempt. Always grounded in actually running the result (execute the code, read the screen) — never an opinion."],
+["mint daemon / front door","The GPU service that receives capability requests. It first tries composing existing experts; only if that provably can't work does it train (mint) something new."],
+["VM / the desktop","A sandboxed virtual computer the loop can see (screenshots) and operate (mouse + keyboard). Its only body — it cannot touch the real machine."],
+["trajectory","The recorded step-by-step story of a completed directive. These become training data for the loop's own planner, so it can eventually plan without the scaffold."],
+["legacy library","Experts from an earlier architecture (~8,700). Kept as history, a few still in service; nothing new is built there."],
+["loop vX.Y","The loop's software version. Fix deployments bump the middle number, small tweaks the last, architecture changes the first — standard versioning."]
+];
+function renderDefs(){
+  const el=document.getElementById("defrows"); if(!el) return;
+  const q=((document.getElementById("defsearch")||{}).value||"").toLowerCase();
+  el.innerHTML = DEFS.filter(d=>!q||d[0].toLowerCase().includes(q)||d[1].toLowerCase().includes(q))
+    .map(d=>`<div style="padding:7px 0;border-bottom:1px solid var(--grid)"><b>${esc(d[0])}</b><div class="small dim" style="margin-top:2px;line-height:1.55">${esc(d[1])}</div></div>`).join("")
+    || "<span class='muted'>no match</span>";
+}
+function filterDefs(){ renderDefs(); }
 
 // ── LIBRARY TAB (MODERN structure, Gabriel 2026-07-03: hypernets + individual experts; legacy demoted) ──
 let _libx=null;   // the full modern export {era, hypernets, experts:{primitives,minted,digit_tables}, legacy:{rows}}
@@ -782,7 +829,7 @@ async function load(){
   if(!_lib) await fetchLib();
   if(curV==="library") renderLib();
 }
-load(); setInterval(load, 7000); setInterval(()=>{ fetchLib().then(()=>{ if(curV==="library") renderLib(); }); }, 60000);
+load(); renderDefs(); setInterval(load, 7000); setInterval(()=>{ fetchLib().then(()=>{ if(curV==="library") renderLib(); }); }, 60000);
 </script>
 </body>
 </html>
