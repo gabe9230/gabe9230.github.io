@@ -154,7 +154,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v45 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v46 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -735,7 +735,7 @@ function renderLib(){
     el.innerHTML =
       `<div class="l">IN FLIGHT <span class="muted">· dispatched to a cluster GPU, training now</span></div>`
       + (inflight.length? inflight.map(r=>`<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(pretty(r.eid))}</span>`
-        + `<span class="b"><span class="green">training</span>${r.job?` · ${esc(String(r.job).replace(/^job-\d+-/,"job "))}`:""}${r.age_s!=null?` · ${ageF(r.age_s)}`:""}</span></div>`).join("")
+        + `<span class="b">${r.worker?`<span class="green">on ${esc(r.worker)}</span>`:`<span class="muted">awaiting a worker</span>`}${r.job?` · ${esc(String(r.job).replace(/^job-\d+-/,"job "))}`:""}${r.age_s!=null?` · ${ageF(r.age_s)}`:""}</span></div>`).join("")
         : "<span class='muted'>nothing on the cluster right now</span>")
       + `<div class="l" style="margin-top:12px">QUEUED <span class="muted">· gaps waiting for the front door (oldest first)</span></div>`
       + (waiting.length? waiting.map(r=>`<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(pretty(r.eid))}</span>`
