@@ -349,14 +349,20 @@ function renderCore(d){
     const cur=dt&&dt.current, pr=dt&&dt.primary;
     const secActive = cur && cur.directive && cur.n_gaps>0===false && !(pr&&pr.tier==="primary");
     if(pr && pr.tier==="primary" && pr.worked && pr.worked.directive){
-      nt.textContent = `"${pr.worked.directive}"`;
-      const w=pr.worked;
-      ns.textContent = `self-posed · ${w.n_leaves!=null?w.n_leaves:"—"} improvement tasks this cycle`
-        + (cur&&cur.directive&&cur.n_gaps>0?` · parked: "${cur.directive}" (waiting on a capability it has asked for)`:"");
+      const w=pr.worked, cl=w.current_leaf;
+      if(cl && (cl.name||cl.detail)){
+        nt.textContent = cl.detail ? cl.detail : `improving: ${pretty(cl.name)}`;
+        ns.textContent = `advancing: "${w.directive}" · ${w.n_leaves!=null?w.n_leaves:"—"} tasks this cycle`
+          + (cur&&cur.directive&&cur.n_gaps>0?` · parked: "${cur.directive}"`:"");
+      } else {
+        nt.textContent = `"${w.directive}"`;
+        ns.textContent = `self-posed · ${w.n_leaves!=null?w.n_leaves:"—"} improvement tasks this cycle`
+          + (cur&&cur.directive&&cur.n_gaps>0?` · parked: "${cur.directive}" (waiting on a capability it has asked for)`:"");
+      }
     } else if(cur && cur.directive){
       nt.textContent = `"${cur.directive}"`;
-      const gap=(cur.leaves||[]).find(l=>l.status==="gap"), doing=(cur.leaves||[]).find(l=>l.status==="in_progress")||gap;
-      ns.textContent = doing ? `working on: ${pretty(doing.name)}${doing.status==="gap"?" (building the missing capability)":""}` :
+      const cl2=cur.current_leaf, gap=(cur.leaves||[]).find(l=>l.status==="gap"), doing=cl2||((cur.leaves||[]).find(l=>l.status==="in_progress")||gap);
+      ns.textContent = doing ? (doing.detail || `working on: ${pretty(doing.name)}${doing.status==="gap"?" (building the missing capability)":""}`) :
         (cur.n_gaps===0 ? "complete" : "");
     } else { nt.textContent="idle"; ns.textContent=""; }
   }
