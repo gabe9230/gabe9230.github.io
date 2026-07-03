@@ -153,7 +153,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v41 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v42 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -590,11 +590,29 @@ const DEFS=[
 ["legacy library","Experts from an earlier architecture (~8,700). Kept as history, a few still in service; nothing new is built there."],
 ["loop vX.Y","The loop's software version. Fix deployments bump the middle number, small tweaks the last, architecture changes the first — standard versioning."]
 ];
+const OPDEFS=[
+["gt / lt","Greater-than / less-than. Each takes two numbers and answers true or false. The most-reused experts in the library — every filter, boundary check, and comparison runs through them."],
+["ge / le","Greater-or-equal / less-or-equal. Same as gt/lt but inclusive of the equal case."],
+["eq / ne","Equal / not-equal. True if the two numbers are (or aren't) the same."],
+["add / sub","Addition / subtraction of two numbers."],
+["mul","Multiplication of two numbers."],
+["mod","Remainder after division (12 mod 5 = 2). By convention returns 0 when dividing by zero."],
+["id","Pass-through: returns its input unchanged. Useful as a do-nothing slot while the search shapes a composition."],
+["*3, +1, -2 … (chips on the map)","A pipeline step applying one operation with a fixed number: *3 = times three, +1 = plus one. Chained slots build functions like 'multiply by 6 then add 1'."],
+["fold","Run ONE expert repeatedly down a list, carrying a running value (the accumulator): fold of add starting at 0 = sum; fold of a gt-select = max; adding 1 per element = count. One loop lever turns scalar experts into list capabilities with zero new experts."],
+["fold+0 / fold*1 / fold~first","The same fold with different starting accumulators: start at 0 (sums, counts), start at 1 (products), start at the list's first element (max/min style)."],
+["acc / cur / t (in fold bodies)","The notation inside a fold: acc = the running value, cur = the current list element, t = a threshold parameter taken from the input. So 'acc=add(acc,cur)' reads: keep adding each element into the running total."],
+["param-fold (pfold)","A fold whose body also uses a threshold from the input: 'acc += cur if lt(cur,t)' = sum only the elements below t. Covers filter-then-reduce tasks."],
+["multi-fold","Several folds running over the same list in parallel, combined arithmetically at the end — e.g. (sum of positives) − 2×(count of positives). Found by recursive decomposition: solve a piece, subtract it out, recurse on the remainder."]
+];
 function renderDefs(){
   const el=document.getElementById("defrows"); if(!el) return;
   const q=((document.getElementById("defsearch")||{}).value||"").toLowerCase();
-  el.innerHTML = DEFS.filter(d=>!q||d[0].toLowerCase().includes(q)||d[1].toLowerCase().includes(q))
-    .map(d=>`<div style="padding:7px 0;border-bottom:1px solid var(--grid)"><b>${esc(d[0])}</b><div class="small dim" style="margin-top:2px;line-height:1.55">${esc(d[1])}</div></div>`).join("")
+  const row=d=>`<div style="padding:7px 0;border-bottom:1px solid var(--grid)"><b>${esc(d[0])}</b><div class="small dim" style="margin-top:2px;line-height:1.55">${esc(d[1])}</div></div>`;
+  const f=arr=>arr.filter(d=>!q||d[0].toLowerCase().includes(q)||d[1].toLowerCase().includes(q));
+  const a=f(DEFS), b=f(OPDEFS);
+  el.innerHTML = (a.map(row).join("")
+    + (b.length?`<div class="l" style="margin-top:14px">THE OPS <span class="muted">· what each primitive and structure op actually does — these are the chips on the map and in the library</span></div>`+b.map(row).join(""):""))
     || "<span class='muted'>no match</span>";
 }
 function filterDefs(){ renderDefs(); }
