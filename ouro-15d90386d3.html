@@ -148,7 +148,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v32 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v33 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -357,10 +357,11 @@ function renderGate(d){
   s.innerHTML = `<span class="${u.passed?'green':''}">${u.main||"—"}</span> <span class="muted" style="font-size:11px;font-weight:400">escalation-zero streak${u.passed?" · PASSED — awaiting Gabriel's review":""}</span>`;
   const g=u.progress;
   if(p) p.innerHTML = g ? [
+    (g.escalation_frac_pct!=null?`escalation rate <b class="${g.escalation_frac_pct===0?'green':''}">${g.escalation_frac_pct}%</b> <span class="muted">· of the last ${g.frac_window} directives (the smooth signal; the streak needs 35 consecutive clean)</span>`:null),
     `trajectories accrued <b>${g.trajectories}</b> <span class="muted">· the [3.60] planner's training data (the streak climbs only when the planner-hypernet plans live)</span>`,
     `provenance markers <b>${g.marker_planned_by_pct}%</b> planned_by · <b>${g.marker_knowledge_pct}%</b> knowledge_source <span class="muted">· of ${g.n_leaves} leaves — absent markers count as escalated (honest default)</span>`,
     `last directive <b class="${g.last_escalated===false?'green':'amber'}">${g.last_escalated===false?"clean":(g.last_escalated===true?"escalated":"—")}</b>`
-  ].join("<br>") : `<span class="muted">no progress data yet</span>`;
+  ].filter(Boolean).join("<br>") : `<span class="muted">no progress data yet</span>`;
 }
 
 function renderDirective(d){
