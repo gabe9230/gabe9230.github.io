@@ -57,7 +57,7 @@
 
 <div id="v-core">
   <div class="card">
-    <div class="l">CURRENT TASK <span class="muted">· what the loop is working on, in its own words</span></div>
+    <div class="l">CURRENT TASK <span class="muted">· what the loop is working on, in its own words</span> <span id="loopver" class="chip" style="float:right"></span></div>
     <div id="nltask" style="margin-top:8px;font-size:15px;font-weight:600;line-height:1.5"></div>
     <div id="nltasksub" class="ll" style="margin-top:6px"></div>
   </div>
@@ -356,6 +356,9 @@ function renderDirective(d){
 
 function renderCore(d){
   const co=d.core, dt=d.directive_tab;
+  // LOOP VERSION chip (Gabriel 2026-07-03 semver eras: deploys bump minor, tweaks patch, architecture major)
+  const lv=document.getElementById("loopver");
+  if(lv) lv.textContent = (d.loop_version&&d.loop_version.version) ? ("loop v"+d.loop_version.version) : "";
   // CURRENT TASK — NL, from the loop's own directive/primary strings (never the raw iter log)
   const nt=document.getElementById("nltask"), ns=document.getElementById("nltasksub");
   if(nt){
