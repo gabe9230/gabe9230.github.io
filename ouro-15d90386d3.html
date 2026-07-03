@@ -411,9 +411,11 @@ async function fetchLib(){ try{ const r=await fetch(LIB_RAW+"?t="+Date.now(),{ca
 }
 function renderLib(){
   const rows=_lib||[]; const done=rows.filter(r=>r.status==="done").length;
+  // "pending" here = the RETIRED pre-hypernet build-queue (all rows 06-24 or older; that era's builds
+  // never run again — the modern loop composes + mints into minted_atoms instead). Label it honestly.
   document.getElementById("libcounts").innerHTML =
     `<div><div class="v green">${done}</div><div class="ll">BUILT</div></div>`
-   +`<div><div class="v">${rows.length-done}</div><div class="ll">PENDING</div></div>`
+   +`<div><div class="v dim">${rows.length-done}</div><div class="ll">LEGACY PENDING <span class="muted">(retired era — will not build)</span></div></div>`
    +`<div><div class="v">${rows.length}</div><div class="ll">TOTAL</div></div>`;
   const q=(document.getElementById("libsearch").value||"").toLowerCase();
   renderLibFilters();                                  // populate the auto-generated metric-filter chips
