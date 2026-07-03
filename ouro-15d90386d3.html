@@ -404,11 +404,15 @@ function renderCore(d){
 
 // ── LIBRARY TAB (MODERN structure, Gabriel 2026-07-03: hypernets + individual experts; legacy demoted) ──
 let _libx=null;   // the full modern export {era, hypernets, experts:{primitives,minted,digit_tables}, legacy:{rows}}
-async function fetchLib(){ try{ const r=await fetch(LIB_RAW+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const j=await r.json();
+const LIB_RELAY = "https://gabeslaptop.tail46cb76.ts.net/library";   // realtime (same funnel as /status); raw = stale fallback
+async function fetchLib(){
+  let j=null;
+  try{ const r=await fetch(LIB_RELAY+"?t="+Date.now(),{cache:"no-store"}); if(r.ok) j=await r.json(); }catch(e){}
+  if(!j){ try{ const r=await fetch(LIB_RAW+"?t="+Date.now(),{cache:"no-store"}); if(r.ok) j=await r.json(); }catch(e){} }
+  if(!j) return;
   if(Array.isArray(j)||j.rows){ _libx={hypernets:[],experts:{primitives:[],minted:[]},legacy:{rows:(Array.isArray(j)?j:j.rows)||[]}}; }
   else _libx=j;
   _lib=(_libx.legacy&&_libx.legacy.rows)||[];          // legacy rows keep feeding _libName/filters/detail unchanged
-} }catch(e){}
 }
 function renderLib(){
   const x=_libx||{}, hyp=x.hypernets||[], ex=x.experts||{}, prims=ex.primitives||[], minted=ex.minted||[];
