@@ -52,7 +52,6 @@
   <button class="tab" data-v="directive" onclick="show('directive')">Directive</button>
   <button class="tab" data-v="chat" onclick="show('chat')">Chat</button>
   <button class="tab" data-v="library" onclick="show('library')">Library</button>
-  <button class="tab" data-v="roadmap" onclick="show('roadmap')">Roadmap</button>
   <button class="tab" data-v="workers" onclick="show('workers')">Workers</button>
 </div>
 
@@ -108,8 +107,14 @@
 <div id="v-library" style="display:none">
   <div class="card">
     <div class="bignums" id="libcounts"></div>
-    <input id="libsearch" placeholder="search family / purpose / topology…" oninput="renderLib()" autocomplete="off">
-    <div class="row" style="border:none;padding:5px 0;gap:6px;align-items:center">
+    <div class="ll" style="margin-top:4px">HYPERNETS = mastered compositions (structures of experts, reusable templates) · EXPERTS = the atom nets themselves (primitives + machine-minted) · fold / param-fold / multi-fold are structure OPS — how the search arranges experts, not experts</div>
+    <input id="libsearch" placeholder="search…" oninput="renderLib()" autocomplete="off">
+    <div class="tabs sub" style="margin-top:8px">
+      <button class="tab active" data-s="hypernets" onclick="libFilter('hypernets')">hypernets</button>
+      <button class="tab" data-s="experts" onclick="libFilter('experts')">experts</button>
+      <button class="tab" data-s="legacy" onclick="libFilter('legacy')">legacy</button>
+    </div>
+    <div class="row" id="libsortrow" style="border:none;padding:5px 0;gap:6px;align-items:center;display:none">
       <span class="muted" style="font-size:11px">sort</span>
       <select id="libsort" onchange="renderLib()" style="background:var(--bg,#0d1117);color:var(--fg,#e6edf3);border:1px solid var(--grid);border-radius:4px;font-size:11px;padding:2px 5px">
         <option value="created">date created</option>
@@ -120,32 +125,23 @@
       </select>
       <button id="libdir" class="tab" onclick="libDir()" style="font-size:11px">↓ desc</button>
     </div>
-    <div class="tabs sub" style="margin-top:8px">
-      <button class="tab active" data-s="all" onclick="libFilter('all')">all</button>
-      <button class="tab" data-s="done" onclick="libFilter('done')">done</button>
-      <button class="tab" data-s="pending" onclick="libFilter('pending')">pending</button>
-    </div>
     <div id="libfilters" style="margin-top:6px"></div>
     <div id="librows" style="margin-top:8px"></div>
   </div>
-</div>
-
-<div id="v-roadmap" style="display:none">
-  <div class="card"><div class="l">ROADMAP + OPEN JOBS <span class="muted">· stage tracker (we-are-here) + the open TODO backlog, owner-marked</span></div><div id="roadmapbody" style="margin-top:8px"></div></div>
 </div>
 
 <div id="v-workers" style="display:none">
   <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
 </div>
 
-<footer><span id="pagever">v29 · Core · Chat · Library · Roadmap · Workers</span></footer>
+<footer><span id="pagever">v30 · Task · Directive · Chat · Library · Workers</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
 const LIB_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/library.json";
 const VM_RELAY = "https://gabeslaptop.tail46cb76.ts.net/vm.jpg";     // realtime (laptop relay)
 const VM_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/vm.jpg";  // fallback
-let curV = "core", _lib = null, _libFilter = "all";
+let curV = "core", _lib = null, _libFilter = "hypernets";
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function ago(s){ s=Math.max(0,s|0); if(s<90) return s+"s"; if(s<5400) return (s/60|0)+"m"; if(s<172800) return (s/3600|0)+"h"; return (s/86400|0)+"d"; }
@@ -153,7 +149,7 @@ function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
 
 function show(v){
   curV = v;
-  ["core","directive","chat","library","roadmap","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
+  ["core","directive","chat","library","workers"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
   if(v==="chat"){ const ci=document.getElementById("chatin"); if(ci) setTimeout(()=>ci.focus(),0); }
   document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
   if(v==="library") renderLib();
@@ -406,41 +402,79 @@ function renderCore(d){
   }
 }
 
-// ── LIBRARY TAB ────────────────────────────────────────────────────────────
-async function fetchLib(){ try{ const r=await fetch(LIB_RAW+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const j=await r.json(); _lib = Array.isArray(j)? j : (j.rows||j.library||[]); } }catch(e){}
+// ── LIBRARY TAB (MODERN structure, Gabriel 2026-07-03: hypernets + individual experts; legacy demoted) ──
+let _libx=null;   // the full modern export {era, hypernets, experts:{primitives,minted,digit_tables}, legacy:{rows}}
+async function fetchLib(){ try{ const r=await fetch(LIB_RAW+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const j=await r.json();
+  if(Array.isArray(j)||j.rows){ _libx={hypernets:[],experts:{primitives:[],minted:[]},legacy:{rows:(Array.isArray(j)?j:j.rows)||[]}}; }
+  else _libx=j;
+  _lib=(_libx.legacy&&_libx.legacy.rows)||[];          // legacy rows keep feeding _libName/filters/detail unchanged
+} }catch(e){}
 }
 function renderLib(){
+  const x=_libx||{}, hyp=x.hypernets||[], ex=x.experts||{}, prims=ex.primitives||[], minted=ex.minted||[];
   const rows=_lib||[]; const done=rows.filter(r=>r.status==="done").length;
-  // "pending" here = the RETIRED pre-hypernet build-queue (all rows 06-24 or older; that era's builds
-  // never run again — the modern loop composes + mints into minted_atoms instead). Label it honestly.
   document.getElementById("libcounts").innerHTML =
-    `<div><div class="v green">${done}</div><div class="ll">BUILT</div></div>`
-   +`<div><div class="v dim">${rows.length-done}</div><div class="ll">LEGACY PENDING <span class="muted">(retired era — will not build)</span></div></div>`
-   +`<div><div class="v">${rows.length}</div><div class="ll">TOTAL</div></div>`;
+    `<div><div class="v green">${hyp.length}</div><div class="ll">HYPERNETS <span class="muted">(mastered compositions)</span></div></div>`
+   +`<div><div class="v green">${minted.length}</div><div class="ll">MINTED EXPERTS <span class="muted">(machine-built)</span></div></div>`
+   +`<div><div class="v">${prims.length}</div><div class="ll">PRIMITIVES <span class="muted">(+${ex.digit_tables!=null?ex.digit_tables:"?"} digit tables)</span></div></div>`
+   +`<div><div class="v dim">${done}</div><div class="ll">LEGACY <span class="muted">(retired era)</span></div></div>`;
   const q=(document.getElementById("libsearch").value||"").toLowerCase();
-  renderLibFilters();                                  // populate the auto-generated metric-filter chips
+  const sec=_libFilter||"hypernets";
+  const sortRow=document.getElementById("libsortrow"); if(sortRow) sortRow.style.display = sec==="legacy"?"":"none";
+  const el=document.getElementById("librows");
+  if(sec==="hypernets"){
+    document.getElementById("libfilters").innerHTML="";
+    let f=hyp.slice().reverse();                       // newest mastered first
+    if(q) f=f.filter(h=>((h.task||"")+" "+(h.composition||[]).join(" ")).toLowerCase().includes(q));
+    const N=100, shown=f.slice(0,N);
+    el.innerHTML = shown.map(h=>
+      `<div class="row wrap"><span class="a">${esc(h.task||"?")} `
+      + (h.composition||[]).map(c=>`<span class="chip">${esc(c)}</span>`).join("")
+      + `</span><span class="b"><span class="${h.gen_acc>=1?"green":""}">gen ${h.gen_acc!=null?h.gen_acc:"?"}</span>`
+      + (h.slots!=null?` · ${h.slots} slots`:"") + (h.ts?` · ${when(h.ts)}`:"") + `</span></div>`).join("")
+      || "<span class='muted'>no mastered compositions yet</span>";
+    if(f.length>N) el.innerHTML += `<div class="muted" style="margin-top:6px">+${f.length-N} more (refine search)</div>`;
+    if(x.structures_observed&&x.structures_observed.length)
+      el.innerHTML += `<div class="ll" style="margin-top:10px">structure shapes observed in masters: ${x.structures_observed.slice(0,12).map(s=>`<span class="chip">${esc(s)}</span>`).join(" ")}</div>`;
+    return;
+  }
+  if(sec==="experts"){
+    document.getElementById("libfilters").innerHTML="";
+    let p=prims, m=minted;
+    if(q){ p=p.filter(r=>(r.op||"").toLowerCase().includes(q)); m=m.filter(r=>(r.eid||"").toLowerCase().includes(q)); }
+    el.innerHTML =
+      `<div class="l">PRIMITIVES <span class="muted">· param-general atom experts, built once, reused everywhere</span></div>`
+      + p.map(r=>`<div class="row wrap"><span class="a"><b>${esc(r.op)}</b>${r.exact_repair?' <span class="chip green">exact</span>':""}</span>`
+        + `<span class="b">held-out ${r.heldout_exact!=null?r.heldout_exact:"?"} · ${r.uses!=null?r.uses:0} uses${r.is_bool?" · bool":""}</span></div>`).join("")
+      + `<div class="l" style="margin-top:12px">MINTED <span class="muted">· experts the loop trained itself when composition provably couldn't reach (typed-evidence gate)</span></div>`
+      + (m.length? m.map(r=>`<div class="row wrap"><span class="a">${esc((r.eid||"").replace(/^improve_/,"").replace(/__field_.*$/,m0=>" · "+m0.replace(/^__field_/,"")))}</span>`
+        + `<span class="b"><span class="green">held-out ${r.heldout_exact!=null?r.heldout_exact:"?"}</span>${r.created?` · ${when(r.created)}`:""}</span></div>`).join("")
+        : "<span class='muted'>none yet — mints register here as the gate accepts them</span>");
+    return;
+  }
+  // LEGACY section — the retired pre-hypernet manifest, rendered by the original pipeline (search/sort/filters/detail).
+  renderLibFilters();
   let f=rows;
-  if(_libFilter!=="all") f=f.filter(r=>r.status===_libFilter);
   if(q) f=f.filter(r=>((r.skill||"")+" "+(r.purpose||"")+" "+(r.field||"")+" "+(r.topology||"")).toLowerCase().includes(q));
-  const F=window._libF||{};                            // metric filters: within-metric OR, across-metric AND
+  const F=window._libF||{};
   Object.keys(F).forEach(k=>{ if(F[k]&&F[k].size) f=f.filter(r=>F[k].has(String(r[k]))); });
-  // SORT (Gabriel-directed): by the selected key + direction (created/uses/name/param-size/val).
   const sk=(document.getElementById("libsort")||{}).value||"created";
   const desc=(window._libDir!=="asc");
   const kf={created:r=>r.created||0, uses:r=>r.uses||0, window:r=>r.window||0, val:r=>(r.val==null?Infinity:r.val),
             name:r=>(r.purpose||r.skill||"").toLowerCase()}[sk]||(r=>r.created||0);
   f = f.slice().sort((a,b)=>{ const av=kf(a),bv=kf(b); return av<bv?(desc?1:-1):av>bv?(desc?-1:1):0; });
   const N=80, shown=f.slice(0,N);
-  document.getElementById("librows").innerHTML = shown.map(r=>
+  el.innerHTML = `<div class="ll" style="margin-bottom:6px">${esc((x.legacy&&x.legacy.note)||"retired era")}</div>`
+    + (shown.map(r=>
     `<div class="row wrap" style="cursor:pointer" onclick='libDetail(${JSON.stringify(String(r.id||r.skill||""))})'><span class="a">${esc(_libName(r))} `
     + `<span class="chip">${esc(r.field)}</span>`
     + (r.topology?`<span class="chip">${esc(r.topology)}</span>`:"")
     + `</span><span class="b">`
-    + (r.status==="done"?`<span class="green">built</span>`:`<span class="dim">pending</span>`)
+    + (r.status==="done"?`<span class="green">built</span>`:`<span class="dim">retired</span>`)
     + ` · ${r.uses!=null?(r.uses+" uses"):"uses n/a"}`
     + (r.created?` · ${when(r.created)}`:"")
-    + `</span></div>`).join("") || "<span class='muted'>no experts match</span>";
-  if(f.length>N) document.getElementById("librows").innerHTML += `<div class="muted" style="margin-top:6px">+${f.length-N} more (refine search)</div>`;
+    + `</span></div>`).join("") || "<span class='muted'>no experts match</span>");
+  if(f.length>N) el.innerHTML += `<div class="muted" style="margin-top:6px">+${f.length-N} more (refine search)</div>`;
 }
 // [2.42] NET-DETAIL PANEL (Gabriel-directed): click any library row -> modal showing every tracked field for that
 // net. Reads the row already in _lib (no extra fetch). r.detail.* (corpus/tier/router-uses/provenance/verified)
@@ -716,7 +750,8 @@ async function load(){
   renderSelfModel(d.self_model); // [1.03] GATE-1 self-model coverage (per-family, struggling = gaps)
   renderHumanTask(d.operator_human_task); // [4.05] shared-seat operator->human task (hidden when none)
   renderWorkers(d.cluster);
-  renderRoadmap(d.plan, d.worker_claims, d.roadmap_status, d.stage12_coverage, d.handoff && d.handoff.decomposed);
+  // roadmap tab REMOVED (Gabriel 2026-07-03: "stale and not really necessary anymore as we are so close");
+  // renderRoadmap left as dead code (no-ops on the missing div) — delete wholesale on the next page overhaul.
   if(!_lib) await fetchLib();
   if(curV==="library") renderLib();
 }
