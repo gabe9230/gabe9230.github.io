@@ -63,8 +63,9 @@
     <div id="nltasksub" class="ll" style="margin-top:6px"></div>
   </div>
   <div class="card">
-    <div class="l">CAPABILITY <span class="muted">· mastered compositions over time (unbounded)</span> <span id="capnow" class="green" style="float:right;font-weight:600"></span></div>
-    <canvas id="corechart" width="540" height="150"></canvas>
+    <div class="l">TASK PROGRESS <span class="muted">· dense score of the current attempt — wipes on every new task</span> <span id="tasknow" class="green" style="float:right;font-weight:600"></span></div>
+    <canvas id="taskchart" width="540" height="150"></canvas>
+    <div id="tasklabel" class="ll" style="margin-top:4px"></div>
   </div>
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
 </div>
@@ -79,6 +80,10 @@
     <div class="l">WRITE GATE <span class="muted">· unlock condition 1 (STRICT — Gabriel-defined; scaffold-planned = escalated) + the inputs that must move before it can climb</span></div>
     <div id="gatestreak" style="margin-top:6px;font-size:22px;font-weight:700"></div>
     <div id="gateprog" class="ll" style="margin-top:6px;line-height:1.7"></div>
+  </div>
+  <div class="card">
+    <div class="l">CAPABILITY <span class="muted">· mastered compositions over time (unbounded)</span> <span id="capnow" class="green" style="float:right;font-weight:600"></span></div>
+    <canvas id="corechart" width="540" height="150"></canvas>
   </div>
   <div class="card">
     <div class="l">NOW WORKING <span class="muted">· secondaries first; when all secondaries are done/parked, the self-posed work advancing the primary</span></div>
@@ -287,6 +292,39 @@ function drawCoreChart(series){
   x.fillStyle="#3fb950"; const li=S.length-1; x.beginPath(); x.arc(X(xs[li]),Y(S[li].core_score),3,0,7); x.fill();
   x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+Math.round(maxV), 10, 14);
 }
+// TASK PROGRESS chart (Gabriel 2026-07-03): the CURRENT task's dense score, accumulated client-side from
+// mint_status polls; WIPES on every new task (label change). Page-reload restarts the trace from now (live view).
+let _taskSeries={label:null, pts:[]};
+function feedTaskChart(ms){
+  const now=document.getElementById("tasknow"), lab=document.getElementById("tasklabel");
+  if(!ms||!ms.label){ if(lab&&!_taskSeries.label) lab.textContent="waiting for the next task…"; return; }
+  if(ms.label!==_taskSeries.label){ _taskSeries={label:ms.label, pts:[]}; }              // NEW TASK -> wipe
+  if(ms.dense!=null && ms.step!=null){
+    const last=_taskSeries.pts[_taskSeries.pts.length-1];
+    if(!last||last.step!==ms.step) _taskSeries.pts.push({step:ms.step, dense:ms.dense, gate:ms.accept_gate});
+  }
+  if(now) now.textContent = ms.dense!=null?("dense "+ms.dense):"";
+  if(lab) lab.textContent = String(ms.label).replace(/^improve_/,"").replace(/__field_/," · ")
+    + (ms.status?` · ${ms.status}`:"") + (ms.elapsed_s!=null?` · ${Math.round(ms.elapsed_s/60)}min`:"");
+  drawTaskChart();
+}
+function drawTaskChart(){
+  const c=document.getElementById("taskchart"); if(!c) return; const x=c.getContext("2d");
+  x.clearRect(0,0,c.width,c.height);
+  const S=_taskSeries.pts;
+  if(S.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting… (a new attempt starts the trace)", 8, 20); return; }
+  const s0=S[0].step, s1=Math.max(S[S.length-1].step, s0+1);
+  const X=s=>8+((s-s0)/(s1-s0))*(c.width-16), Y=v=>c.height-12-Math.max(0,Math.min(1,v))*(c.height-24);
+  x.strokeStyle="#21262d"; x.lineWidth=1;
+  for(let g=0;g<=4;g++){ const yy=12+g*(c.height-24)/4; x.beginPath(); x.moveTo(8,yy); x.lineTo(c.width-8,yy); x.stroke(); }
+  const gate=S[S.length-1].gate;                                        // the accept gate as an amber dashed line
+  if(gate!=null){ x.strokeStyle="#d29922"; x.setLineDash([4,4]); x.beginPath(); x.moveTo(8,Y(gate)); x.lineTo(c.width-8,Y(gate)); x.stroke(); x.setLineDash([]);
+    x.fillStyle="#d29922"; x.font="10px monospace"; x.fillText("gate "+gate, c.width-64, Y(gate)-3); }
+  x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();
+  S.forEach((p,i)=>{ const px=X(p.step),py=Y(p.dense); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
+  x.fillStyle="#3fb950"; const li=S.length-1; x.beginPath(); x.arc(X(S[li].step),Y(S[li].dense),3,0,7); x.fill();
+  x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("dense 0→1 · steps "+s0+"–"+S[li].step, 10, 14);
+}
 function renderSelfModel(sm){
   // [1.03] GATE-1 self-model coverage on the phone (RULE 2, #00 3670): per-family coverage_rate, struggling = gaps.
   const el=document.getElementById("selfmodelbody"); if(!el) return;
@@ -418,7 +456,8 @@ function renderCore(d){
   }
   const cap=document.getElementById("capnow");
   if(cap) cap.textContent = co&&co.core_score!=null ? co.core_score : "";
-  drawCoreChart(co&&co.series);
+  drawCoreChart(co&&co.series);          // canvas now lives on the Directive tab (Gabriel 2026-07-03)
+  feedTaskChart(d.mint_status);          // Task tab: the current attempt's dense trace (wipes per task)
   const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
   if(vm){
     const av = lf&&lf.vm&&lf.vm.available;
