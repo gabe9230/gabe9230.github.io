@@ -123,6 +123,7 @@
     <div class="tabs sub" style="margin-top:8px">
       <button class="tab active" data-s="hypernets" onclick="libFilter('hypernets')">hypernets</button>
       <button class="tab" data-s="experts" onclick="libFilter('experts')">experts</button>
+      <button class="tab" data-s="queue" onclick="libFilter('queue')">queue</button>
       <button class="tab" data-s="legacy" onclick="libFilter('legacy')">legacy</button>
     </div>
     <div class="row" id="libsortrow" style="border:none;padding:5px 0;gap:6px;align-items:center;display:none">
@@ -153,7 +154,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v43 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v44 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -722,6 +723,25 @@ function renderLib(){
         : "<span class='muted'>none yet — mints register here as the gate accepts them</span>");
     return;
   }
+  if(sec==="queue"){
+    // QUEUE (Gabriel 2026-07-03): pending gaps + in-flight cluster jobs, from the 5s-fresh status payload.
+    document.getElementById("libfilters").innerHTML="";
+    const mq=(window._d&&window._d.mint_queue)||{requests:[],cluster:[]};
+    const ageF=s=>s==null?"":(s<90?`${s}s`:(s<5400?`${Math.round(s/60)}min`:`${(s/3600).toFixed(1)}h`));
+    const pretty=e=>String(e||"").replace(/^improve_/,"").replace(/__field_/," · ");
+    let inflight=(mq.cluster||[]), waiting=(mq.requests||[]);
+    if(q){ inflight=inflight.filter(r=>(r.eid||"").toLowerCase().includes(q)); waiting=waiting.filter(r=>(r.eid||"").toLowerCase().includes(q)); }
+    el.innerHTML =
+      `<div class="l">IN FLIGHT <span class="muted">· dispatched to a cluster GPU, training now</span></div>`
+      + (inflight.length? inflight.map(r=>`<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(pretty(r.eid))}</span>`
+        + `<span class="b"><span class="green">training</span>${r.job?` · ${esc(String(r.job).replace(/^job-\d+-/,"job "))}`:""}${r.age_s!=null?` · ${ageF(r.age_s)}`:""}</span></div>`).join("")
+        : "<span class='muted'>nothing on the cluster right now</span>")
+      + `<div class="l" style="margin-top:12px">QUEUED <span class="muted">· gaps waiting for the front door (oldest first)</span></div>`
+      + (waiting.length? waiting.map(r=>`<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(pretty(r.eid))}</span>`
+        + `<span class="b muted">waiting ${ageF(r.age_s)}</span></div>`).join("")
+        : "<span class='muted'>queue empty — the faucet poses as the daemon drains</span>");
+    return;
+  }
   // LEGACY section — the retired pre-hypernet manifest, rendered by the original pipeline (search/sort/filters/detail).
   renderLibFilters();
   let f=rows;
@@ -1020,6 +1040,7 @@ async function load(){
   renderSelfModel(d.self_model); // [1.03] GATE-1 self-model coverage (per-family, struggling = gaps)
   renderHumanTask(d.operator_human_task); // [4.05] shared-seat operator->human task (hidden when none)
   renderWorkers(d.cluster);
+  if(curV==="library"&&_libFilter==="queue") renderLib();   // the queue section rides the 5s status polls
   // roadmap tab REMOVED (Gabriel 2026-07-03: "stale and not really necessary anymore as we are so close");
   // renderRoadmap left as dead code (no-ops on the missing div) — delete wholesale on the next page overhaul.
   if(!_lib) await fetchLib();
