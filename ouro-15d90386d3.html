@@ -153,7 +153,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v37 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v38 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -495,14 +495,18 @@ function renderHypermap(hn){
   if(key===_hmLast) return;                                          // redraw only on structure change (keeps pan/zoom)
   _hmLast=key;
   if(src) src.textContent = hn?({"live-mint":"LIVE · minting","last-result":"latest attempt","last-mastered":"last mastered"}[hn.source]||hn.source):"";
-  if(tk) tk.textContent = hn?(String(hn.task||"")+(hn.gen_acc!=null?` · gen_acc ${hn.gen_acc}`:"")+(hn.status?` · ${hn.status}`:"")):"";
+  // human task line: split the eid into family + drawn function (verbatim substrings, no authored prose)
+  const prettyTask=t=>{ t=String(t||""); const m=t.match(/^improve_([a-z_]+?)__field_[a-z_]+?_(.+)$/); return m?`${m[1]} family · function "${m[2]}"`:t; };
+  if(tk) tk.textContent = hn?(prettyTask(hn.task)+(hn.gen_acc!=null?` · gen_acc ${hn.gen_acc}`:"")+(hn.status?` · ${hn.status}`:"")):"";
   if(!hn||!(hn.composition||[]).length){ svg.innerHTML=`<text x="10" y="24" fill="#8b949e" font-size="12" font-family="monospace">no composition in flight</text>`; return; }
   const comp=hn.composition, n=comp.length, W=Math.max(540,(n+2)*120), H=170, y=H/2;
   _hmView={x:0,y:0,w:W,h:H};
   svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-  const nodes=[{id:"input",label:"input",kind:"io",x:60}], NW=96;
+  // boundary labels from REAL data (the typed-evidence kinds) when present; honest generic otherwise
+  const inLbl=hn.input_kind?String(hn.input_kind).replace(/_/g," "):"input", outLbl=hn.target_kind?String(hn.target_kind).replace(/_/g," "):"output";
+  const nodes=[{id:"input",label:inLbl,kind:"io",x:60}], NW=96;
   comp.forEach((c,i)=>nodes.push({id:"n"+i,label:String(c),kind:hn.source==="live-mint"?"mint":"expert",x:60+(i+1)*120}));
-  nodes.push({id:"output",label:"output",kind:"io",x:60+(n+1)*120});
+  nodes.push({id:"output",label:outLbl,kind:"io",x:60+(n+1)*120});
   let h="";
   for(let i=0;i<nodes.length-1;i++) h+=`<line x1="${nodes[i].x+NW/2-8}" y1="${y}" x2="${nodes[i+1].x-NW/2+8}" y2="${y}" stroke="#30363d" stroke-width="2" marker-end="url(#hmarrow)"/>`;
   h=`<defs><marker id="hmarrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="#30363d"/></marker></defs>`+h;
