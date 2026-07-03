@@ -379,9 +379,13 @@ function renderCore(d){
     nt.textContent = ms.status==="training"
       ? `training a new expert: ${fn}`
       : `composing: ${fn}`;
+    // held-out is a CLIFF metric: ~0 for most of training, lifting only near the end (Gabriel 2026-07-03:
+    // a permanent 0.00 is noise). Show dense always (the training slope); show held-out ONLY once it lifts
+    // (the approach-to-gate moment — the one time it's informative live).
     ns.textContent = (ms.step!=null?`step ${ms.step.toLocaleString()} · `:"")
-      + (ms.exact!=null?`held-out ${ms.exact} `:"") + (ms.dense!=null?`/ dense ${ms.dense} `:"")
-      + (ms.accept_gate!=null?`(gate ${ms.accept_gate}) `:"")
+      + (ms.dense!=null?`dense ${ms.dense} `:"")
+      + (ms.exact>0?`· held-out ${ms.exact} closing on `:"· gate: held-out ≥ ")
+      + (ms.accept_gate!=null?`${ms.accept_gate} `:"")
       + (ms.elapsed_s!=null?`· ${Math.round(ms.elapsed_s/60)}min`:"");
     const cur0=dt&&dt.current;
     if(cur0&&cur0.directive&&cur0.n_gaps>0) ns.textContent += ` · parked: "${cur0.directive}" (awaiting capability — see Directive)`;
