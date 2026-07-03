@@ -59,18 +59,18 @@
 <div id="v-core">
   <div class="card">
     <div class="l">CURRENT TASK <span class="muted">· live state from the loop's files — status notes may be scaffold/worker-recorded, NOT generated NL (the loop doesn't write prose yet; when it does, that gets its own label)</span> <span id="loopver" class="chip" style="float:right"></span></div>
-    <div id="nltask" style="margin-top:8px;font-size:15px;font-weight:600;line-height:1.5"></div>
-    <div id="nltasksub" class="ll" style="margin-top:6px"></div>
+    <div id="nltask" style="margin-top:8px;font-size:15px;font-weight:600;line-height:1.5;overflow-wrap:anywhere;word-break:break-word"></div>
+    <div id="nltasksub" class="ll" style="margin-top:6px;overflow-wrap:anywhere;word-break:break-word"></div>
   </div>
   <div class="card">
     <div class="l">TASK PROGRESS <span class="muted">· dense score of the current attempt — wipes on every new task</span> <span id="tasknow" class="green" style="float:right;font-weight:600"></span></div>
     <canvas id="taskchart" width="540" height="150"></canvas>
-    <div id="tasklabel" class="ll" style="margin-top:4px"></div>
+    <div id="tasklabel" class="ll" style="margin-top:4px;overflow-wrap:anywhere;word-break:break-word"></div>
   </div>
   <div class="card">
     <div class="l">HYPERNET MAP <span class="muted">· the in-flight composition — scroll to zoom, drag to pan, click a node for its expert</span> <span id="hmsrc" class="chip" style="float:right"></span></div>
     <svg id="hypermap" height="170" style="touch-action:none;cursor:grab;display:block;margin-top:6px;width:100%;max-width:100%"></svg>
-    <div id="hmtask" class="ll" style="margin-top:4px"></div>
+    <div id="hmtask" class="ll" style="margin-top:4px;overflow-wrap:anywhere;word-break:break-word"></div>
   </div>
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
 </div>
@@ -153,7 +153,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v36 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v37 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
