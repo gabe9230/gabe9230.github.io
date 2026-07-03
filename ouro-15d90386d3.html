@@ -148,7 +148,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v33 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v34 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -292,19 +292,21 @@ function drawCoreChart(series){
   x.fillStyle="#3fb950"; const li=S.length-1; x.beginPath(); x.arc(X(xs[li]),Y(S[li].core_score),3,0,7); x.fill();
   x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+Math.round(maxV), 10, 14);
 }
-// TASK PROGRESS chart (Gabriel 2026-07-03): the CURRENT task's dense score, accumulated client-side from
-// mint_status polls; WIPES on every new task (label change). Page-reload restarts the trace from now (live view).
+// TASK PROGRESS chart (Gabriel 2026-07-03): the CURRENT task's dense score. SERVER-side series (d.mint_trace,
+// publisher-accumulated + file-backed) so a page refresh does NOT wipe the curve; it wipes only on a NEW task.
 let _taskSeries={label:null, pts:[]};
-function feedTaskChart(ms){
+function feedTaskChart(ms, trace){
   const now=document.getElementById("tasknow"), lab=document.getElementById("tasklabel");
-  if(!ms||!ms.label){ if(lab&&!_taskSeries.label) lab.textContent="waiting for the next task…"; return; }
-  if(ms.label!==_taskSeries.label){ _taskSeries={label:ms.label, pts:[]}; }              // NEW TASK -> wipe
-  if(ms.dense!=null && ms.step!=null){
-    const last=_taskSeries.pts[_taskSeries.pts.length-1];
-    if(!last||last.step!==ms.step) _taskSeries.pts.push({step:ms.step, dense:ms.dense, gate:ms.accept_gate});
-  }
-  if(now) now.textContent = ms.dense!=null?("dense "+ms.dense):"";
-  if(lab) lab.textContent = String(ms.label).replace(/^improve_/,"").replace(/__field_/," · ")
+  if(trace && trace.label){ _taskSeries={label:trace.label, pts:trace.pts||[]}; }        // server series = truth
+  else if(ms && ms.label){                                                               // fallback: client-accumulate
+    if(ms.label!==_taskSeries.label) _taskSeries={label:ms.label, pts:[]};
+    if(ms.dense!=null && ms.step!=null){
+      const last=_taskSeries.pts[_taskSeries.pts.length-1];
+      if(!last||last.step!==ms.step) _taskSeries.pts.push({step:ms.step, dense:ms.dense, gate:ms.accept_gate});
+    }
+  } else { if(lab&&!_taskSeries.label) lab.textContent="waiting for the next task…"; return; }
+  if(now) now.textContent = (ms&&ms.dense!=null)?("dense "+ms.dense):"";
+  if(lab&&ms&&ms.label) lab.textContent = String(ms.label).replace(/^improve_/,"").replace(/__field_/," · ")
     + (ms.status?` · ${ms.status}`:"") + (ms.elapsed_s!=null?` · ${Math.round(ms.elapsed_s/60)}min`:"");
   drawTaskChart();
 }
@@ -458,7 +460,7 @@ function renderCore(d){
   const cap=document.getElementById("capnow");
   if(cap) cap.textContent = co&&co.core_score!=null ? co.core_score : "";
   drawCoreChart(co&&co.series);          // canvas now lives on the Directive tab (Gabriel 2026-07-03)
-  feedTaskChart(d.mint_status);          // Task tab: the current attempt's dense trace (wipes per task)
+  feedTaskChart(d.mint_status, d.mint_trace);   // Task tab: server-side dense trace (reload-proof; wipes per task)
   const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
   if(vm){
     const av = lf&&lf.vm&&lf.vm.available;
