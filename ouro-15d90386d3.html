@@ -153,7 +153,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v42 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v43 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -561,6 +561,49 @@ function hmExpertPanel(label){
     +rows.filter(r=>r[1]!=null).map(r=>`<div class="row" style="padding:4px 0;border-bottom:1px solid var(--grid)"><span class="a muted">${esc(r[0])}</span><span class="b" style="text-align:right">${esc(r[1])}</span></div>`).join("")+`</div>`;
 }
 
+// ── LIBRARY DRILL-DOWNS (Gabriel 2026-07-03): hypernet -> expert map; expert -> parameter map ───────
+function _drillModal(title, bodyHtml){
+  let m=document.getElementById("libmodal");
+  if(!m){ m=document.createElement("div"); m.id="libmodal"; document.body.appendChild(m); m.onclick=e=>{ if(e.target===m) closeLibModal(); }; }
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px";
+  m.innerHTML=`<div style="background:var(--bg2,#161b22);border:1px solid var(--grid);border-radius:12px;max-width:560px;width:100%;max-height:82vh;overflow:auto;padding:14px 16px">`
+    +`<div class="row" style="border:none;margin-bottom:6px"><span class="a" style="overflow-wrap:anywhere"><b>${title}</b></span><span class="b" style="cursor:pointer;font-size:20px" onclick="closeLibModal()">&times;</span></div>`
+    +bodyHtml+`</div>`;
+}
+function hnMap(i){
+  const h=(window._hnList||[])[i]; if(!h) return;
+  const comp=h.composition||[], n=comp.length, W=Math.max(320,(n+2)*110), H=120, y=H/2, NW=88;
+  const nodes=[{label:"input",kind:"io",x:55}];
+  comp.forEach((c,j)=>nodes.push({label:String(c),kind:"expert",x:55+(j+1)*110}));
+  nodes.push({label:"output",kind:"io",x:55+(n+1)*110});
+  let svg=`<defs><marker id="hnarrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="#30363d"/></marker></defs>`;
+  for(let j=0;j<nodes.length-1;j++) svg+=`<line x1="${nodes[j].x+NW/2-8}" y1="${y}" x2="${nodes[j+1].x-NW/2+8}" y2="${y}" stroke="#30363d" stroke-width="2" marker-end="url(#hnarrow)"/>`;
+  nodes.forEach(nd=>{
+    const fill=nd.kind==="io"?"#161b22":"#13233a", stroke=nd.kind==="io"?"#30363d":"#388bfd";
+    svg+=`<g style="cursor:pointer" onclick="hmExpertPanel(${JSON.stringify(nd.label).replace(/"/g,"&quot;")})">`
+      +`<rect x="${nd.x-NW/2}" y="${y-20}" width="${NW}" height="40" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
+      +`<text x="${nd.x}" y="${y+4}" fill="#e6edf3" font-size="10" font-family="monospace" text-anchor="middle">${esc(nd.label.length>12?nd.label.slice(0,11)+"…":nd.label)}</text></g>`;
+  });
+  _drillModal(esc(h.task||"hypernet"),
+    `<div class="ll" style="margin-bottom:6px">mastered composition · gen_acc ${h.gen_acc!=null?h.gen_acc:"?"}${h.slots!=null?` · ${h.slots} slots`:""}${h.ts?` · ${when(h.ts)}`:""} — tap a node for its expert</div>`
+    +`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">${svg}</svg>`);
+}
+function paramMap(id){
+  const maps=(_libx&&_libx.param_maps)||{};
+  const m=maps[id]||maps[String(id).replace(/\.pt$/,"")];
+  if(!m||!m.layers){ _drillModal(esc(id), `<span class="muted">no parameter map yet — the export regenerates when checkpoints change (a few minutes)</span>`); return; }
+  const mx=Math.max(...m.layers.map(l=>l.params||0),1);
+  const rows=m.layers.map(l=>
+    `<div style="padding:4px 0;border-bottom:1px solid var(--grid)">`
+    +`<div class="row" style="border:none;padding:0"><span class="a small" style="overflow-wrap:anywhere">${esc(l.layer)}</span>`
+    +`<span class="b small muted">${l.shape?esc(l.shape.join("×")):"?"} · ${l.params!=null?l.params.toLocaleString():"?"}</span></div>`
+    +`<div class="gbar" style="height:4px;margin-top:2px"><span style="width:${Math.round(100*(l.params||0)/mx)}%;background:var(--green)"></span></div>`
+    +(l.w_mean_abs!=null?`<div class="small dim">|w| mean ${l.w_mean_abs} · max ${l.w_max_abs}</div>`:"")
+    +`</div>`).join("");
+  _drillModal(esc(id),
+    `<div class="ll" style="margin-bottom:6px">${esc(m.kind||"expert")} · <b>${(m.total_params||0).toLocaleString()}</b> parameters · ${m.layers.length} layers — bars scaled by layer size</div>`+rows);
+}
+
 // ── DEFINITIONS TAB (Gabriel 2026-07-03: explain the vocab for someone not on the project) ──────────
 const DEFS=[
 ["the loop","The autonomous system this page watches. It gives itself tasks, tries to solve them, builds whatever ability it's missing, and repeats — without a person in the cycle."],
@@ -646,11 +689,19 @@ function renderLib(){
     let f=hyp.slice().reverse();                       // newest mastered first
     if(q) f=f.filter(h=>((h.task||"")+" "+(h.composition||[]).join(" ")).toLowerCase().includes(q));
     const N=100, shown=f.slice(0,N);
-    el.innerHTML = shown.map(h=>
-      `<div class="row wrap"><span class="a">${esc(h.task||"?")} `
+    window._hnList=shown;                                            // click -> composition map (Gabriel 2026-07-03)
+    // TWO writers share this library (compositions + the [3.60] PLANNER's plan-templates); plan rows carry no
+    // ts/gen_acc (plan-quality scored separately). Label each kind honestly until the row contract unifies.
+    el.innerHTML = shown.map((h,i)=>{
+      const isPlan = h.gen_acc==null && !h.ts;
+      return `<div class="row wrap" style="cursor:pointer" onclick="hnMap(${i})"><span class="a">${esc(h.task||"?")} `
+      + (isPlan?'<span class="chip" style="border-color:#d29922;color:#d29922">plan template</span>':"")
       + (h.composition||[]).map(c=>`<span class="chip">${esc(c)}</span>`).join("")
-      + `</span><span class="b"><span class="${h.gen_acc>=1?"green":""}">gen ${h.gen_acc!=null?h.gen_acc:"?"}</span>`
-      + (h.slots!=null?` · ${h.slots} slots`:"") + (h.ts?` · ${when(h.ts)}`:"") + `</span></div>`).join("")
+      + `</span><span class="b">`
+      + (isPlan ? `${(h.composition||[]).length} step${(h.composition||[]).length===1?"":"s"} <span class="muted">· planner-mastered</span>`
+                : `<span class="${h.gen_acc>=1?"green":""}">gen ${h.gen_acc!=null?h.gen_acc:"?"}</span>`
+                  + (h.slots!=null?` · ${h.slots} slots`:"") + (h.ts?` · ${when(h.ts)}`:""))
+      + `</span></div>`;}).join("")
       || "<span class='muted'>no mastered compositions yet</span>";
     if(f.length>N) el.innerHTML += `<div class="muted" style="margin-top:6px">+${f.length-N} more (refine search)</div>`;
     if(x.structures_observed&&x.structures_observed.length)
@@ -662,11 +713,11 @@ function renderLib(){
     let p=prims, m=minted;
     if(q){ p=p.filter(r=>(r.op||"").toLowerCase().includes(q)); m=m.filter(r=>(r.eid||"").toLowerCase().includes(q)); }
     el.innerHTML =
-      `<div class="l">PRIMITIVES <span class="muted">· param-general atom experts, built once, reused everywhere</span></div>`
-      + p.map(r=>`<div class="row wrap"><span class="a"><b>${esc(r.op)}</b>${r.exact_repair?' <span class="chip green">exact</span>':""}</span>`
+      `<div class="l">PRIMITIVES <span class="muted">· param-general atom experts, built once, reused everywhere — click one for its parameter map</span></div>`
+      + p.map(r=>`<div class="row wrap" style="cursor:pointer" onclick="paramMap(${JSON.stringify(String(r.op)).replace(/"/g,"&quot;")})"><span class="a"><b>${esc(r.op)}</b>${r.exact_repair?' <span class="chip green">exact</span>':""}</span>`
         + `<span class="b">held-out ${r.heldout_exact!=null?r.heldout_exact:"?"} · ${r.uses!=null?r.uses:0} uses${r.is_bool?" · bool":""}</span></div>`).join("")
       + `<div class="l" style="margin-top:12px">MINTED <span class="muted">· experts the loop trained itself when composition provably couldn't reach (typed-evidence gate)</span></div>`
-      + (m.length? m.map(r=>`<div class="row wrap"><span class="a">${esc((r.eid||"").replace(/^improve_/,"").replace(/__field_.*$/,m0=>" · "+m0.replace(/^__field_/,"")))}</span>`
+      + (m.length? m.map(r=>`<div class="row wrap" style="cursor:pointer" onclick="paramMap(${JSON.stringify(String(r.eid||"")).replace(/"/g,"&quot;")})"><span class="a">${esc((r.eid||"").replace(/^improve_/,"").replace(/__field_.*$/,m0=>" · "+m0.replace(/^__field_/,"")))}</span>`
         + `<span class="b"><span class="green">held-out ${r.heldout_exact!=null?r.heldout_exact:"?"}</span>${r.created?` · ${when(r.created)}`:""}</span></div>`).join("")
         : "<span class='muted'>none yet — mints register here as the gate accepts them</span>");
     return;
