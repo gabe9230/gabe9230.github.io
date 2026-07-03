@@ -79,7 +79,12 @@
 
 <div id="v-directive" style="display:none">
   <div class="card">
-    <div class="l">DIRECTIVE <span class="muted">· the overarching goal (user-provided) → the loop's own decomposition, verbatim</span></div>
+    <div class="l">PRIMARY DIRECTIVES <span class="muted">· the constant list (Gabriel-authored, verbatim) — the loop's standing goals</span></div>
+    <div id="dirprimlist" style="margin-top:6px;font-size:12px;line-height:1.7"></div>
+    <div id="dirprimsafe" class="ll" style="margin-top:4px"></div>
+  </div>
+  <div class="card">
+    <div class="l">NOW WORKING <span class="muted">· secondaries first; when all secondaries are done/parked, the self-posed work advancing the primary</span></div>
     <div id="dirhead" style="margin-top:6px;font-size:14px;font-weight:600"></div>
     <div id="dirleaves" style="margin-top:8px"></div>
   </div>
@@ -310,7 +315,29 @@ function renderDirective(d){
   const head=document.getElementById("dirhead"), lv=document.getElementById("dirleaves"), hi=document.getElementById("dirhist");
   if(!head) return;
   if(!dt){ head.textContent="no directive yet"; if(lv) lv.innerHTML=""; if(hi) hi.innerHTML=""; return; }
+  const pr=dt.primary, pl=document.getElementById("dirprimlist"), psafe=document.getElementById("dirprimsafe");
+  if(pl) pl.innerHTML = (pr&&pr.primaries&&pr.primaries.length)
+    ? pr.primaries.map((x,i)=>`<div><span class="muted">${i+1}.</span> ${x}</div>`).join("")
+    : `<span class="muted">no primary list</span>`;
+  if(psafe) psafe.innerHTML = (pr&&pr.safeguard)
+    ? `directive #1 safeguard: <b class="${pr.safeguard.ok?'green':'amber'}">${pr.safeguard.ok?'INTACT':'CHECK'}</b> <span class="muted">· ${pr.safeguard.reason||""}</span>` : "";
   const cur=dt.current;
+  const secondaryActive = cur && cur.directive && cur.n_gaps===0===false && !(pr&&pr.tier==="primary");
+  if(pr && pr.tier==="primary" && pr.worked && pr.worked.directive){
+    head.innerHTML = `<span class="muted" style="font-size:11px">SELF-POSED (advancing primary #2)</span><br>"${pr.worked.directive}"`;
+    if(lv){
+      const w=pr.worked;
+      let rows = (w.leaves&&w.leaves.length)
+        ? w.leaves.map((l,i)=>`<div style="padding:3px 0;border-bottom:1px solid #1c2128"><span class="muted">${i+1}.</span> <b>${l.name||l}</b> <span class="${st[l.status]!=null?st[l.status]:""}" style="float:right">${l.status||""}</span></div>`).join("")
+        : `<div class="ll">${w.n_leaves!=null?w.n_leaves:"—"} self-model leaves posed this cycle · ${w.n_done!=null?w.n_done:0} done · dense ${w.dense!=null?w.dense:"—"}</div>`;
+      if(cur&&cur.directive&&cur.n_gaps>0) rows += `<div class="ll" style="margin-top:6px">PARKED secondary: "${cur.directive}" — ${cur.n_gaps} gap(s) standing (in-band, hands-off)</div>`;
+      lv.innerHTML = rows + `<div class="ll" style="margin-top:4px">${pr.note||""}</div>`;
+    }
+    if(hi) hi.innerHTML = (dt.history&&dt.history.length)
+      ? dt.history.map(h=>`<div style="padding:4px 0;border-bottom:1px solid #1c2128"><b>"${h.directive}"</b> <span class="green" style="float:right">${h.n_gaps===0?"COMPLETE":(h.n_gaps+" gaps")}</span><div class="ll">${(h.leaves||[]).map(l=>l.name+(l.method?(" ("+l.method+")"):"")).join(" → ")}</div></div>`).join("")
+      : `<span class="muted">none completed yet</span>`;
+    return;
+  }
   head.textContent = cur&&cur.directive ? `"${cur.directive}"` : "(no active directive)";
   if(lv) lv.innerHTML = cur&&cur.leaves&&cur.leaves.length
     ? cur.leaves.map((l,i)=>`<div style="padding:3px 0;border-bottom:1px solid #1c2128"><span class="muted">${i+1}.</span> <b>${l.name}</b> <span class="muted">${l.kind||""}</span> <span class="${st[l.status]!=null?st[l.status]:""}" style="float:right">${l.status}${l.method?(" · "+l.method):""}</span></div>`).join("")
