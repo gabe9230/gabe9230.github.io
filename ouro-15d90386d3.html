@@ -154,7 +154,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v44 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v45 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -730,6 +730,7 @@ function renderLib(){
     const ageF=s=>s==null?"":(s<90?`${s}s`:(s<5400?`${Math.round(s/60)}min`:`${(s/3600).toFixed(1)}h`));
     const pretty=e=>String(e||"").replace(/^improve_/,"").replace(/__field_/," · ");
     let inflight=(mq.cluster||[]), waiting=(mq.requests||[]);
+    waiting=waiting.filter(r=>!inflight.some(c=>c.eid===r.eid));   // request files persist while a job runs (crash-safety) — show each task once
     if(q){ inflight=inflight.filter(r=>(r.eid||"").toLowerCase().includes(q)); waiting=waiting.filter(r=>(r.eid||"").toLowerCase().includes(q)); }
     el.innerHTML =
       `<div class="l">IN FLIGHT <span class="muted">· dispatched to a cluster GPU, training now</span></div>`
