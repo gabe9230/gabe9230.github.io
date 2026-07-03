@@ -134,7 +134,7 @@
   <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
 </div>
 
-<footer><span id="pagever">v30 · Task · Directive · Chat · Library · Workers</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v30 · Task · Directive · Chat · Library · Workers</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -357,8 +357,9 @@ function renderDirective(d){
 function renderCore(d){
   const co=d.core, dt=d.directive_tab;
   // LOOP VERSION chip (Gabriel 2026-07-03 semver eras: deploys bump minor, tweaks patch, architecture major)
-  const lv=document.getElementById("loopver");
-  if(lv) lv.textContent = (d.loop_version&&d.loop_version.version) ? ("loop v"+d.loop_version.version) : "";
+  const lvs=(d.loop_version&&d.loop_version.version)?("loop v"+d.loop_version.version):"";
+  const lv=document.getElementById("loopver"); if(lv) lv.textContent=lvs;
+  const lvf=document.getElementById("loopverfoot"); if(lvf) lvf.textContent=lvs;   // footer, beside the page version
   // CURRENT TASK — NL, from the loop's own directive/primary strings (never the raw iter log)
   const nt=document.getElementById("nltask"), ns=document.getElementById("nltasksub");
   if(nt){
