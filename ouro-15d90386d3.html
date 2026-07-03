@@ -360,9 +360,25 @@ function renderCore(d){
   const lvs=(d.loop_version&&d.loop_version.version)?("loop v"+d.loop_version.version):"";
   const lv=document.getElementById("loopver"); if(lv) lv.textContent=lvs;
   const lvf=document.getElementById("loopverfoot"); if(lvf) lvf.textContent=lvs;   // footer, beside the page version
-  // CURRENT TASK — NL, from the loop's own directive/primary strings (never the raw iter log)
+  // CURRENT TASK — priority: (1) the GPU daemon's LIVE activity (mint_status), (2) the driver's current leaf,
+  // (3) directive lines. Parked secondaries = one muted line; gap prose lives on the Directive tab, not here.
   const nt=document.getElementById("nltask"), ns=document.getElementById("nltasksub");
-  if(nt){
+  const ms=d.mint_status;
+  let taskSet=false;
+  if(nt && ms && (ms.status==="training"||ms.status==="front-door"||ms.status==="resolving") && ms.label){
+    const fn=String(ms.label).replace(/^improve_/,"").replace(/__field_[a-z_]*fetched_[a-z0-9_]*?_/,' · fetched "').replace(/_(\d+)$/,'" #$1');
+    nt.textContent = ms.status==="training"
+      ? `training a new expert: ${fn}`
+      : `composing: ${fn}`;
+    ns.textContent = (ms.step!=null?`step ${ms.step.toLocaleString()} · `:"")
+      + (ms.exact!=null?`held-out ${ms.exact} `:"") + (ms.dense!=null?`/ dense ${ms.dense} `:"")
+      + (ms.accept_gate!=null?`(gate ${ms.accept_gate}) `:"")
+      + (ms.elapsed_s!=null?`· ${Math.round(ms.elapsed_s/60)}min`:"");
+    const cur0=dt&&dt.current;
+    if(cur0&&cur0.directive&&cur0.n_gaps>0) ns.textContent += ` · parked: "${cur0.directive}" (awaiting capability — see Directive)`;
+    taskSet=true;
+  }
+  if(nt && !taskSet){
     const pretty=s=>String(s||"").replace(/[_:]/g," ").replace(/\s+/g," ").trim();
     const cur=dt&&dt.current, pr=dt&&dt.primary;
     const secActive = cur && cur.directive && cur.n_gaps>0===false && !(pr&&pr.tier==="primary");
@@ -379,9 +395,12 @@ function renderCore(d){
       }
     } else if(cur && cur.directive){
       nt.textContent = `"${cur.directive}"`;
-      const cl2=cur.current_leaf, gap=(cur.leaves||[]).find(l=>l.status==="gap"), doing=cl2||((cur.leaves||[]).find(l=>l.status==="in_progress")||gap);
-      ns.textContent = doing ? (doing.detail || `working on: ${pretty(doing.name)}${doing.status==="gap"?" (building the missing capability)":""}`) :
-        (cur.n_gaps===0 ? "complete" : "");
+      // NO gap/detail PROSE here (Gabriel 2026-07-03: "why show surfaced gap at all?") — those strings are
+      // worker/scaffold-recorded verdicts and belong on the Directive tab. Short mechanical status only.
+      const cl2=cur.current_leaf, act=(cur.leaves||[]).find(l=>l.status==="in_progress")||cl2;
+      ns.textContent = cur.n_gaps>0
+        ? `parked — ${cur.n_gaps} capability gap(s) standing (details on the Directive tab)`
+        : (act ? `working on: ${pretty(act.name)}` : (cur.n_gaps===0 ? "complete" : ""));
     } else { nt.textContent="idle"; ns.textContent=""; }
   }
   const cap=document.getElementById("capnow");
