@@ -22,7 +22,7 @@
   .tabs.sub .tab { flex:none; padding:4px 10px; font-size:11px; }
   .card { background:var(--bg2); border:1px solid var(--grid); border-radius:10px; padding:12px; margin-top:12px; }
   .l { font-size:11px; color:var(--dim); letter-spacing:.08em; }
-  .bignums { display:flex; justify-content:space-around; text-align:center; margin:8px 0; }
+  .bignums { display:flex; flex-wrap:wrap; gap:10px 6px; justify-content:space-around; text-align:center; margin:8px 0; } .bignums > div { min-width:88px; flex:1 1 88px; }
   .bignums .v { font-size:26px; font-weight:600; }
   .bignums .ll { font-size:10px; color:var(--dim); letter-spacing:.08em; }
   .dtext { font-size:17px; color:var(--green); margin:5px 0; word-break:break-word; }
@@ -330,7 +330,7 @@ function renderCore(d){
      +`<div><div class="v ${co.replans>0?'green':''}">${co.replans!=null?co.replans:"—"}</div><div class="ll">REPLANS</div><div class="ll">failure-driven, in-band</div></div>`
      +`<div><div class="v">${co.gaps_rejected!=null?co.gaps_rejected:"—"}</div><div class="ll">HONEST GAPS</div><div class="ll">rejected, no false-master</div></div>`
      +(co.coverage_sum!=null?`<div><div class="v muted">${co.coverage_sum}</div><div class="ll">COVERAGE SUM</div><div class="ll">scaffold era${co.coverage_max!=null?(" / "+co.coverage_max):""}</div></div>`:"")
-     +(co.four_roles?`<div style="flex-basis:100%;margin-top:4px" class="ll">ROLES · solve: <b class="green">${co.four_roles.solve}</b> · judge: <b class="green">${co.four_roles.judge}</b> · plan: <b>${co.four_roles.plan}</b> · invent: <b>${co.four_roles.invent}</b> · route: <b>${co.four_roles.route}</b></div>`:"")
+     +(co.four_roles?`<div style="flex-basis:100%;min-width:100%;margin-top:2px;text-align:left;line-height:1.6" class="ll">ROLES · solve: <b class="green">${co.four_roles.solve}</b> · judge: <b class="green">${co.four_roles.judge}</b> · plan: <b>${co.four_roles.plan}</b> · invent: <b>${co.four_roles.invent}</b> · route: <b>${co.four_roles.route}</b></div>`:"")
     : `<span class="muted">hypernet library collecting…</span>`)
     + (hyp ? `<div><div class="v green">${hyp.main!=null?hyp.main:(hyp.mastered!=null?hyp.mastered+"/"+hyp.lib_size:"—")}</div><div class="ll">${hyp.label!=null?hyp.label:"HYPERNET"}</div><div class="ll">${hyp.detail!=null?hyp.detail:(hyp.mastered!=null?("mastered/lib · "+(hyp.iters!=null?hyp.iters:"—")+" it · "+(hyp.gaps!=null?hyp.gaps:0)+" gap"):"")}</div></div>` : "");
   drawCoreChart(co&&co.series);
