@@ -69,7 +69,7 @@
   </div>
   <div class="card">
     <div class="l">HYPERNET MAP <span class="muted">· the in-flight composition — scroll to zoom, drag to pan, click a node for its expert</span> <span id="hmsrc" class="chip" style="float:right"></span></div>
-    <svg id="hypermap" height="170" style="touch-action:none;cursor:grab;display:block;margin-top:6px;width:100%;max-width:100%"></svg>
+    <svg id="hypermap" height="170" style="touch-action:none;overscroll-behavior:contain;cursor:grab;display:block;margin-top:6px;width:100%;max-width:100%"></svg>
     <div id="hmtask" class="ll" style="margin-top:4px;overflow-wrap:anywhere;word-break:break-word"></div>
   </div>
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
@@ -153,7 +153,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v38 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v39 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -526,10 +526,14 @@ function renderHypermap(hn){
   svg.addEventListener("wheel",e=>{ e.preventDefault(); const f=e.deltaY>0?1.15:0.87;
     const r=svg.getBoundingClientRect(), mx=_hmView.x+(e.clientX-r.left)/r.width*_hmView.w, my=_hmView.y+(e.clientY-r.top)/r.height*_hmView.h;
     _hmView={x:mx-(mx-_hmView.x)*f, y:my-(my-_hmView.y)*f, w:_hmView.w*f, h:_hmView.h*f}; apply(); },{passive:false});
+  // BLOCK page scroll while panning the map (Gabriel 2026-07-03: panning up/down scrolled the page too).
+  // touchmove preventDefault must be NON-passive; move-only so node TAPS still synthesize clicks.
+  svg.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
   svg.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,vx:_hmView.x,vy:_hmView.y}; svg.setPointerCapture(e.pointerId); svg.style.cursor="grabbing"; });
-  svg.addEventListener("pointermove",e=>{ if(!drag) return; const r=svg.getBoundingClientRect();
+  svg.addEventListener("pointermove",e=>{ if(!drag) return; e.preventDefault(); const r=svg.getBoundingClientRect();
     _hmView.x=drag.vx-(e.clientX-drag.x)/r.width*_hmView.w; _hmView.y=drag.vy-(e.clientY-drag.y)/r.height*_hmView.h; apply(); });
   svg.addEventListener("pointerup",()=>{ drag=null; svg.style.cursor="grab"; });
+  svg.addEventListener("pointercancel",()=>{ drag=null; svg.style.cursor="grab"; });
 })();
 function hmExpertPanel(label){
   const x=_libx||{}, prims=(x.experts&&x.experts.primitives)||[], minted=(x.experts&&x.experts.minted)||[];
