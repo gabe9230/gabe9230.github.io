@@ -67,6 +67,11 @@
     <canvas id="taskchart" width="540" height="150"></canvas>
     <div id="tasklabel" class="ll" style="margin-top:4px"></div>
   </div>
+  <div class="card">
+    <div class="l">HYPERNET MAP <span class="muted">· the in-flight composition — scroll to zoom, drag to pan, click a node for its expert</span> <span id="hmsrc" class="chip" style="float:right"></span></div>
+    <svg id="hypermap" width="540" height="170" style="touch-action:none;cursor:grab;display:block;margin-top:6px"></svg>
+    <div id="hmtask" class="ll" style="margin-top:4px"></div>
+  </div>
   <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
 </div>
 
@@ -148,7 +153,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v34 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v35 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -461,6 +466,7 @@ function renderCore(d){
   if(cap) cap.textContent = co&&co.core_score!=null ? co.core_score : "";
   drawCoreChart(co&&co.series);          // canvas now lives on the Directive tab (Gabriel 2026-07-03)
   feedTaskChart(d.mint_status, d.mint_trace);   // Task tab: server-side dense trace (reload-proof; wipes per task)
+  renderHypermap(d.current_hypernet);           // Task tab: the in-flight composition map (zoom/pan/click)
   const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
   if(vm){
     const av = lf&&lf.vm&&lf.vm.available;
@@ -478,6 +484,64 @@ function renderCore(d){
       vm.innerHTML = `<div class="muted vmidle">VM idle — most experts build on the cluster, not the desktop VM. (the feed appears when a computer-use task runs.)</div>`;
     }
   }
+}
+
+// ── HYPERNET MAP (Gabriel 2026-07-03): zoom/pan SVG of the in-flight composition; click a node -> expert panel ──
+let _hmView={x:0,y:0,w:540,h:170}, _hmLast=null;
+function renderHypermap(hn){
+  const svg=document.getElementById("hypermap"), src=document.getElementById("hmsrc"), tk=document.getElementById("hmtask");
+  if(!svg) return;
+  const key=hn?JSON.stringify([hn.task,hn.composition]):"none";
+  if(key===_hmLast) return;                                          // redraw only on structure change (keeps pan/zoom)
+  _hmLast=key;
+  if(src) src.textContent = hn?({"live-mint":"LIVE · minting","last-result":"latest attempt","last-mastered":"last mastered"}[hn.source]||hn.source):"";
+  if(tk) tk.textContent = hn?(String(hn.task||"")+(hn.gen_acc!=null?` · gen_acc ${hn.gen_acc}`:"")+(hn.status?` · ${hn.status}`:"")):"";
+  if(!hn||!(hn.composition||[]).length){ svg.innerHTML=`<text x="10" y="24" fill="#8b949e" font-size="12" font-family="monospace">no composition in flight</text>`; return; }
+  const comp=hn.composition, n=comp.length, W=Math.max(540,(n+2)*120), H=170, y=H/2;
+  _hmView={x:0,y:0,w:W,h:H};
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const nodes=[{id:"input",label:"input",kind:"io",x:60}], NW=96;
+  comp.forEach((c,i)=>nodes.push({id:"n"+i,label:String(c),kind:hn.source==="live-mint"?"mint":"expert",x:60+(i+1)*120}));
+  nodes.push({id:"output",label:"output",kind:"io",x:60+(n+1)*120});
+  let h="";
+  for(let i=0;i<nodes.length-1;i++) h+=`<line x1="${nodes[i].x+NW/2-8}" y1="${y}" x2="${nodes[i+1].x-NW/2+8}" y2="${y}" stroke="#30363d" stroke-width="2" marker-end="url(#hmarrow)"/>`;
+  h=`<defs><marker id="hmarrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="#30363d"/></marker></defs>`+h;
+  nodes.forEach(nd=>{
+    const fill=nd.kind==="io"?"#161b22":(nd.kind==="mint"?"#1f2a1f":"#13233a");
+    const stroke=nd.kind==="io"?"#30363d":(nd.kind==="mint"?"#3fb950":"#388bfd");
+    h+=`<g style="cursor:pointer" onclick="hmExpertPanel(${JSON.stringify(nd.label).replace(/"/g,"&quot;")})">`
+      +`<rect x="${nd.x-NW/2}" y="${y-22}" width="${NW}" height="44" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
+      +`<text x="${nd.x}" y="${y+4}" fill="#e6edf3" font-size="11" font-family="monospace" text-anchor="middle">${esc(nd.label.length>13?nd.label.slice(0,12)+"…":nd.label)}</text></g>`;
+  });
+  svg.innerHTML=h;
+}
+(function hmInteractions(){
+  const svg=document.getElementById("hypermap"); if(!svg) return;
+  let drag=null;
+  const apply=()=>svg.setAttribute("viewBox",`${_hmView.x} ${_hmView.y} ${_hmView.w} ${_hmView.h}`);
+  svg.addEventListener("wheel",e=>{ e.preventDefault(); const f=e.deltaY>0?1.15:0.87;
+    const r=svg.getBoundingClientRect(), mx=_hmView.x+(e.clientX-r.left)/r.width*_hmView.w, my=_hmView.y+(e.clientY-r.top)/r.height*_hmView.h;
+    _hmView={x:mx-(mx-_hmView.x)*f, y:my-(my-_hmView.y)*f, w:_hmView.w*f, h:_hmView.h*f}; apply(); },{passive:false});
+  svg.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,vx:_hmView.x,vy:_hmView.y}; svg.setPointerCapture(e.pointerId); svg.style.cursor="grabbing"; });
+  svg.addEventListener("pointermove",e=>{ if(!drag) return; const r=svg.getBoundingClientRect();
+    _hmView.x=drag.vx-(e.clientX-drag.x)/r.width*_hmView.w; _hmView.y=drag.vy-(e.clientY-drag.y)/r.height*_hmView.h; apply(); });
+  svg.addEventListener("pointerup",()=>{ drag=null; svg.style.cursor="grab"; });
+})();
+function hmExpertPanel(label){
+  const x=_libx||{}, prims=(x.experts&&x.experts.primitives)||[], minted=(x.experts&&x.experts.minted)||[];
+  const op=String(label).replace(/\(.*$/,"").trim();                 // "gt" from "gt" / fold bodies keep raw
+  const p=prims.find(r=>r.op===op), m=minted.find(r=>(r.eid||"").indexOf(op)>=0);
+  let rows;
+  if(p) rows=[["kind","primitive expert (param-general atom net)"],["op",p.op],["held-out exact",p.heldout_exact],["uses",p.uses],["exact repair",p.exact_repair?"attached (limbed)":"none (byte-net)"],["output",p.is_bool?"bool":"value"]];
+  else if(m) rows=[["kind","machine-minted expert"],["eid",m.eid],["held-out exact",m.heldout_exact],["arity",m.arity],["created",m.created?when(m.created):null]];
+  else if(label==="input"||label==="output") rows=[["kind",label+" — the task boundary, not an expert"]];
+  else rows=[["kind","structure/body term (a lever or in-training node, not a library expert)"],["term",label]];
+  let mm=document.getElementById("libmodal");
+  if(!mm){ mm=document.createElement("div"); mm.id="libmodal"; document.body.appendChild(mm); mm.onclick=e=>{ if(e.target===mm) closeLibModal(); }; }
+  mm.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px";
+  mm.innerHTML=`<div style="background:var(--bg2,#161b22);border:1px solid var(--grid);border-radius:12px;max-width:460px;width:100%;padding:14px 16px">`
+    +`<div class="row" style="border:none;margin-bottom:6px"><span class="a"><b>${esc(label)}</b></span><span class="b" style="cursor:pointer;font-size:20px" onclick="closeLibModal()">&times;</span></div>`
+    +rows.filter(r=>r[1]!=null).map(r=>`<div class="row" style="padding:4px 0;border-bottom:1px solid var(--grid)"><span class="a muted">${esc(r[0])}</span><span class="b" style="text-align:right">${esc(r[1])}</span></div>`).join("")+`</div>`;
 }
 
 // ── DEFINITIONS TAB (Gabriel 2026-07-03: explain the vocab for someone not on the project) ──────────
