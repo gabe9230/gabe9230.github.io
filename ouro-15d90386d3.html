@@ -163,7 +163,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v65 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v66 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -544,7 +544,7 @@ function renderHypermap(hn){
   const key=hn?JSON.stringify([hn.task,hn.composition,hn.graph&&hn.graph.wires]):"none";
   if(key===_hmLast) return;                                          // redraw only on structure change (keeps pan/zoom)
   _hmLast=key;
-  if(src) src.textContent = hn?(hn.source==="live-mint"?(hn.remote?"LIVE · minting on cluster worker":"LIVE · minting"):({"searching-live":"LIVE · search evolving (best so far"+(hn.structures_tried?", "+hn.structures_tried+" structures tried":"")+")","current-task-attempt":"current task · its latest attempt","searching":"current task · searching compositions"}[hn.source]||hn.source)):"";
+  if(src) src.textContent = hn?(hn.source==="live-mint"?(hn.remote?"LIVE · minting on cluster worker":"LIVE · minting"):(hn.source==="agent-loop"?("AGENT LOOP · iter "+(hn.iter??"?")+(hn.verified===true?" · ✓ verified":hn.verified===false?" · ✗":"")):({"searching-live":"LIVE · search evolving (best so far"+(hn.structures_tried?", "+hn.structures_tried+" structures tried":"")+")","current-task-attempt":"current task · its latest attempt","searching":"current task · searching compositions"}[hn.source]||hn.source))):"";
   // human task line: split the eid into family + drawn function (verbatim substrings, no authored prose)
   const prettyTask=t=>{ t=String(t||""); const m=t.match(/^improve_([a-z_]+?)__field_[a-z_]+?_(.+)$/); return m?`${m[1]} family · function "${m[2]}"`:t; };
   if(tk) tk.textContent = hn?(prettyTask(hn.task)+(hn.gen_acc!=null?` · gen_acc ${hn.gen_acc}`:"")+(hn.status?` · ${hn.status}`:"")
