@@ -123,6 +123,7 @@
     <div class="tabs sub" style="margin-top:8px">
       <button class="tab active" data-s="hypernets" onclick="libFilter('hypernets')">hypernets</button>
       <button class="tab" data-s="experts" onclick="libFilter('experts')">experts</button>
+      <button class="tab" data-s="tools" onclick="libFilter('tools')">tools</button>
       <button class="tab" data-s="queue" onclick="libFilter('queue')">queue</button>
       <button class="tab" data-s="legacy" onclick="libFilter('legacy')">legacy</button>
     </div>
@@ -154,7 +155,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v52 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v53 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -699,6 +700,7 @@ function renderLib(){
     `<div><div class="v green">${hyp.length}</div><div class="ll">HYPERNETS <span class="muted">(mastered compositions)</span></div></div>`
    +`<div><div class="v green">${minted.length}</div><div class="ll">MINTED EXPERTS <span class="muted">(machine-built)</span></div></div>`
    +`<div><div class="v">${prims.length}</div><div class="ll">PRIMITIVES <span class="muted">(+${ex.digit_tables!=null?ex.digit_tables:"?"} digit tables)</span></div></div>`
+   +`<div><div class="v">${(x.tools||[]).length}</div><div class="ll">TOOLS <span class="muted">(pure python ops)</span></div></div>`
    +`<div><div class="v dim">${done}</div><div class="ll">LEGACY <span class="muted">(retired era)</span></div></div>`;
   const q=(document.getElementById("libsearch").value||"").toLowerCase();
   const sec=_libFilter||"hypernets";
@@ -740,6 +742,27 @@ function renderLib(){
       + (m.length? m.map(r=>`<div class="row wrap" style="cursor:pointer" onclick="paramMap(${JSON.stringify(String(r.eid||"")).replace(/"/g,"&quot;")})"><span class="a">${esc((r.eid||"").replace(/^improve_/,"").replace(/__field_.*$/,m0=>" · "+m0.replace(/^__field_/,"")))}</span>`
         + `<span class="b"><span class="green">held-out ${r.heldout_exact!=null?r.heldout_exact:"?"}</span>${r.created?` · ${when(r.created)}`:""}</span></div>`).join("")
         : "<span class='muted'>none yet — mints register here as the gate accepts them</span>");
+    return;
+  }
+  if(sec==="tools"){
+    // TOOLS (Gabriel 2026-07-04): the pure-python tool nodes — typed ports, real execution, composable like any
+    // node. Seeded by hand now; the python-coder hypernet mints new entries here later.
+    document.getElementById("libfilters").innerHTML="";
+    let t=(x.tools||[]);
+    if(q) t=t.filter(r=>(r.id||"").toLowerCase().includes(q));
+    const sig=r=>{
+      const ins=(r.inputs||[]).map(p=>p[1]||"?").join(", "), outs=(r.outputs||[]).map(p=>p[1]||"?").join(", ");
+      return `${ins||"—"} → ${outs||"—"}`;
+    };
+    const groups={};
+    t.forEach(r=>{ const k=(r.inputs&&r.inputs[0]&&r.inputs[0][1])||"other"; (groups[k]=groups[k]||[]).push(r); });
+    el.innerHTML =
+      `<div class="ll" style="margin-bottom:6px">pure python ops as nodes — "never train or mint what a one-liner does"; hand-seeded now, minted by the python-coder hypernet later</div>`
+      + (t.length? Object.keys(groups).sort().map(k=>
+          `<div class="l" style="margin-top:10px">${esc(k.toUpperCase())} IN</div>`
+          + groups[k].map(r=>`<div class="row wrap"><span class="a"><b>${esc((r.id||"").replace(/^tool:/,""))}</b></span>`
+            + `<span class="b">${esc(sig(r))}</span></div>`).join("")).join("")
+        : "<span class='muted'>tool registry not exported yet (rides the next publisher poll)</span>");
     return;
   }
   if(sec==="queue"){
