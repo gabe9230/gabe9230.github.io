@@ -154,7 +154,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v51 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v52 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -303,7 +303,7 @@ function drawCoreChart(series){
 let _taskSeries={label:null, pts:[]};
 function feedTaskChart(ms, trace){
   const now=document.getElementById("tasknow"), lab=document.getElementById("tasklabel");
-  if(trace && trace.remote){                                                             // v1.5: training is on a CLUSTER worker
+  if(trace && trace.remote && !(trace.pts&&trace.pts.length)){                           // v1.5: remote AND nothing accumulated yet
     if(now) now.textContent="remote";
     if(lab) lab.textContent=(trace.remote_note||"training on the cluster")+" — progress returns with the verdict (live streaming is a pending upgrade)";
     _taskSeries={label:null, pts:[]}; drawTaskChart();
@@ -311,6 +311,7 @@ function feedTaskChart(ms, trace){
     if(c){ const x=c.getContext("2d"); x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("training remotely — no local curve until the verdict returns", 8, 40); }
     return;
   }
+  if(trace && trace.remote && now) now.textContent="remote";                             // remote but the search curve exists: DRAW it
   if(trace && trace.label){ _taskSeries={label:trace.label, pts:trace.pts||[]}; }        // server series = truth
   else if(ms && ms.label){                                                               // fallback: client-accumulate
     if(ms.label!==_taskSeries.label) _taskSeries={label:ms.label, pts:[]};
