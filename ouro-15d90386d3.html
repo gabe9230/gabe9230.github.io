@@ -155,7 +155,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v56 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v57 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -580,9 +580,12 @@ function renderHypermap(hn){
   // PORT TRUTH on chains (Gabriel 2026-07-04): join composition names against the tool registry's typed
   // ports (library payload) and show each node's REAL signature -- e.g. sub reads "a:num, b:num → num"
   // even though the chain feeds it a packed pair (the shim unpacks). Experts without ports stay plain.
-  const toolPorts={}; (((window._libx||{}).tools)||[]).forEach(t=>{ toolPorts[t.id]=t; });
   const shortT=t=>({"number":"num","list-of-number":"[num]","string":"str","bool":"bool","categorical":"cat","any":"any"}[t]||t);
-  const sigOf=id=>{ const t=toolPorts[id]; if(!t) return null;
+  const tp=((window._d||{}).tool_ports)||{};                          // realtime payload (Task tab); library as fallback
+  const toolPorts={}; (((window._libx||{}).tools)||[]).forEach(t=>{ toolPorts[t.id]=t; });
+  const sigOf=id=>{
+    const c=tp[id]; if(c) return (c.i||[]).map(shortT).join(",")+" → "+(c.o||[]).map(shortT).join(",");
+    const t=toolPorts[id]; if(!t) return null;
     return (t.inputs||[]).map(p=>shortT(p[1])).join(",")+" → "+(t.outputs||[]).map(p=>shortT(p[1])).join(","); };
   nodes.forEach(nd=>{
     const fill=nd.kind==="io"?"#161b22":(nd.kind==="mint"?"#1f2a1f":"#13233a");
