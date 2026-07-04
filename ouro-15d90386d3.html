@@ -163,7 +163,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v64.1 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v65 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -384,14 +384,16 @@ function renderGate(d){
   const u=d.unlock, s=document.getElementById("gatestreak"), p=document.getElementById("gateprog");
   if(!s) return;
   if(!u){ s.innerHTML=`<span class="muted">—</span>`; if(p) p.innerHTML=""; return; }
-  s.innerHTML = `<span class="${u.passed?'green':''}">${u.main||"—"}</span> <span class="muted" style="font-size:11px;font-weight:400">${u.n_novel_total!=null?"novel-clean streak (Gabriel's b+c ruling: novel iterations count, escalations reset)":"escalation-zero streak"}${u.passed?" · PASSED — awaiting Gabriel's review":""}</span>`;
+  s.innerHTML = u.capability_gate
+    ? `<span>${u.diff_tests&&u.diff_tests.n?`${u.diff_tests.n} diff tests run`:"CAPABILITY GATE"}</span> <span class="muted" style="font-size:11px;font-weight:400">every 30 cycles: the loop proposes a self-improvement diff from its own repo → substance review → Gabriel${u.diff_tests&&u.diff_tests.n?"":" · harness building"}</span>`
+    : `<span class="${u.passed?'green':''}">${u.main||"—"}</span> <span class="muted" style="font-size:11px;font-weight:400">escalation-zero streak${u.passed?" · PASSED — awaiting Gabriel's review":""}</span>`;
   const g=u.progress;
   if(p) p.innerHTML = g ? [
     (g.escalation_frac_pct!=null?`escalation rate <b class="${g.escalation_frac_pct===0?'green':''}">${g.escalation_frac_pct}%</b> <span class="muted">· of the last ${g.frac_window} directives (the smooth signal; the streak needs 35 consecutive clean)</span>`:null),
     `trajectories accrued <b>${g.trajectories}</b> <span class="muted">· the [3.60] planner's training data (the streak climbs only when the planner-hypernet plans live)</span>`,
     `provenance markers <b>${g.marker_planned_by_pct}%</b> planned_by · <b>${g.marker_knowledge_pct}%</b> knowledge_source <span class="muted">· of ${g.n_leaves} leaves — absent markers count as escalated (honest default)</span>`,
     `last directive <b class="${g.last_escalated===false?'green':'amber'}">${g.last_escalated===false?"clean":(g.last_escalated===true?"escalated":"—")}</b>`,
-    (u.n_novel_total!=null?`novel conquests <b>${u.n_novel_total}</b> <span class="muted">· total first-completions of new ground${u.last_reset_cause?` · last reset: ${esc(String(u.last_reset_cause))}`:""}${u.legacy_streak?` · legacy log-once streak ${u.legacy_streak.streak}/${u.legacy_streak.target} (transition ref)`:""}</span>`:null),
+    (u.n_novel_total!=null?`novel conquests <b>${u.n_novel_total}</b> <span class="muted">· TELEMETRY (the streak no longer gates — Gabriel 07-04: capability gate) · streak ${u.streak}/${u.target}</span>`:null),
     (u.composed_masters?`composed wins <b class="${u.composed_masters.n>0?'green':''}">${u.composed_masters.n}</b> <span class="muted">· judges resolved by COMPOSITION, zero write experts${u.composed_masters.n?` — latest: ${esc(String((u.composed_masters.recent||[]).slice(-1)[0]?.eid||"").replace(/^improve_/,""))}`:""}</span>`:null)
   ].filter(Boolean).join("<br>") : `<span class="muted">no progress data yet</span>`;
 }
