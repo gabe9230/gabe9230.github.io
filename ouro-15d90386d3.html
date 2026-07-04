@@ -381,7 +381,7 @@ function renderGate(d){
   if(!s) return;
   if(!u){ s.innerHTML=`<span class="muted">—</span>`; if(p) p.innerHTML=""; return; }
   s.innerHTML = u.capability_gate
-    ? `<span>${u.diff_tests&&u.diff_tests.n?`${u.diff_tests.n} diff tests run`:"CAPABILITY GATE"}</span> <span class="muted" style="font-size:11px;font-weight:400">every 30 cycles: the loop proposes a self-improvement diff from its own repo → substance review → Gabriel${u.diff_tests&&u.diff_tests.n?"":" · harness building"}</span>`
+    ? `<span>${u.diff_tests&&u.diff_tests.n?`${u.diff_tests.n} diff tests run`:"CAPABILITY GATE"}</span> <span class="muted" style="font-size:11px;font-weight:400">every ${u.cadence||100} cycles: the loop proposes a self-improvement diff from its own repo → substance review → Gabriel${u.diff_tests&&u.diff_tests.n?"":" · harness building"}</span>`
     : `<span class="${u.passed?'green':''}">${u.main||"—"}</span> <span class="muted" style="font-size:11px;font-weight:400">escalation-zero streak${u.passed?" · PASSED — awaiting Gabriel's review":""}</span>`;
   const g=u.progress;
   if(p) p.innerHTML = g ? [
