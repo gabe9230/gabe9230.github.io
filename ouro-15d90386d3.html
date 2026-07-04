@@ -63,6 +63,10 @@
     <div id="nltasksub" class="ll" style="margin-top:6px;overflow-wrap:anywhere;word-break:break-word"></div>
   </div>
   <div class="card">
+    <div class="l">EVERYTHING RUNNING <span class="muted">· one line per live process — the whole organism, not just the mint daemon</span></div>
+    <div id="activity" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
     <div class="l">TASK PROGRESS <span class="muted">· dense score of the current attempt — wipes on every new task</span> <span id="tasknow" class="green" style="float:right;font-weight:600"></span></div>
     <canvas id="taskchart" width="540" height="150"></canvas>
     <div id="tasklabel" class="ll" style="margin-top:4px;overflow-wrap:anywhere;word-break:break-word"></div>
@@ -155,7 +159,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v62 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v63 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -483,6 +487,14 @@ function renderCore(d){
   if(cap) cap.textContent = co&&co.core_score!=null ? co.core_score : "";
   drawCoreChart(co&&co.series);          // canvas now lives on the Directive tab (Gabriel 2026-07-03)
   feedTaskChart(d.mint_status, d.mint_trace);   // Task tab: server-side dense trace (reload-proof; wipes per task)
+  (function(){                                   // EVERYTHING RUNNING strip (Gabriel 2026-07-04)
+    const el=document.getElementById("activity"); if(!el) return;
+    const a=d.activity||[];
+    const ageF=s=>s==null?"":(s<90?`${s}s`:(s<5400?`${Math.round(s/60)}min`:`${(s/3600).toFixed(1)}h`));
+    el.innerHTML = a.length? a.map(r=>
+      `<div class="row wrap"><span class="a"><b>${esc(r.who||"?")}</b> <span class="muted" style="overflow-wrap:anywhere">${esc(r.what||"")}</span></span><span class="b muted">${ageF(r.age_s)}</span></div>`).join("")
+      : `<span class="muted">no activity data</span>`;
+  })();
   renderHypermap(d.current_hypernet);           // Task tab: the in-flight composition map (zoom/pan/click)
   const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
   if(vm){
