@@ -155,7 +155,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v60 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v61 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -748,8 +748,10 @@ async function fetchLib(){
 function renderLib(){
   const x=_libx||{}, hyp=x.hypernets||[], ex=x.experts||{}, prims=ex.primitives||[], minted=ex.minted||[];
   const rows=_lib||[]; const done=rows.filter(r=>r.status==="done").length;
+  const lbu=x.loop_built;
   document.getElementById("libcounts").innerHTML =
-    `<div><div class="v green">${hyp.length}</div><div class="ll">HYPERNETS <span class="muted">(mastered compositions)</span></div></div>`
+    (lbu?`<div><div class="v green">${lbu.n_total}</div><div class="ll">LOOP-BUILT <span class="muted">(live store · +${lbu.new_24h} in 24h)</span></div></div>`:"")
+   +`<div><div class="v green">${hyp.length}</div><div class="ll">HYPERNETS <span class="muted">(mastered compositions)</span></div></div>`
    +`<div><div class="v green">${minted.length}</div><div class="ll">MINTED EXPERTS <span class="muted">(machine-built)</span></div></div>`
    +`<div><div class="v">${prims.length}</div><div class="ll">PRIMITIVES <span class="muted">(+${ex.digit_tables!=null?ex.digit_tables:"?"} digit tables)</span></div></div>`
    +`<div><div class="v">${(x.tools||[]).length}</div><div class="ll">TOOLS <span class="muted">(pure python ops)</span></div></div>`
@@ -786,8 +788,14 @@ function renderLib(){
     document.getElementById("libfilters").innerHTML="";
     let p=prims, m=minted;
     if(q){ p=p.filter(r=>(r.op||"").toLowerCase().includes(q)); m=m.filter(r=>(r.eid||"").toLowerCase().includes(q)); }
+    const lb2=x.loop_built;
+    const ageF2=s=>s==null?"":(s<90?`${s}s`:(s<5400?`${Math.round(s/60)}min`:`${(s/3600).toFixed(1)}h`));
     el.innerHTML =
-      `<div class="l">PRIMITIVES <span class="muted">· param-general atom experts, built once, reused everywhere — click one for its parameter map</span></div>`
+      (lb2?`<div class="l">LOOP-BUILT <span class="muted">· the LIVE store the loop grows every iteration — ${lb2.n_frozen} frozen + ${lb2.n_composed} composed = ${lb2.n_total} (+${lb2.new_24h} in 24h)</span></div>`
+        + (lb2.recent||[]).filter(r=>!q||(r.name||"").toLowerCase().includes(q)).slice(0,20).map(r=>
+            `<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(r.name)}</span><span class="b muted">${ageF2(r.age_s)} ago</span></div>`).join("")
+        + `<div class="l" style="margin-top:12px"></div>`:"")
+      + `<div class="l">PRIMITIVES <span class="muted">· param-general atom experts, built once, reused everywhere — click one for its parameter map</span></div>`
       + p.map(r=>`<div class="row wrap" style="cursor:pointer" onclick="paramMap(${JSON.stringify(String(r.op)).replace(/"/g,"&quot;")})"><span class="a"><b>${esc(r.op)}</b>${r.exact_repair?' <span class="chip green">exact</span>':""}</span>`
         + `<span class="b">held-out ${r.heldout_exact!=null?r.heldout_exact:"?"} · ${r.uses!=null?r.uses:0} uses${r.is_bool?" · bool":""}</span></div>`).join("")
       + `<div class="l" style="margin-top:12px">MINTED <span class="muted">· experts the loop trained itself when composition provably couldn't reach (typed-evidence gate)</span></div>`
