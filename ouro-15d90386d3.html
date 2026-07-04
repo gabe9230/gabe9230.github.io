@@ -155,7 +155,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v53 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v54 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -502,7 +502,7 @@ let _hmView={x:0,y:0,w:540,h:170}, _hmLast=null;
 function renderHypermap(hn){
   const svg=document.getElementById("hypermap"), src=document.getElementById("hmsrc"), tk=document.getElementById("hmtask");
   if(!svg) return;
-  const key=hn?JSON.stringify([hn.task,hn.composition]):"none";
+  const key=hn?JSON.stringify([hn.task,hn.composition,hn.graph&&hn.graph.wires]):"none";
   if(key===_hmLast) return;                                          // redraw only on structure change (keeps pan/zoom)
   _hmLast=key;
   if(src) src.textContent = hn?(hn.source==="live-mint"?(hn.remote?"LIVE · minting on cluster worker":"LIVE · minting"):({"current-task-attempt":"current task · its latest attempt","searching":"current task · searching compositions"}[hn.source]||hn.source)):"";
@@ -514,6 +514,39 @@ function renderHypermap(hn){
     svg.setAttribute("viewBox","0 0 540 170");
     svg.innerHTML=`<text x="12" y="76" fill="#388bfd" font-size="13" font-family="monospace">searching compositions for this task…</text>`
       +`<text x="12" y="98" fill="#8b949e" font-size="11" font-family="monospace">(structure appears when an attempt lands; live mid-search view is a pending upgrade)</text>`;
+    return;
+  }
+  // GRAPH-NATIVE RENDER (Gabriel 2026-07-04: inc4b's search object is {nodes, wires} — draw real wires,
+  // fan-out and all; the linear chain below stays for chain-era structures).
+  if(hn&&hn.graph&&hn.graph.nodes&&(hn.graph.wires||[]).length){
+    const g=hn.graph, ids=Object.keys(g.nodes);
+    const W2=w=>Array.isArray(w)?{s:w[0][0],sp:w[0][1],d:w[1][0],dp:w[1][1]}:{s:w.src[0],sp:w.src[1],d:w.dst[0],dp:w.dst[1]};
+    const wires=(g.wires||[]).map(W2);
+    const indeg={}; ids.forEach(i=>indeg[i]=0); wires.forEach(w=>{ if(indeg[w.d]!=null) indeg[w.d]++; });
+    const depth={}; ids.forEach(i=>{ if(!indeg[i]) depth[i]=0; });
+    for(let pass=0; pass<ids.length; pass++)                          // longest-path layering (small graphs)
+      wires.forEach(w=>{ if(depth[w.s]!=null){ const d=depth[w.s]+1; if(!(depth[w.d]>=d)) depth[w.d]=d; } });
+    ids.forEach(i=>{ if(depth[i]==null) depth[i]=0; });
+    const layers={}; ids.forEach(i=>{ (layers[depth[i]]=layers[depth[i]]||[]).push(i); });
+    const nL=Object.keys(layers).length, maxRows=Math.max(...Object.values(layers).map(a=>a.length));
+    const NW2=96, W=Math.max(540,(nL+1)*150), H=Math.max(170,maxRows*62+50);
+    _hmView={x:0,y:0,w:W,h:H}; svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    const pos={};
+    Object.keys(layers).forEach(d=>{ const col=layers[d];
+      col.forEach((id,r)=>{ pos[id]={x:90+d*150, y:H/2+(r-(col.length-1)/2)*62}; }); });
+    let h=`<defs><marker id="hmarrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="#30363d"/></marker></defs>`;
+    wires.forEach(w=>{ const a=pos[w.s], b=pos[w.d]; if(!a||!b) return;
+      h+=`<line x1="${a.x+NW2/2-6}" y1="${a.y}" x2="${b.x-NW2/2+6}" y2="${b.y}" stroke="#30363d" stroke-width="2" marker-end="url(#hmarrow)"/>`; });
+    ids.forEach(id=>{ const nd=g.nodes[id]||{}, p=pos[id];
+      const kind=String(nd.kind||""), lbl=String(nd.label||id);
+      const isMint=(hn.mint_slot!=null&&String(hn.mint_slot)===String(id))||kind==="mint"||lbl==="(minting)";
+      const isIO=kind==="io_source"||kind==="io_sink"||kind==="io";
+      const fill=isIO?"#161b22":(isMint?"#1f2a1f":(kind==="tool"?"#231a33":"#13233a"));
+      const stroke=isIO?"#30363d":(isMint?"#3fb950":(kind==="tool"?"#a371f7":"#388bfd"));
+      h+=`<g style="cursor:pointer" onclick="hmExpertPanel(${JSON.stringify(lbl).replace(/"/g,"&quot;")})">`
+       +`<rect x="${p.x-NW2/2}" y="${p.y-22}" width="${NW2}" height="44" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
+       +`<text x="${p.x}" y="${p.y+4}" fill="#e6edf3" font-size="11" font-family="monospace" text-anchor="middle">${esc(lbl.length>13?lbl.slice(0,12)+"…":lbl)}</text></g>`; });
+    svg.innerHTML=h;
     return;
   }
   if(!hn||!(hn.composition||[]).length){ svg.innerHTML=`<text x="10" y="24" fill="#8b949e" font-size="12" font-family="monospace">no task in flight</text>`; return; }
