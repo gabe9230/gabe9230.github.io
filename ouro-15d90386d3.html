@@ -154,7 +154,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v50 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v51 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -530,7 +530,10 @@ function renderHypermap(hn){
   // boundary labels from REAL data (the typed-evidence kinds) when present; honest generic otherwise
   const inLbl=hn.input_kind?String(hn.input_kind).replace(/_/g," "):"input", outLbl=hn.target_kind?String(hn.target_kind).replace(/_/g," "):"output";
   const nodes=[{id:"input",label:inLbl,kind:"io",x:60}], NW=96;
-  comp.forEach((c,i)=>nodes.push({id:"n"+i,label:String(c),kind:hn.source==="live-mint"?"mint":"expert",x:60+(i+1)*120}));
+  // GREEN = the node a mint is actively filling (Gabriel: training always fills a hole in the current hypernet)
+  const mintSlot=(hn.source==="live-mint")?(hn.mint_slot!=null?hn.mint_slot:null):null;
+  comp.forEach((c,i)=>nodes.push({id:"n"+i,label:String(c),
+    kind:(mintSlot===i||(hn.source==="live-mint"&&mintSlot==null&&comp.length===1))?"mint":"expert",x:60+(i+1)*120}));
   nodes.push({id:"output",label:outLbl,kind:"io",x:60+(n+1)*120});
   let h="";
   for(let i=0;i<nodes.length-1;i++) h+=`<line x1="${nodes[i].x+NW/2-8}" y1="${y}" x2="${nodes[i+1].x-NW/2+8}" y2="${y}" stroke="#30363d" stroke-width="2" marker-end="url(#hmarrow)"/>`;
