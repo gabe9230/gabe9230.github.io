@@ -159,7 +159,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v68 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v69 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -525,7 +525,7 @@ function renderHypermap(hn){
   const key=hn?JSON.stringify([hn.task,hn.composition,hn.graph&&hn.graph.wires]):"none";
   if(key===_hmLast) return;                                          // redraw only on structure change (keeps pan/zoom)
   _hmLast=key;
-  if(src) src.textContent = hn?(hn.source==="live-mint"?(hn.remote?"LIVE · minting on cluster worker":"LIVE · minting"):(hn.source==="agent-loop"?("CURRENT TASK ("+esc(String(hn.task||"?"))+") · iter "+(hn.iter??"?")+(hn.verified===true?" · ✓":hn.verified===false?" · ✗":"")+" — not the agent; the agent graph publishes separately"):({"searching-live":"LIVE · search evolving (best so far"+(hn.structures_tried?", "+hn.structures_tried+" structures tried":"")+")","current-task-attempt":"current task · its latest attempt","searching":"current task · searching compositions"}[hn.source]||hn.source))):"";
+  if(src) src.textContent = hn?(hn.source==="the-agent"?"THE AGENT · 5-kind graph (assembled; live tick run pending)":hn.source==="live-mint"?(hn.remote?"LIVE · minting on cluster worker":"LIVE · minting"):(hn.source==="agent-loop"?("CURRENT TASK ("+esc(String(hn.task||"?"))+") · iter "+(hn.iter??"?")+(hn.verified===true?" · ✓":hn.verified===false?" · ✗":"")+" — not the agent; the agent graph publishes separately"):({"searching-live":"LIVE · search evolving (best so far"+(hn.structures_tried?", "+hn.structures_tried+" structures tried":"")+")","current-task-attempt":"current task · its latest attempt","searching":"current task · searching compositions"}[hn.source]||hn.source))):"";
   // human task line: split the eid into family + drawn function (verbatim substrings, no authored prose)
   const prettyTask=t=>{ t=String(t||""); const m=t.match(/^improve_([a-z_]+?)__field_[a-z_]+?_(.+)$/); return m?`${m[1]} family · function "${m[2]}"`:t; };
   if(tk) tk.textContent = hn?(prettyTask(hn.task)+(hn.gen_acc!=null?` · gen_acc ${hn.gen_acc}`:"")+(hn.status?` · ${hn.status}`:"")
@@ -560,9 +560,10 @@ function renderHypermap(hn){
     ids.forEach(id=>{ const nd=g.nodes[id]||{}, p=pos[id];
       const kind=String(nd.kind||""), lbl=String(nd.label||id);
       const isMint=(hn.mint_slot!=null&&String(hn.mint_slot)===String(id))||kind==="mint"||lbl==="(minting)";
-      const isIO=kind==="io_source"||kind==="io_sink"||kind==="io";
-      const fill=isIO?"#161b22":(isMint?"#1f2a1f":(kind==="tool"?"#231a33":"#13233a"));
-      const stroke=isIO?"#30363d":(isMint?"#3fb950":(kind==="tool"?"#a371f7":"#388bfd"));
+      const isIO=kind==="io_source"||kind==="io_sink"||kind==="io"||kind==="input";
+      const isEff=kind==="effector";
+      const fill=isEff?"#2a1a1a":(isIO?"#161b22":(isMint?"#1f2a1f":(kind==="tool"?"#231a33":"#13233a")));
+      const stroke=isEff?"#f78166":(isIO?"#30363d":(isMint?"#3fb950":(kind==="tool"?"#a371f7":"#388bfd")));
       h+=`<g style="cursor:pointer" onclick="hmExpertPanel(${JSON.stringify(lbl).replace(/"/g,"&quot;")})">`
        +`<rect x="${p.x-NW2/2}" y="${p.y-22}" width="${NW2}" height="44" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
        +`<text x="${p.x}" y="${p.y+4}" fill="#e6edf3" font-size="11" font-family="monospace" text-anchor="middle">${esc(lbl.length>13?lbl.slice(0,12)+"…":lbl)}</text></g>`; });
