@@ -155,7 +155,7 @@
   </div>
 </div>
 
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v55 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
+<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v56 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
 const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
 const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
@@ -577,12 +577,22 @@ function renderHypermap(hn){
   let h="";
   for(let i=0;i<nodes.length-1;i++) h+=`<line x1="${nodes[i].x+NW/2-8}" y1="${y}" x2="${nodes[i+1].x-NW/2+8}" y2="${y}" stroke="#30363d" stroke-width="2" marker-end="url(#hmarrow)"/>`;
   h=`<defs><marker id="hmarrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="#30363d"/></marker></defs>`+h;
+  // PORT TRUTH on chains (Gabriel 2026-07-04): join composition names against the tool registry's typed
+  // ports (library payload) and show each node's REAL signature -- e.g. sub reads "a:num, b:num → num"
+  // even though the chain feeds it a packed pair (the shim unpacks). Experts without ports stay plain.
+  const toolPorts={}; (((window._libx||{}).tools)||[]).forEach(t=>{ toolPorts[t.id]=t; });
+  const shortT=t=>({"number":"num","list-of-number":"[num]","string":"str","bool":"bool","categorical":"cat","any":"any"}[t]||t);
+  const sigOf=id=>{ const t=toolPorts[id]; if(!t) return null;
+    return (t.inputs||[]).map(p=>shortT(p[1])).join(",")+" → "+(t.outputs||[]).map(p=>shortT(p[1])).join(","); };
   nodes.forEach(nd=>{
     const fill=nd.kind==="io"?"#161b22":(nd.kind==="mint"?"#1f2a1f":"#13233a");
     const stroke=nd.kind==="io"?"#30363d":(nd.kind==="mint"?"#3fb950":"#388bfd");
+    const sig=nd.kind==="io"?null:sigOf(nd.label);
     h+=`<g style="cursor:pointer" onclick="hmExpertPanel(${JSON.stringify(nd.label).replace(/"/g,"&quot;")})">`
       +`<rect x="${nd.x-NW/2}" y="${y-22}" width="${NW}" height="44" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
-      +`<text x="${nd.x}" y="${y+4}" fill="#e6edf3" font-size="11" font-family="monospace" text-anchor="middle">${esc(nd.label.length>13?nd.label.slice(0,12)+"…":nd.label)}</text></g>`;
+      +`<text x="${nd.x}" y="${y+(sig?0:4)}" fill="#e6edf3" font-size="11" font-family="monospace" text-anchor="middle">${esc(nd.label.length>13?nd.label.slice(0,12)+"…":nd.label)}</text>`
+      +(sig?`<text x="${nd.x}" y="${y+14}" fill="#8b949e" font-size="8.5" font-family="monospace" text-anchor="middle">${esc(sig.length>20?sig.slice(0,19)+"…":sig)}</text>`:"")
+      +`</g>`;
   });
   svg.innerHTML=h;
 }
