@@ -166,7 +166,11 @@ let curV = "core", _lib = null, _libFilter = "hypernets";
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function ago(s){ s=Math.max(0,s|0); if(s<90) return s+"s"; if(s<5400) return (s/60|0)+"m"; if(s<172800) return (s/3600|0)+"h"; return (s/86400|0)+"d"; }
-function when(ts){ return ts? ago(Date.now()/1000-ts)+" ago":"—"; }
+function when(ts){
+  if(!ts) return "—";
+  if(typeof ts==="string"){ const p=Date.parse(ts); if(!isNaN(p)) ts=p/1000; else return "—"; }  // ISO rows (row-contract ts)
+  return ago(Date.now()/1000-ts)+" ago";
+}
 
 function show(v){
   curV = v;
