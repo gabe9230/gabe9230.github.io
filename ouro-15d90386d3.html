@@ -466,11 +466,12 @@ function renderCore(d){
     // STALE-GATE (Gabriel 2026-07-04): directive files idle >30min are HISTORY, not "current" — a fossil goal
     // ("make all 500 digits visible") must never headline as what the loop is doing NOW. Fall back to the live pose.
     const dAge=d.directive_age_s, dirStale=(dAge!=null && dAge>1800);
+    // live pose = the loop's latest work-log row (the agent map owns current_hypernet now, so the pose
+    // comes from the iterations feed)
+    const _ir=(d.iterations&&d.iterations.rows)||[], _lp=_ir.length?_ir[_ir.length-1]:null;
+    const livePose = _lp ? `posing: ${pretty(_lp.family||_lp.kind)} · iter ${_lp.iter??"?"}${_lp.verified===true?" ✓":_lp.verified===false?" ✗":""}` : null;
     if(dirStale){
-      const ch=d.current_hypernet;
-      nt.textContent = (ch && ch.source==="agent-loop" && ch.task)
-        ? `posing: ${pretty(ch.task)} · iter ${ch.iter??"?"}${ch.verified===true?" ✓":ch.verified===false?" ✗":""}`
-        : "loop running — no active directive";
+      nt.textContent = livePose || "loop running — no active directive";
       const ageH=(dAge/3600).toFixed(1);
       ns.textContent = cur&&cur.directive ? `last directive: "${cur.directive}" · idle ${ageH}h — stale, NOT current` : "";
       taskSet=true;
@@ -498,10 +499,7 @@ function renderCore(d){
           ? `parked — ${cur.n_gaps} capability gap(s) standing (details on the Directive tab)`
           : `working on: ${pretty(act.name)}`;
       } else {
-        const ch2=d.current_hypernet;
-        nt.textContent = (ch2 && ch2.source==="agent-loop" && ch2.task)
-          ? `posing: ${pretty(ch2.task)} · iter ${ch2.iter??"?"}${ch2.verified===true?" ✓":ch2.verified===false?" ✗":""}`
-          : `"${cur.directive}"`;
+        nt.textContent = livePose || `"${cur.directive}"`;
         ns.textContent = cur.n_gaps>0
           ? `directive "${cur.directive}" parked — ${cur.n_gaps} gap(s) (Directive tab)`
           : (cl2 ? `directive "${cur.directive}" deferred at ${pretty(cl2.name)} (${cl2.status||"?"}) — not actively worked`
