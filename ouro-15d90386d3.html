@@ -463,8 +463,19 @@ function renderCore(d){
   if(nt && !taskSet){
     const pretty=s=>String(s||"").replace(/[_:]/g," ").replace(/\s+/g," ").trim();
     const cur=dt&&dt.current, pr=dt&&dt.primary;
-    const secActive = cur && cur.directive && cur.n_gaps>0===false && !(pr&&pr.tier==="primary");
-    if(pr && pr.tier==="primary" && pr.worked && pr.worked.directive){
+    // STALE-GATE (Gabriel 2026-07-04): directive files idle >30min are HISTORY, not "current" — a fossil goal
+    // ("make all 500 digits visible") must never headline as what the loop is doing NOW. Fall back to the live pose.
+    const dAge=d.directive_age_s, dirStale=(dAge!=null && dAge>1800);
+    if(dirStale){
+      const ch=d.current_hypernet;
+      nt.textContent = (ch && ch.source==="agent-loop" && ch.task)
+        ? `posing: ${pretty(ch.task)} · iter ${ch.iter??"?"}${ch.verified===true?" ✓":ch.verified===false?" ✗":""}`
+        : "loop running — no active directive";
+      const ageH=(dAge/3600).toFixed(1);
+      ns.textContent = cur&&cur.directive ? `last directive: "${cur.directive}" · idle ${ageH}h — stale, NOT current` : "";
+      taskSet=true;
+    }
+    else if(pr && pr.tier==="primary" && pr.worked && pr.worked.directive){
       const w=pr.worked, cl=w.current_leaf;
       if(cl && (cl.name||cl.detail)){
         nt.textContent = cl.detail ? cl.detail : `improving: ${pretty(cl.name)}`;
@@ -476,13 +487,26 @@ function renderCore(d){
           + (cur&&cur.directive&&cur.n_gaps>0?` · parked: "${cur.directive}" (waiting on a capability it has asked for)`:"");
       }
     } else if(cur && cur.directive){
-      nt.textContent = `"${cur.directive}"`;
-      // NO gap/detail PROSE here (Gabriel 2026-07-03: "why show surfaced gap at all?") — those strings are
-      // worker/scaffold-recorded verdicts and belong on the Directive tab. Short mechanical status only.
-      const cl2=cur.current_leaf, act=(cur.leaves||[]).find(l=>l.status==="in_progress")||cl2;
-      ns.textContent = cur.n_gaps>0
-        ? `parked — ${cur.n_gaps} capability gap(s) standing (details on the Directive tab)`
-        : (act ? `working on: ${pretty(act.name)}` : (cur.n_gaps===0 ? "complete" : ""));
+      // NO gap/detail PROSE here (Gabriel 2026-07-03) — Directive tab owns those strings. STATUS-HONEST
+      // (Gabriel 2026-07-04): "working on" ONLY for a genuinely in_progress leaf. A pending_upstream/deferred
+      // leaf was rendering as "working on: make all visible" while the faucet deferred it every cycle — when
+      // nothing is actually worked, the LIVE LOOP POSE headlines and the directive shows as deferred.
+      const cl2=cur.current_leaf, act=(cur.leaves||[]).find(l=>l.status==="in_progress");
+      if(act){
+        nt.textContent = `"${cur.directive}"`;
+        ns.textContent = cur.n_gaps>0
+          ? `parked — ${cur.n_gaps} capability gap(s) standing (details on the Directive tab)`
+          : `working on: ${pretty(act.name)}`;
+      } else {
+        const ch2=d.current_hypernet;
+        nt.textContent = (ch2 && ch2.source==="agent-loop" && ch2.task)
+          ? `posing: ${pretty(ch2.task)} · iter ${ch2.iter??"?"}${ch2.verified===true?" ✓":ch2.verified===false?" ✗":""}`
+          : `"${cur.directive}"`;
+        ns.textContent = cur.n_gaps>0
+          ? `directive "${cur.directive}" parked — ${cur.n_gaps} gap(s) (Directive tab)`
+          : (cl2 ? `directive "${cur.directive}" deferred at ${pretty(cl2.name)} (${cl2.status||"?"}) — not actively worked`
+                 : (cur.n_gaps===0 ? `directive "${cur.directive}" complete` : ""));
+      }
     } else { nt.textContent="idle"; ns.textContent=""; }
   }
   const cap=document.getElementById("capnow");
@@ -540,8 +564,12 @@ function renderHypermap(hn){
   // fan-out and all; the linear chain below stays for chain-era structures).
   if(hn&&hn.graph&&hn.graph.nodes&&(hn.graph.wires||[]).length){
     const g=hn.graph, ids=Object.keys(g.nodes);
-    const W2=w=>Array.isArray(w)?{s:w[0][0],sp:w[0][1],d:w[1][0],dp:w[1][1]}:{s:w.src[0],sp:w.src[1],d:w.dst[0],dp:w.dst[1]};
+    // wire TYPE (Gabriel 2026-07-04: color wires by data type): array form carries it as a 3rd element
+    // [[s,sp],[d,dp],"image"], object form as w.type — absent (older serializations) renders untyped gray.
+    const W2=w=>Array.isArray(w)?{s:w[0][0],sp:w[0][1],d:w[1][0],dp:w[1][1],t:w[2]||null}:{s:w.src[0],sp:w.src[1],d:w.dst[0],dp:w.dst[1],t:w.type||null};
     const wires=(g.wires||[]).map(W2);
+    const TYPECOL={image:"#388bfd",number:"#3fb950",string:"#d29922",bool:"#f78166"};
+    const wcol=t=>TYPECOL[String(t||"").toLowerCase()]||"#30363d";
     const indeg={}; ids.forEach(i=>indeg[i]=0); wires.forEach(w=>{ if(indeg[w.d]!=null) indeg[w.d]++; });
     const depth={}; ids.forEach(i=>{ if(!indeg[i]) depth[i]=0; });
     for(let pass=0; pass<ids.length; pass++)                          // longest-path layering (small graphs)
@@ -549,14 +577,23 @@ function renderHypermap(hn){
     ids.forEach(i=>{ if(depth[i]==null) depth[i]=0; });
     const layers={}; ids.forEach(i=>{ (layers[depth[i]]=layers[depth[i]]||[]).push(i); });
     const nL=Object.keys(layers).length, maxRows=Math.max(...Object.values(layers).map(a=>a.length));
-    const NW2=96, W=Math.max(540,(nL+1)*150), H=Math.max(170,maxRows*62+50);
+    const NW2=96, W=Math.max(540,(nL+1)*150), HG=Math.max(170,maxRows*62+50), H=HG+26;   // +26 = the type legend row
     _hmView={x:0,y:0,w:W,h:H}; svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
     const pos={};
     Object.keys(layers).forEach(d=>{ const col=layers[d];
-      col.forEach((id,r)=>{ pos[id]={x:90+d*150, y:H/2+(r-(col.length-1)/2)*62}; }); });
-    let h=`<defs><marker id="hmarrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="#30363d"/></marker></defs>`;
+      col.forEach((id,r)=>{ pos[id]={x:90+d*150, y:HG/2+(r-(col.length-1)/2)*62}; }); });
+    // one arrowhead marker per data-type color, so heads match their wire
+    const usedCols=[...new Set(wires.map(w=>wcol(w.t)))];
+    let h=`<defs>`+usedCols.map((c,i)=>`<marker id="hmarrow${i}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="${c}"/></marker>`).join("")+`</defs>`;
     wires.forEach(w=>{ const a=pos[w.s], b=pos[w.d]; if(!a||!b) return;
-      h+=`<line x1="${a.x+NW2/2-6}" y1="${a.y}" x2="${b.x-NW2/2+6}" y2="${b.y}" stroke="#30363d" stroke-width="2" marker-end="url(#hmarrow)"/>`; });
+      const c=wcol(w.t), mi=usedCols.indexOf(c);
+      h+=`<line x1="${a.x+NW2/2-6}" y1="${a.y}" x2="${b.x-NW2/2+6}" y2="${b.y}" stroke="${c}" stroke-width="2" marker-end="url(#hmarrow${mi})"><title>${esc((w.sp||"")+" : "+(w.t||"untyped"))}</title></line>`; });
+    // LEGEND (Gabriel 2026-07-04): wire color = data type; gray = type not yet serialized on this wire
+    (function(){
+      const items=[["image","#388bfd"],["number","#3fb950"],["string","#d29922"],["bool","#f78166"],["untyped","#30363d"]];
+      let x=14; const y=H-11;
+      items.forEach(([nm,c])=>{ h+=`<line x1="${x}" y1="${y}" x2="${x+18}" y2="${y}" stroke="${c}" stroke-width="3"/><text x="${x+22}" y="${y+4}" fill="#8b949e" font-size="10" font-family="monospace">${nm}</text>`; x+=22+nm.length*6.4+16; });
+    })();
     ids.forEach(id=>{ const nd=g.nodes[id]||{}, p=pos[id];
       const kind=String(nd.kind||""), lbl=String(nd.label||id);
       const isMint=(hn.mint_slot!=null&&String(hn.mint_slot)===String(id))||kind==="mint"||lbl==="(minting)";
