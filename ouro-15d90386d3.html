@@ -61,6 +61,7 @@
     <div class="l">CURRENT TASK <span class="muted">· live state from the loop's files — status notes may be scaffold/worker-recorded, NOT generated NL (the loop doesn't write prose yet; when it does, that gets its own label)</span> <span id="loopver" class="chip" style="float:right"></span></div>
     <div id="nltask" style="margin-top:8px;font-size:15px;font-weight:600;line-height:1.5;overflow-wrap:anywhere;word-break:break-word"></div>
     <div id="nltasksub" class="ll" style="margin-top:6px;overflow-wrap:anywhere;word-break:break-word"></div>
+    <div id="driverstat" class="ll" style="margin-top:6px;opacity:.92;overflow-wrap:anywhere;word-break:break-word"></div>
   </div>
   <div class="card">
     <div class="l">EVERYTHING RUNNING <span class="muted">· one line per live process — the whole organism, not just the mint daemon</span></div>
@@ -430,6 +431,23 @@ function renderDirective(d){
   if(hi) hi.innerHTML = (dt.history&&dt.history.length)
     ? dt.history.map(h=>`<div style="padding:4px 0;border-bottom:1px solid #1c2128"><b>"${h.directive}"</b> <span class="green" style="float:right">${h.n_gaps===0?"COMPLETE":(h.n_gaps+" gaps")}</span><div class="ll">${(h.leaves||[]).map(l=>l.name+(l.method?(" ("+l.method+")"):"")).join(" → ")}</div></div>`).join("")
     : `<span class="muted">none completed yet</span>`;
+}
+
+// RULE 2: the agent-net :99 DRIVER (computer-use loop) live state — episodes + full-task Phi climb + wins.
+// d.driver comes from publish_web._driver_block (reads driver_state.json + self_improve_eval.jsonl). Absent -> hide.
+function renderDriver(d){
+  const el=document.getElementById("driverstat"); if(!el) return;
+  const dr=d.driver;
+  if(!dr){ el.textContent=""; return; }
+  const phi=(dr.last_phi==null?null:+dr.last_phi), mx=(dr.max_phi==null?null:+dr.max_phi);
+  const M=[[0.8,"in-game"],[0.6,"game page"],[0.4,"itch.io"],[0.2,"browser open"],[0,"blank desktop"]];
+  const lab=p=>{ if(p==null) return "—"; for(const mm of M){ if(p>=mm[0]) return mm[1]; } return "blank desktop"; };
+  const parts=["agent-net driver (:99 computer-use)"];
+  if(phi!=null) parts.push("Φ "+phi.toFixed(2)+" · "+lab(phi));
+  if(mx!=null && mx>(phi||0)) parts.push("max "+mx.toFixed(2));
+  if(dr.episodes!=null) parts.push("ep "+dr.episodes);
+  if(dr.won) parts.push(dr.won+" won");
+  el.textContent=parts.join(" · ");
 }
 
 function renderCore(d){
@@ -1190,6 +1208,7 @@ async function load(){
   upd.textContent="data "+ago(age)+" old"; upd.className="pill"+(age>900?" stale":"");
   window._d=d;
   renderCore(d);                 // [2.05] the single Core tab: core_score graph + current task (loop log) + VM feed
+  renderDriver(d);               // RULE 2: agent-net :99 driver live state (episodes + full-task Phi climb + wins)
   renderDirective(d);            // DIRECTIVE tab: NL directive -> leaf sequence + history (verbatim from the loop)
   renderGate(d);                 // WRITE GATE card: strict streak + progress-toward-gate (Gabriel 2026-07-03 ruling)
   renderSelfModel(d.self_model); // [1.03] GATE-1 self-model coverage (per-family, struggling = gaps)
