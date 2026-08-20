@@ -1,1226 +1,663 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>Ouroborus — live</title>
+<title>Ouroboros</title>
 <style>
-  :root { --bg:#0d1117; --bg2:#161b22; --fg:#c9d1d9; --dim:#8b949e; --grid:#21262d;
-          --blue:#58a6ff; --green:#3fb950; --amber:#e3b341; --red:#f85149; --gold:#ffd33d; }
-  * { box-sizing:border-box; }
-  body { background:var(--bg); color:var(--fg); font:14px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; padding:14px; max-width:560px; margin:0 auto; }
-  h1 { font-size:15px; letter-spacing:.06em; color:var(--dim); display:flex; justify-content:space-between; align-items:center; }
-  .pill { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--bg2); border:1px solid var(--grid); }
-  .pill.stale { color:var(--amber); border-color:var(--amber); }
-  .tabs { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
-  .tab { flex:1; min-width:64px; background:var(--bg2); color:var(--dim); border:1px solid var(--grid); border-radius:8px; padding:8px 4px; font:inherit; font-size:12px; cursor:pointer; }
-  .tab.active { color:var(--fg); border-color:var(--blue); }
-  .tabs.sub .tab { flex:none; padding:4px 10px; font-size:11px; }
-  .card { background:var(--bg2); border:1px solid var(--grid); border-radius:10px; padding:12px; margin-top:12px; }
-  .l { font-size:11px; color:var(--dim); letter-spacing:.08em; }
-  .bignums { display:flex; flex-wrap:wrap; gap:10px 6px; justify-content:space-around; text-align:center; margin:8px 0; } .bignums > div { min-width:88px; flex:1 1 88px; }
-  .bignums .v { font-size:26px; font-weight:600; }
-  .bignums .ll { font-size:10px; color:var(--dim); letter-spacing:.08em; }
-  .dtext { font-size:17px; color:var(--green); margin:5px 0; word-break:break-word; }
-  .small { font-size:12px; }
-  .dim { color:var(--dim); }
-  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--grid); font-size:12px; gap:8px; }
-  .row:last-child { border-bottom:none; }
-  .row .a { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
-  .row .b { color:var(--dim); white-space:nowrap; }
-  .row.wrap .a { overflow:visible; text-overflow:clip; white-space:normal; }  /* job/library lists: wrap, no "…" */
-  .row.wrap .b { white-space:normal; }
-  .chip { display:inline-block; font-size:10px; padding:1px 6px; border-radius:6px; background:var(--bg); border:1px solid var(--grid); color:var(--dim); margin-right:4px; }
-  .green { color:var(--green); } .amber { color:var(--amber); } .red { color:var(--red); } .blue { color:var(--blue); }
-  input { width:100%; margin-top:8px; background:var(--bg); color:var(--fg); border:1px solid var(--grid); border-radius:8px; padding:8px; font:inherit; font-size:12px; }
-  canvas { width:100%; height:auto; margin-top:8px; }
-  img.vm { width:100%; border-radius:8px; border:1px solid var(--grid); display:block; }
-  .gbar { height:7px; background:var(--bg); border-radius:4px; overflow:hidden; margin-top:3px; }
-  .gbar > span { display:block; height:100%; background:var(--green); }
-  footer { color:var(--dim); font-size:10px; text-align:center; margin-top:16px; }
-  .muted { color:var(--dim); font-size:11px; }
+  :root{
+    --bg:#000; --panel:#0c0c0d; --panel2:#111113; --line:rgba(255,255,255,.10);
+    --text:#fff; --muted:rgba(255,255,255,.55); --faint:rgba(255,255,255,.32);
+    --accent:#ff6b6b; --accent-dim:rgba(255,107,107,.14); --accent-line:rgba(255,107,107,.45);
+    --ok:#7ee081; --warn:#ffcf6b;
+    --sans:"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    font-size:14px; line-height:1.5; display:flex; flex-direction:column;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  /* header */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 22px; border-bottom:1px solid var(--line);
+    background:radial-gradient(120% 200% at 0% 0%, rgba(255,107,107,.10), transparent 60%);
+  }
+  .brand{display:flex; align-items:center; gap:12px}
+  .brand h1{font-size:20px; font-weight:700; margin:0; letter-spacing:.2px}
+  .brand .sub{color:var(--muted); font-size:12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+  .dot.live{background:var(--accent); box-shadow:0 0 0 0 rgba(255,107,107,.6);
+    animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,107,.5)}
+    70%{box-shadow:0 0 0 7px rgba(255,107,107,0)}100%{box-shadow:0 0 0 0 rgba(255,107,107,0)}}
+  .status{display:flex; align-items:center; gap:18px; font-size:12.5px; color:var(--muted)}
+  .status b{color:var(--text); font-weight:700}
+  .status .k{color:var(--faint); margin-right:5px}
+  /* grid */
+  .grid{
+    flex:1; display:grid; gap:13px; padding:13px; overflow:auto;
+    grid-template-columns:1.32fr 1fr 1.18fr;
+    grid-template-rows:minmax(300px,40vh) minmax(158px,auto) auto minmax(300px,auto);
+    grid-template-areas:
+      "feed feed chat"
+      "current queue chat"
+      "send system chat"
+      "memory memory nodes";
+  }
+  #system{grid-area:system}
+  .sysrow{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:8px}
+  .sysrow b{color:var(--text); font-family:var(--mono)}
+  .tabbtn{font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:3px; cursor:pointer;
+    border:1px solid var(--line); color:var(--muted); background:transparent}
+  .tabbtn.on{border-color:var(--accent-line); color:var(--accent); background:var(--accent-dim)}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    display:flex; flex-direction:column; min-height:0; min-width:0; overflow:hidden;
+  }
+  .panel > .head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 13px; border-bottom:1px solid var(--line); flex:0 0 auto;
+  }
+  .panel > .head .title{font-weight:700; font-size:12.5px; letter-spacing:.35px}
+  .panel > .head .title .accent{color:var(--accent)}
+  .panel > .head .meta{color:var(--faint); font-size:11.5px; font-family:var(--mono)}
+  .panel > .body{padding:13px; overflow:auto; min-height:0}
+  .panel > .body.flush{padding:0}
+  /* areas */
+  #feed{grid-area:feed} #chat{grid-area:chat} #current{grid-area:current}
+  #queue{grid-area:queue} #send{grid-area:send} #memory{grid-area:memory}
+  #nodes{grid-area:nodes}
+  /* feed */
+  #feed .body{padding:0; background:#000; flex:1; min-height:0}
+  .feedbox{position:relative; width:100%; height:100%; overflow:hidden; background:#000}
+  #feedimg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; background:#000}
+  #feed:fullscreen{background:#000; border:none; border-radius:0}
+  #feed:fullscreen .head{position:absolute; top:0; left:0; right:0; z-index:3; background:rgba(0,0,0,.35); border:none}
+  #feed:fullscreen .feedbox{padding-bottom:0; height:100vh; width:100vw}
+  .badge{font-family:var(--mono); font-size:10.5px; padding:2px 7px; border-radius:3px;
+    border:1px solid var(--accent-line); color:var(--accent); background:var(--accent-dim)}
+  .btn{
+    font-family:var(--sans); font-size:13px; font-weight:500; color:#fff; cursor:pointer;
+    background:var(--accent); border:none; border-radius:4px; padding:8px 15px;
+    transition:filter .15s;
+  }
+  .btn:hover{filter:brightness(1.08)} .btn:active{filter:brightness(.94)}
+  .btn.ghost{background:transparent; border:1px solid var(--line); color:var(--muted); padding:5px 11px; font-size:12px}
+  .btn.ghost:hover{border-color:var(--accent-line); color:var(--text)}
+  /* current directive */
+  .cur-mode{font-size:11px; color:var(--faint); letter-spacing:.4px; text-transform:uppercase}
+  .cur-main{font-size:16px; font-weight:700; margin:5px 0 3px; word-break:break-word}
+  .cur-main.accent{color:var(--accent)}
+  .cur-task{color:var(--muted); font-size:13px; font-family:var(--mono); word-break:break-word}
+  .bar{height:1px;background:var(--line);margin:11px 0}
+  .feedrow{display:flex; gap:16px; font-size:12px; color:var(--muted); flex-wrap:wrap}
+  .feedrow b{color:var(--text)}
+  /* worker cards -- one panel per lane (Gabe 08-12), replacing the old journal-tail activity list */
+  .wsect{font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px}
+  .wsect .meta{text-transform:none; letter-spacing:0; margin-left:6px}
+  #workers{max-height:340px; overflow:auto}
+  .wcard{border:1px solid var(--line); border-radius:7px; padding:7px 9px; margin-bottom:7px;
+         font-family:var(--mono); font-size:11.5px; background:rgba(255,255,255,.015)}
+  .wcard.dead{opacity:.5}
+  .w-head{color:var(--text); font-weight:600}
+  .w-off{color:var(--faint); font-weight:400}
+  .w-state{color:var(--faint)}
+  .w-detail{color:var(--muted); word-break:break-word; margin-top:2px}
+  .w-metric{color:var(--faint); margin-top:3px}
+  .w-metric b{color:var(--ok)}
+  .w-dir{color:var(--muted); margin-left:6px}
+  .w-ops{color:var(--faint); opacity:.75; margin-top:2px; word-break:break-all}
+  /* queue */
+  .qitem{display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid var(--line)}
+  .qitem:last-child{border-bottom:none}
+  .qnum{font-family:var(--mono); color:var(--accent); font-size:12px; flex:0 0 auto}
+  .qtext{flex:1; font-size:13px; word-break:break-word}
+  .qmeta{color:var(--faint); font-size:11px; font-family:var(--mono)}
+  .empty{color:var(--faint); font-size:12.5px; font-style:italic; padding:6px 0}
+  /* send */
+  #send .body{display:flex; gap:9px; align-items:center}
+  .input{
+    flex:1; background:var(--panel2); border:1px solid var(--line); border-radius:5px;
+    color:var(--text); font-family:var(--sans); font-size:13.5px; padding:10px 12px; outline:none;
+  }
+  .input:focus{border-color:var(--accent-line)}
+  .input::placeholder{color:var(--faint)}
+  .hint{color:var(--faint); font-size:11px; font-family:var(--mono); margin-left:2px}
+  /* chat */
+  #chat .body{display:flex; flex-direction:column; gap:0; padding:0}
+  .chatlog{flex:1; overflow:auto; padding:13px; display:flex; flex-direction:column; gap:10px}
+  .msg{max-width:88%; padding:9px 12px; border-radius:9px; font-size:13px; white-space:pre-wrap; word-break:break-word}
+  .msg.me{align-self:flex-end; background:var(--accent-dim); border:1px solid var(--accent-line)}
+  .msg.bot{align-self:flex-start; background:var(--panel2); border:1px solid var(--line)}
+  .msg .lf{display:block; margin-top:6px; font-family:var(--mono); font-size:11px; color:var(--faint)}
+  .chatin{display:flex; gap:8px; padding:11px 13px; border-top:1px solid var(--line)}
+  /* libraries */
+  .libhead{display:flex; gap:6px}
+  .tab{font-size:12px; color:var(--muted); cursor:pointer; padding:3px 4px; border-bottom:2px solid transparent}
+  .searchbar{display:flex; gap:8px; margin-bottom:10px}
+  .list{display:flex; flex-direction:column}
+  .row{display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:5px; cursor:pointer; border:1px solid transparent}
+  .row:hover{background:var(--panel2)}
+  .row.sel{background:var(--accent-dim); border-color:var(--accent-line)}
+  .row .name{flex:1; font-size:13px; word-break:break-word}
+  .row .name.mono{font-family:var(--mono); font-size:12px}
+  .conf{font-family:var(--mono); font-size:11px; color:var(--muted); flex:0 0 auto}
+  .chip{font-family:var(--mono); font-size:9.5px; padding:1px 5px; border-radius:3px; border:1px solid var(--line); color:var(--faint)}
+  .chip.frozen{color:var(--accent); border-color:var(--accent-line)}
+  .chip.ground{color:var(--ok); border-color:rgba(126,224,129,.4)}
+  .split{display:grid; grid-template-columns:1fr 1fr; gap:12px; height:100%; min-height:0}
+  .col{display:flex; flex-direction:column; min-height:0; overflow:auto}
+  .detail h3{margin:0 0 3px; font-size:15px; font-weight:700; word-break:break-word}
+  .detail .mono{font-family:var(--mono)}
+  .relbar{display:flex; align-items:center; gap:8px; margin:4px 0; font-size:12px}
+  .relbar .rk{width:38%; color:var(--muted); font-family:var(--mono); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .relbar .rt{flex:1; height:6px; background:var(--panel2); border-radius:3px; overflow:hidden}
+  .relbar .rt i{display:block; height:100%; background:var(--accent)}
+  .relbar .rv{width:42px; text-align:right; font-family:var(--mono); font-size:10.5px; color:var(--faint)}
+  .kv{display:flex; gap:10px; font-size:12px; color:var(--muted); margin:3px 0; flex-wrap:wrap}
+  .kv b{color:var(--text); font-family:var(--mono)}
+  .idrow{font-family:var(--mono); font-size:12px; color:var(--accent); margin:3px 0}
+  .muted{color:var(--muted)} .mono{font-family:var(--mono)}
+  .pager{display:flex; align-items:center; gap:10px; margin-top:9px; font-size:12px; color:var(--muted)}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.13); border-radius:5px}
+  ::-webkit-scrollbar-track{background:transparent}
 </style>
 </head>
 <body>
-<h1>OUROBORUS <span id="upd" class="pill">loading…</span></h1>
-<div class="tabs">
-  <button class="tab active" data-v="core" onclick="show('core')">Task</button>
-  <button class="tab" data-v="directive" onclick="show('directive')">Directive</button>
-  <button class="tab" data-v="chat" onclick="show('chat')">Chat</button>
-  <button class="tab" data-v="library" onclick="show('library')">Library</button>
-  <button class="tab" data-v="workers" onclick="show('workers')">Workers</button>
-  <button class="tab" data-v="definitions" onclick="show('definitions')">Definitions</button>
-</div>
+<header>
+  <div class="brand">
+    <span id="dot" class="dot"></span>
+    <h1>Ouroboros</h1>
+    <span class="sub">control panel</span>
+  </div>
+  <div class="status" id="hdrstatus">
+    <span><span class="k">daemon</span><b id="s-alive">…</b></span>
+    <span><span class="k">cycle</span><b id="s-cycle">–</b></span>
+    <span><span class="k">memory</span><b id="s-world">–</b></span>
+  </div>
+</header>
 
-<div id="v-core">
-  <div class="card">
-    <div class="l">CURRENT TASK <span class="muted">· live state from the loop's files — status notes may be scaffold/worker-recorded, NOT generated NL (the loop doesn't write prose yet; when it does, that gets its own label)</span> <span id="loopver" class="chip" style="float:right"></span></div>
-    <div id="nltask" style="margin-top:8px;font-size:15px;font-weight:600;line-height:1.5;overflow-wrap:anywhere;word-break:break-word"></div>
-    <div id="nltasksub" class="ll" style="margin-top:6px;overflow-wrap:anywhere;word-break:break-word"></div>
-    <div id="driverstat" class="ll" style="margin-top:6px;opacity:.92;overflow-wrap:anywhere;word-break:break-word"></div>
-  </div>
-  <div class="card">
-    <div class="l">EVERYTHING RUNNING <span class="muted">· one line per live process — the whole organism, not just the mint daemon</span></div>
-    <div id="activity" style="margin-top:6px"></div>
-  </div>
-  <div class="card">
-    <div class="l">TASK PROGRESS <span class="muted">· dense score of the current attempt — wipes on every new task</span> <span id="tasknow" class="green" style="float:right;font-weight:600"></span></div>
-    <canvas id="taskchart" width="540" height="150"></canvas>
-    <div id="tasklabel" class="ll" style="margin-top:4px;overflow-wrap:anywhere;word-break:break-word"></div>
-  </div>
-  <div class="card">
-    <div class="l">HYPERNET MAP <span class="muted">· the in-flight composition — scroll to zoom, drag to pan, click a node for its expert</span> <span id="hmsrc" class="chip" style="float:right"></span></div>
-    <svg id="hypermap" height="170" style="touch-action:none;overscroll-behavior:contain;cursor:grab;display:block;margin-top:6px;width:100%;max-width:100%"></svg>
-    <div id="hmtask" class="ll" style="margin-top:4px;overflow-wrap:anywhere;word-break:break-word"></div>
-  </div>
-  <div class="card"><div class="l">VM FEED <span class="muted">· the desktop the system operates</span></div><div id="vmfeed" style="margin-top:8px"></div></div>
-</div>
-
-<div id="v-directive" style="display:none">
-  <div class="card">
-    <div class="l">PRIMARY DIRECTIVES <span class="muted">· the constant list (Gabriel-authored, verbatim) — the loop's standing goals</span></div>
-    <div id="dirprimlist" style="margin-top:6px;font-size:12px;line-height:1.7"></div>
-    <div id="dirprimsafe" class="ll" style="margin-top:4px"></div>
-  </div>
-  <div class="card">
-    <div class="l">WRITE GATE <span class="muted">· unlock condition 1 (STRICT — Gabriel-defined; scaffold-planned = escalated) + the inputs that must move before it can climb</span></div>
-    <div id="gatestreak" style="margin-top:6px;font-size:22px;font-weight:700"></div>
-    <div id="gateprog" class="ll" style="margin-top:6px;line-height:1.7"></div>
-  </div>
-  <div class="card">
-    <div class="l">CAPABILITY <span class="muted">· mastered compositions over time (unbounded)</span> <span id="capnow" class="green" style="float:right;font-weight:600"></span></div>
-    <canvas id="corechart" width="540" height="150"></canvas>
-  </div>
-  <div class="card">
-    <div class="l">NOW WORKING <span class="muted">· secondaries first; when all secondaries are done/parked, the self-posed work advancing the primary</span></div>
-    <div id="dirhead" style="margin-top:6px;font-size:14px;font-weight:600"></div>
-    <div id="dirleaves" style="margin-top:8px"></div>
-  </div>
-  <div class="card">
-    <div class="l">COMPLETED DIRECTIVES <span class="muted">· recent, from the loop's trajectory log (= the planner's training data)</span></div>
-    <div id="dirhist" style="margin-top:6px"></div>
-  </div>
-</div>
-
-<div id="v-chat" style="display:none">
-  <div class="card">
-    <div class="l">CHAT <span class="muted">· talk to the local chatbot — read-only, conversation only (it can't run commands)</span></div>
-    <div id="chatlog" style="margin-top:8px;max-height:58vh;overflow:auto;display:flex;flex-direction:column;gap:8px">
-      <div class="small dim">Ask the local Ouroborus chatbot anything. It runs on the laptop — a tiny byte-level expert the loop trains and keeps improving. Read-only: this page can only chat, never command the system.</div>
+<div class="grid">
+  <!-- feed -->
+  <section class="panel" id="feed">
+    <div class="head">
+      <span class="title">Live desktop <span class="accent" id="feeddisp">:99</span></span>
+      <span class="libhead" id="feedtabs"></span>
+      <span style="display:flex;gap:9px;align-items:center">
+        <span class="badge" id="feedbadge">LIVE</span>
+        <button class="btn ghost" id="feedfull">⛶ Fullscreen</button>
+        <button class="btn ghost" id="feedtoggle">Pause</button>
+      </span>
     </div>
-    <div class="row" style="border:none;padding:8px 0 0;gap:6px;align-items:center">
-      <input id="chatin" placeholder="say something…" autocomplete="off" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1">
-      <button class="tab" style="flex:none;min-width:64px" id="chatsend" onclick="sendChat()">Send</button>
+    <div class="body"><div class="feedbox"><img id="feedimg" alt="vm desktop feed"></div></div>
+  </section>
+
+  <!-- chat -->
+  <section class="panel" id="chat">
+    <div class="head">
+      <span class="title">Chat with <span class="accent">Ouroboros</span></span>
+      <span class="meta">reasoner</span>
     </div>
-    <div class="small dim" id="chatstatus" style="margin-top:4px"></div>
-  </div>
-</div>
-
-<div id="v-library" style="display:none">
-  <div class="card">
-    <div class="bignums" id="libcounts"></div>
-    <div class="ll" style="margin-top:4px">HYPERNETS = mastered compositions (structures of experts, reusable templates) · EXPERTS = the atom nets themselves (primitives + machine-minted) · fold / param-fold / multi-fold are structure OPS — how the search arranges experts, not experts</div>
-    <input id="libsearch" placeholder="search…" oninput="renderLib()" autocomplete="off">
-    <div class="tabs sub" style="margin-top:8px">
-      <button class="tab active" data-s="hypernets" onclick="libFilter('hypernets')">hypernets</button>
-      <button class="tab" data-s="experts" onclick="libFilter('experts')">experts</button>
-      <button class="tab" data-s="tools" onclick="libFilter('tools')">tools</button>
-      <button class="tab" data-s="queue" onclick="libFilter('queue')">queue</button>
-      <button class="tab" data-s="legacy" onclick="libFilter('legacy')">legacy</button>
+    <div class="body">
+      <div class="chatlog" id="chatlog"></div>
+      <div class="chatin">
+        <input class="input" id="chatinput" placeholder="Message Ouroboros…">
+        <button class="btn" id="chatsend">Send</button>
+      </div>
     </div>
-    <div class="row" id="libsortrow" style="border:none;padding:5px 0;gap:6px;align-items:center;display:none">
-      <span class="muted" style="font-size:11px">sort</span>
-      <select id="libsort" onchange="renderLib()" style="background:var(--bg,#0d1117);color:var(--fg,#e6edf3);border:1px solid var(--grid);border-radius:4px;font-size:11px;padding:2px 5px">
-        <option value="created">date created</option>
-        <option value="uses">uses</option>
-        <option value="name">name</option>
-        <option value="window">param size</option>
-        <option value="val">val (loss)</option>
-      </select>
-      <button id="libdir" class="tab" onclick="libDir()" style="font-size:11px">↓ desc</button>
+  </section>
+
+  <!-- current -->
+  <section class="panel" id="buffers">
+    <div class="head"><span class="title">Work queues</span><span class="title" id="buf-age" style="opacity:.55"></span></div>
+    <div class="body">
+      <div class="feedrow" id="buf-rows">–</div>
+      <div class="bar"></div>
+      <div class="feedrow" id="buf-queue"></div>
     </div>
-    <div id="libfilters" style="margin-top:6px"></div>
-    <div id="librows" style="margin-top:8px"></div>
-  </div>
+  </section>
+  <section class="panel" id="current">
+    <div class="head"><span class="title">Current directive &amp; task</span></div>
+    <div class="body">
+      <div class="cur-mode" id="cur-mode">–</div>
+      <div class="cur-main" id="cur-main">–</div>
+      <div class="cur-task" id="cur-task"></div>
+      <div class="bar"></div>
+      <div class="feedrow" id="cur-stats"></div>
+      <div class="bar"></div>
+      <!-- WORKERS, NOT RECENT ACTIVITY (Gabe, 2026-08-12: "drop recent activity and add a panel
+           for each worker that shows what it's doing, for both dives and cpu workers", and then
+           "that isn't a panel for each worker, that is one panel with all workers"). This page
+           answered "what happened" with a journal tail while the question in front of it is "what
+           is happening" -- and the tail could not answer that at all, because it never named which
+           lane was doing what. `ouro_app.py` was fixed on 08-12; THIS renderer was not, and
+           /api/state has been serving the `workers` list to it unread ever since. -->
+      <div class="wsect">Workers <span class="meta" id="w-count"></span></div>
+      <div id="workers"><div class="empty">(no workers reporting)</div></div>
+      <!-- JOBS BELONG HERE TOO (Gabe, 2026-08-12: "no jobs are showing in current"). Running work
+           is a card; WAITING work is this line, and it is the half no worker card can ever show
+           because no worker holds it yet. -->
+      <div class="cur-task" id="cur-jobs" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- queue -->
+  <section class="panel" id="queue">
+    <div class="head">
+      <span class="title">Directive queue</span>
+      <span class="meta" id="q-count">0</span>
+    </div>
+    <div class="body" id="queuebody"><div class="empty">Queue is empty.</div></div>
+  </section>
+
+  <!-- grows: live compose search per lane -- metric, produced turns, structure -->
+  <section class="panel" id="grows">
+    <div class="head">
+      <span class="title">Live grows</span>
+      <span class="meta" id="growcount"></span>
+    </div>
+    <div class="body" id="growbody"><div class="empty">No compose lane is searching.</div></div>
+  </section>
+
+  <!-- send -->
+  <section class="panel" id="send">
+    <div class="head"><span class="title">Send a directive</span>
+      <span class="hint">prefix with <b>compose:</b> to grow a subgraph</span></div>
+    <div class="body">
+      <input class="input" id="sendinput" placeholder="e.g. open a text editor and write a haiku">
+      <button class="btn" id="sendbtn">Queue</button>
+    </div>
+  </section>
+
+  <!-- system: config + diagnostics -->
+  <section class="panel" id="system">
+    <div class="head"><span class="title">System</span>
+      <span style="display:flex;gap:8px">
+        <button class="btn ghost" id="dstart">Start daemon</button>
+        <button class="btn ghost" id="dstop">Stop daemon</button>
+      </span></div>
+    <div class="body">
+      <div class="sysrow" id="sysstats">–</div>
+      <div class="cur-task" id="sysprimary"></div>
+      <div class="hint" id="sysnote"></div>
+    </div>
+  </section>
+
+  <!-- memory -->
+  <section class="panel" id="memory">
+    <div class="head"><span class="title">Memory library <span class="accent">·</span> world model</span>
+      <span class="meta" id="mem-count">–</span></div>
+    <div class="body">
+      <div class="split">
+        <div class="col">
+          <div class="searchbar">
+            <input class="input" id="memsearch" placeholder="search concepts…">
+          </div>
+          <div class="list" id="memlist"><div class="empty">Indexing…</div></div>
+          <div class="pager" id="mempager"></div>
+        </div>
+        <div class="col detail" id="memdetail"><div class="empty">Select a concept to inspect its relations.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- nodes -->
+  <section class="panel" id="nodes">
+    <div class="head"><span class="title">Node library <span class="accent">·</span> subgraphs</span>
+      <span class="meta" id="node-count">–</span></div>
+    <div class="body">
+      <div class="split">
+        <div class="col" id="nodelist"><div class="empty">Loading…</div></div>
+        <div class="col detail" id="nodedetail"><div class="empty">Select a node to inspect it.</div></div>
+      </div>
+    </div>
+  </section>
 </div>
 
-<div id="v-workers" style="display:none">
-  <div class="card"><div class="l">WORKERS <span class="muted">· read-only stats (edit params in the desktop app)</span></div><div id="workerrows" style="margin-top:8px"></div></div>
-</div>
-
-<div id="v-definitions" style="display:none">
-  <div class="card">
-    <div class="l">DEFINITIONS <span class="muted">· the project's vocabulary, in plain English</span></div>
-    <input id="defsearch" placeholder="filter…" oninput="filterDefs()" autocomplete="off" style="margin-top:6px">
-    <div id="defrows" style="margin-top:8px"></div>
-  </div>
-</div>
-
-<footer><span id="loopverfoot" class="green"></span> <span id="pagever">· page v69 · Task · Directive · Chat · Library · Workers · Definitions</span></footer>
 <script>
-const RELAY = "https://gabeslaptop.tail46cb76.ts.net/status";
-const RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/status.json";
-const LIB_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/library.json";
-const VM_RELAY = "https://gabeslaptop.tail46cb76.ts.net/vm.jpg";     // realtime (laptop relay)
-const VM_RAW = "https://raw.githubusercontent.com/gabe9230/gabe9230.github.io/data/vm.jpg";  // fallback
-let curV = "core", _lib = null, _libFilter = "hypernets";
+const $ = id => document.getElementById(id);
+const esc = s => (s==null?"":String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+// Published copy for gabrielhalloran.org: the API lives on the laptop, reached through the
+// Tailscale funnel the v1.15 page already used. Same-origin copy serves from the laptop itself.
+const API_BASE="https://gabeslaptop.tail46cb76.ts.net";
+async function jget(u){const r=await fetch(API_BASE+u);return r.json();}
+async function jpost(u,b){const r=await fetch(API_BASE+u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return r.json();}
 
-function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-function ago(s){ s=Math.max(0,s|0); if(s<90) return s+"s"; if(s<5400) return (s/60|0)+"m"; if(s<172800) return (s/3600|0)+"h"; return (s/86400|0)+"d"; }
-function when(ts){
-  if(!ts) return "—";
-  if(typeof ts==="string"){ const p=Date.parse(ts); if(!isNaN(p)) ts=p/1000; else return "—"; }  // ISO rows (row-contract ts)
-  return ago(Date.now()/1000-ts)+" ago";
+/* ---------- live feed (poll frames ~5fps, swap on load = no flicker) ---------- */
+let feedOn=true, feedTimer=null, feedFps=5, feedDisplay=null;   // feedDisplay declared HERE:
+// tickFeed reads it and startFeed() runs at load -- a later `let` left it in the temporal dead
+// zone and the whole script died on a ReferenceError (caught live in the console, 2026-07-26)
+function tickFeed(){
+  if(!feedOn) return;
+  const nx=new Image();
+  nx.onload=()=>{ $('feedimg').src=nx.src; };
+  nx.src=API_BASE+"/api/frame.jpg?t="+Date.now()+(feedDisplay?("&display="+encodeURIComponent(feedDisplay)):"");
 }
+function startFeed(){ if(feedTimer)clearInterval(feedTimer); tickFeed(); feedTimer=setInterval(tickFeed,Math.round(1000/feedFps)); }
+function stopFeed(){ if(feedTimer)clearInterval(feedTimer); feedTimer=null; }
+$('feedtoggle').onclick=()=>{
+  feedOn=!feedOn;
+  if(feedOn){ startFeed(); $('feedtoggle').textContent="Pause"; $('feedbadge').textContent="LIVE"; $('feedbadge').style.opacity=1; }
+  else{ stopFeed(); $('feedtoggle').textContent="Resume"; $('feedbadge').textContent="PAUSED"; $('feedbadge').style.opacity=.5; }
+};
+$('feedfull').onclick=()=>{
+  const el=$('feed');
+  if(!document.fullscreenElement){ (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }
+  else if(document.exitFullscreen){ document.exitFullscreen(); }
+};
+startFeed();
 
-function show(v){
-  curV = v;
-  ["core","directive","chat","library","workers","definitions"].forEach(x=>{ const e=document.getElementById("v-"+x); if(e) e.style.display = x===v?"":"none"; });
-  if(v==="chat"){ const ci=document.getElementById("chatin"); if(ci) setTimeout(()=>ci.focus(),0); }
-  document.querySelectorAll(".tabs > .tab").forEach(t=>t.classList.toggle("active", t.dataset.v===v));
-  if(v==="library") renderLib();
-}
-function libFilter(s){ _libFilter=s; document.querySelectorAll(".tabs.sub .tab").forEach(t=>t.classList.toggle("active", t.dataset.s===s)); renderLib(); }
-function libDir(){ window._libDir=(window._libDir==="asc")?"desc":"asc"; const b=document.getElementById("libdir"); if(b) b.textContent=window._libDir==="asc"?"↑ asc":"↓ desc"; renderLib(); }
-
-// ── CHAT TAB (read-only; DEMO headline). POST {message} -> {reply} to the laptop's /chat route (same Funnel host
-// as /status, so CORS already works). Purely conversational: NO directive/control/queue/write path exists here. ──
-const CHAT_ENDPOINT = "https://gabeslaptop.tail46cb76.ts.net/chat";
-function _chatBubble(who, text){
-  const d=document.createElement("div");
-  d.style.cssText="max-width:85%;padding:8px 11px;border-radius:12px;font-size:13px;white-space:pre-wrap;word-break:break-word;"
-    +(who==="you"?"align-self:flex-end;background:var(--blue);color:#fff":"align-self:flex-start;background:var(--bg2);color:var(--fg);border:1px solid var(--grid)");
-  d.textContent=text; return d;
-}
-// [0.57] FLAG a reply -> POST to the QUARANTINE queue (status=pending). The page's ONLY write; reviewed before any
-// corpus use (no public poisoning). Optional "better reply" field.
-const FLAG_ENDPOINT = "https://gabeslaptop.tail46cb76.ts.net/chat_flag";
-function _botReply(userMsg, reply){
-  const wrap=document.createElement("div");
-  wrap.style.cssText="align-self:flex-start;max-width:85%;display:flex;flex-direction:column;gap:3px";
-  const bub=_chatBubble("bot", reply); bub.style.maxWidth="100%"; wrap.appendChild(bub);
-  const bar=document.createElement("div"); bar.style.cssText="font-size:10px;color:var(--dim)";
-  const flag=document.createElement("span"); flag.textContent="flag this reply";
-  flag.style.cssText="cursor:pointer;text-decoration:underline"; bar.appendChild(flag); wrap.appendChild(bar);
-  flag.onclick=()=>{
-    if(wrap.querySelector(".flagform")) return;
-    const form=document.createElement("div"); form.className="flagform";
-    form.style.cssText="display:flex;gap:4px;margin-top:2px";
-    const inp=document.createElement("input"); inp.placeholder="(optional) a better reply?";
-    inp.style.cssText="flex:1;font-size:11px";
-    const sub=document.createElement("button"); sub.className="tab"; sub.textContent="submit";
-    sub.style.cssText="flex:none;font-size:11px;padding:3px 8px";
-    form.appendChild(inp); form.appendChild(sub); wrap.appendChild(form); inp.focus();
-    sub.onclick=async()=>{ sub.disabled=true;
-      try{ await fetch(FLAG_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},
-             body:JSON.stringify({message:userMsg,reply:reply,better:inp.value||""})});
-           bar.textContent="flagged — thanks (sent for review)"; form.remove();
-      }catch(e){ bar.textContent="flag failed ("+e.message+")"; sub.disabled=false; } };
-  };
-  return wrap;
-}
-async function sendChat(){
-  const inp=document.getElementById("chatin"), log=document.getElementById("chatlog"),
-        st=document.getElementById("chatstatus"), btn=document.getElementById("chatsend");
-  const msg=(inp.value||"").trim(); if(!msg) return;
-  inp.value=""; log.appendChild(_chatBubble("you", msg)); log.scrollTop=log.scrollHeight;
-  btn.disabled=true; st.textContent="…thinking";
-  try {
-    const r=await fetch(CHAT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const d=await r.json();
-    log.appendChild(_botReply(msg, (d&&(d.reply||d.text||d.response))||"(no reply)"));
-    st.textContent="";
-  } catch(e){
-    log.appendChild(_chatBubble("bot","chatbot endpoint not reachable yet ("+e.message+"). Try the desktop app chatbot."));
-    st.textContent="offline";
-  } finally { btn.disabled=false; log.scrollTop=log.scrollHeight; if(inp) inp.focus(); }
-}
-// DESCRIPTIVE NAME (Gabriel [1.50]): a human-readable display label derived from REAL signal (RULE 5 #7 — the
-// skill/fn-name, never a hand table). fetched_<fn>_<n> -> the source fn name (what it does); fld_<family>_<n> ->
-// "<family> #n" (de-cluttered; the full operation name needs the poser-side intent->purpose, flagged). Else the
-// existing purpose (seed experts are already descriptive). The cryptic skill stays the under-the-hood id.
-function _libName(r){
-  const sk=String(r.skill||""); const pu=String(r.purpose||"");
-  if(sk.startsWith("fetched_")) return sk.replace(/^fetched_/,"").replace(/_\d+$/,"").replace(/_/g," ").trim() || pu || sk;
-  if(/^fld_/.test(sk)){ const fam=String(r.field||sk.split("_")[1]||"").replace(/_/g," "); const idx=(sk.match(/_(\d+)$/)||[])[1]; return (fam||"field")+(idx!=null?" #"+idx:""); }
-  if(r.name && String(r.name).trim()) return String(r.name);   // [2.40] backend expert_names.descriptive_name (RULE-5-#7-clean) for the generic rest
-  return pu || sk;
-}
-// FILTER (Gabriel [P1]): auto-populating multi-select chips per metric — options DERIVED from live data (RULE 5 #7,
-// never hardcoded). Within a metric = OR (any selected matches); across metrics = AND (all must match).
-const _LIB_FMETRICS = [["field","family"],["topology","topology"],["origin","origin"]];
-function _libDistinct(rows,key){ const s=new Set(); rows.forEach(r=>{ const v=r[key]; if(v!=null&&v!=="") s.add(String(v)); }); return Array.from(s).sort(); }
-function renderLibFilters(){
-  const el=document.getElementById("libfilters"); if(!el) return;
-  const rows=_lib||[]; window._libF=window._libF||{};
-  _LIB_FMETRICS.forEach(([k])=>{ window._libF[k]=window._libF[k]||new Set(); });
-  if(!rows.length){ el.innerHTML=""; return; }
-  let h="";
-  _LIB_FMETRICS.forEach(([key,label])=>{
-    const vals=_libDistinct(rows,key); if(!vals.length) return;
-    h += `<div style="margin:3px 0;line-height:1.9"><span class="muted" style="font-size:10px">${label}:</span> `
-      + vals.map(v=>{ const on=window._libF[key].has(v);
-          return `<span class="chip" onclick='toggleLibF(${JSON.stringify(key)},${JSON.stringify(v)})' style="cursor:pointer${on?';background:var(--green);color:#000':''}">${esc(v)}</span>`; }).join(" ")
-      + `</div>`;
-  });
-  if(_LIB_FMETRICS.some(([k])=>window._libF[k].size)) h += `<div class="muted" style="font-size:10px;cursor:pointer;margin-top:2px" onclick="clearLibF()">clear filters</div>`;
-  el.innerHTML=h;
-}
-function toggleLibF(key,val){ window._libF=window._libF||{}; window._libF[key]=window._libF[key]||new Set(); const s=window._libF[key]; s.has(val)?s.delete(val):s.add(val); renderLib(); }
-function clearLibF(){ window._libF={}; renderLib(); }
-
-// ── DIRECTIVE TAB ──────────────────────────────────────────────────────────
-function drawLadder(hist){
-  const c=document.getElementById("ladchart"), x=c.getContext("2d");
-  x.clearRect(0,0,c.width,c.height);
-  const H=(hist||[]).filter(p=>p&&p.h!=null&&p.ts);
-  if(H.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting…", 8, 20); return; }
-  const t0=H[0].ts, t1=Math.max(H[H.length-1].ts, t0+1), maxH=Math.max(2,...H.map(p=>p.h));
-  const X=t=>8+((t-t0)/(t1-t0))*(c.width-16), Y=v=>c.height-12-(v/maxH)*(c.height-24);
-  x.strokeStyle="#21262d"; x.lineWidth=1;
-  for(let g=0;g<=4;g++){ const yy=12+g*(c.height-24)/4; x.beginPath(); x.moveTo(8,yy); x.lineTo(c.width-8,yy); x.stroke(); }
-  x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();
-  H.forEach((p,i)=>{ const px=X(p.ts),py=Y(p.h); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
-  x.fillStyle="#3fb950"; const last=H[H.length-1]; x.beginPath(); x.arc(X(last.ts),Y(last.h),3,0,7); x.fill();
-  x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+maxH, 10, 14);
-}
-
-// ── CORE TAB ([2.05] Gabriel) — the single headline view: coverage-sum over time + the current task + the VM the
-// system drives. core.core_score = COVERAGE SUM (Σ family coverage_rate × 10, unbounded; difficulty deprecated
-// 2026-07-01), computed by the publisher (seed/agent_loop/coverage_sum.py); d.core.series = the trajectory.
-function drawCoreChart(series){
-  const c=document.getElementById("corechart"); if(!c) return; const x=c.getContext("2d");
-  x.clearRect(0,0,c.width,c.height);
-  const S=(series||[]).filter(p=>p&&p.core_score!=null);
-  if(S.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting… (loop warming up)", 8, 20); return; }
-  const xs=S.map((p,i)=>i), t0=0, t1=Math.max(S.length-1, 1);   // x = chronological sample index, NOT p.t (iter resets to 1 each loop restart -> the line doubled back to the left; the series is append-only file order, so index is monotonic in time)
-  const maxV=Math.max(2,...S.map(p=>p.core_score));
-  const X=t=>8+((t-t0)/(t1-t0))*(c.width-16), Y=v=>c.height-12-(v/maxV)*(c.height-24);
-  x.strokeStyle="#21262d"; x.lineWidth=1;
-  for(let g=0;g<=4;g++){ const yy=12+g*(c.height-24)/4; x.beginPath(); x.moveTo(8,yy); x.lineTo(c.width-8,yy); x.stroke(); }
-  x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();
-  S.forEach((p,i)=>{ const px=X(xs[i]),py=Y(p.core_score); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
-  x.fillStyle="#3fb950"; const li=S.length-1; x.beginPath(); x.arc(X(xs[li]),Y(S[li].core_score),3,0,7); x.fill();
-  x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("max "+Math.round(maxV), 10, 14);
-}
-// TASK PROGRESS chart (Gabriel 2026-07-03): the CURRENT task's dense score. SERVER-side series (d.mint_trace,
-// publisher-accumulated + file-backed) so a page refresh does NOT wipe the curve; it wipes only on a NEW task.
-let _taskSeries={label:null, pts:[]};
-function feedTaskChart(ms, trace){
-  const now=document.getElementById("tasknow"), lab=document.getElementById("tasklabel");
-  if(trace && trace.remote && !(trace.pts&&trace.pts.length)){                           // v1.5: remote AND nothing accumulated yet
-    if(now) now.textContent="remote";
-    if(lab) lab.textContent=(trace.remote_note||"training on the cluster")+" — progress returns with the verdict (live streaming is a pending upgrade)";
-    _taskSeries={label:null, pts:[]}; drawTaskChart();
-    const c=document.getElementById("taskchart");
-    if(c){ const x=c.getContext("2d"); x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("training remotely — no local curve until the verdict returns", 8, 40); }
-    return;
-  }
-  if(trace && trace.remote && now) now.textContent="remote";                             // remote but the search curve exists: DRAW it
-  if(trace && trace.label){ _taskSeries={label:trace.label, pts:trace.pts||[]}; }        // server series = truth
-  else if(ms && ms.label){                                                               // fallback: client-accumulate
-    if(ms.label!==_taskSeries.label) _taskSeries={label:ms.label, pts:[]};
-    if(ms.dense!=null && ms.step!=null){
-      const last=_taskSeries.pts[_taskSeries.pts.length-1];
-      if(!last||last.step!==ms.step) _taskSeries.pts.push({step:ms.step, dense:ms.dense, gate:ms.accept_gate});
-    }
-  } else { if(lab&&!_taskSeries.label) lab.textContent="waiting for the next task…"; return; }
-  if(now) now.textContent = (ms&&ms.dense!=null)?("dense "+ms.dense):"";
-  if(lab&&ms&&ms.label) lab.textContent = String(ms.label).replace(/^improve_/,"").replace(/__field_/," · ")
-    + (ms.status?` · ${ms.status}`:"") + (ms.elapsed_s!=null?` · ${Math.round(ms.elapsed_s/60)}min`:"");
-  drawTaskChart();
-}
-function drawTaskChart(){
-  const c=document.getElementById("taskchart"); if(!c) return; const x=c.getContext("2d");
-  x.clearRect(0,0,c.width,c.height);
-  const S=_taskSeries.pts;
-  if(S.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting… (a new attempt starts the trace)", 8, 20); return; }
-  const s0=S[0].step, s1=Math.max(S[S.length-1].step, s0+1);
-  const X=s=>8+((s-s0)/(s1-s0))*(c.width-16), Y=v=>c.height-12-Math.max(0,Math.min(1,v))*(c.height-24);
-  x.strokeStyle="#21262d"; x.lineWidth=1;
-  for(let g=0;g<=4;g++){ const yy=12+g*(c.height-24)/4; x.beginPath(); x.moveTo(8,yy); x.lineTo(c.width-8,yy); x.stroke(); }
-  const gate=S[S.length-1].gate;                                        // the accept gate as an amber dashed line
-  if(gate!=null){ x.strokeStyle="#d29922"; x.setLineDash([4,4]); x.beginPath(); x.moveTo(8,Y(gate)); x.lineTo(c.width-8,Y(gate)); x.stroke(); x.setLineDash([]);
-    x.fillStyle="#d29922"; x.font="10px monospace"; x.fillText("gate "+gate, c.width-64, Y(gate)-3); }
-  x.strokeStyle="#3fb950"; x.lineWidth=2; x.beginPath();
-  S.forEach((p,i)=>{ const px=X(p.step),py=Y(p.dense); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
-  x.fillStyle="#3fb950"; const li=S.length-1; x.beginPath(); x.arc(X(S[li].step),Y(S[li].dense),3,0,7); x.fill();
-  x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("dense 0→1 · steps "+s0+"–"+S[li].step, 10, 14);
-}
-function renderSelfModel(sm){
-  // [1.03] GATE-1 self-model coverage on the phone (RULE 2, #00 3670): per-family coverage_rate, struggling = gaps.
-  const el=document.getElementById("selfmodelbody"); if(!el) return;
-  const fams=(sm&&sm.families)||null;
-  if(!fams){ el.innerHTML="<span class='muted'>no self-model data yet</span>"; return; }
-  let h=`<div class="small dim" style="margin-bottom:5px">${sm.n_solvable}/${sm.n_families} solvable · ${sm.n_struggling} struggling · mean cov ${Math.round(100*(sm.mean_coverage||0))}%</div>`;
-  fams.forEach(f=>{
-    const cov=(f.cov==null)?null:Math.round(100*f.cov);
-    const bpc=String(f.s||"").indexOf("BPC")>=0, strug=f.s==="struggling";
-    const col=strug?"#f78166":(bpc?"var(--dim,#888)":"var(--green)");
-    h+=`<div class="row" style="border:none;padding:2px 0 0"><span class="a"${strug?' style="color:#f78166"':""}>${esc(f.f)}${f.md?` <span class="small dim">d≤${f.md}</span>`:""}</span>`
-     + `<span class="b small">${cov==null?"n/a":cov+"%"}${bpc?" BPC":""}</span></div>`
-     + `<div class="gbar" style="height:3px;margin-top:1px"><span style="width:${cov==null?0:cov}%;background:${col}"></span></div>`;
-  });
-  el.innerHTML=h;
-}
-function renderHumanTask(t){
-  // [4.05] shared-seat OPERATOR->HUMAN task: the core's current human-facing proposal (propose->human-rank->human-build).
-  const card=document.getElementById("humantaskcard"), body=document.getElementById("humantaskbody");
-  if(!card||!body) return;
-  const s=(t==null)?"":String(t).trim();
-  if(!s){ card.style.display="none"; return; }   // no proposal -> hide the card entirely
-  card.style.display=""; body.textContent=s;      // textContent = safe (no HTML injection from loop output)
-}
-
-function renderGate(d){
-  const u=d.unlock, s=document.getElementById("gatestreak"), p=document.getElementById("gateprog");
-  if(!s) return;
-  if(!u){ s.innerHTML=`<span class="muted">—</span>`; if(p) p.innerHTML=""; return; }
-  s.innerHTML = u.capability_gate
-    ? `<span>${u.diff_tests&&u.diff_tests.n?`${u.diff_tests.n} diff tests run`:"CAPABILITY GATE"}</span> <span class="muted" style="font-size:11px;font-weight:400">every ${u.cadence||100} cycles: the loop proposes a self-improvement diff from its own repo → substance review → Gabriel${u.diff_tests&&u.diff_tests.n?"":" · harness building"}</span>`
-    : `<span class="${u.passed?'green':''}">${u.main||"—"}</span> <span class="muted" style="font-size:11px;font-weight:400">escalation-zero streak${u.passed?" · PASSED — awaiting Gabriel's review":""}</span>`;
-  const g=u.progress;
-  if(p) p.innerHTML = g ? [
-    (g.escalation_frac_pct!=null?`escalation rate <b class="${g.escalation_frac_pct===0?'green':''}">${g.escalation_frac_pct}%</b> <span class="muted">· of the last ${g.frac_window} directives (the smooth signal; the streak needs 35 consecutive clean)</span>`:null),
-    `trajectories accrued <b>${g.trajectories}</b> <span class="muted">· the [3.60] planner's training data (the streak climbs only when the planner-hypernet plans live)</span>`,
-    `provenance markers <b>${g.marker_planned_by_pct}%</b> planned_by · <b>${g.marker_knowledge_pct}%</b> knowledge_source <span class="muted">· of ${g.n_leaves} leaves — absent markers count as escalated (honest default)</span>`,
-    `last directive <b class="${g.last_escalated===false?'green':'amber'}">${g.last_escalated===false?"clean":(g.last_escalated===true?"escalated":"—")}</b>`,
-    (u.n_novel_total!=null?`novel conquests <b>${u.n_novel_total}</b> <span class="muted">· TELEMETRY (the streak no longer gates — Gabriel 07-04: capability gate) · streak ${u.streak}/${u.target}</span>`:null),
-    (u.composed_masters?`composed wins <b class="${u.composed_masters.n>0?'green':''}">${u.composed_masters.n}</b> <span class="muted">· judges resolved by COMPOSITION, zero write experts${u.composed_masters.n?` — latest: ${esc(String((u.composed_masters.recent||[]).slice(-1)[0]?.eid||"").replace(/^improve_/,""))}`:""}</span>`:null)
-  ].filter(Boolean).join("<br>") : `<span class="muted">no progress data yet</span>`;
-}
-
-function renderDirective(d){
-  const dt=d.directive_tab, st={done:"green",gap:"amber",pending_upstream:"muted",in_progress:"",actionable:"green"};
-  const head=document.getElementById("dirhead"), lv=document.getElementById("dirleaves"), hi=document.getElementById("dirhist");
-  if(!head) return;
-  if(!dt){ head.textContent="no directive yet"; if(lv) lv.innerHTML=""; if(hi) hi.innerHTML=""; return; }
-  const pr=dt.primary, pl=document.getElementById("dirprimlist"), psafe=document.getElementById("dirprimsafe");
-  if(pl) pl.innerHTML = (pr&&pr.primaries&&pr.primaries.length)
-    ? pr.primaries.map((x,i)=>`<div><span class="muted">${i+1}.</span> ${x}</div>`).join("")
-    : `<span class="muted">no primary list</span>`;
-  if(psafe) psafe.innerHTML = (pr&&pr.safeguard)
-    ? `directive #1 safeguard: <b class="${pr.safeguard.ok?'green':'amber'}">${pr.safeguard.ok?'INTACT':'CHECK'}</b> <span class="muted">· ${pr.safeguard.reason||""}</span>` : "";
-  const cur=dt.current;
-  const secondaryActive = cur && cur.directive && cur.n_gaps===0===false && !(pr&&pr.tier==="primary");
-  if(pr && pr.tier==="primary" && pr.worked && pr.worked.directive){
-    head.innerHTML = `<span class="muted" style="font-size:11px">SELF-POSED (advancing primary #2)</span><br>"${pr.worked.directive}"`;
-    if(lv){
-      const w=pr.worked;
-      let rows = (w.leaves&&w.leaves.length)
-        ? w.leaves.map((l,i)=>`<div style="padding:3px 0;border-bottom:1px solid #1c2128"><span class="muted">${i+1}.</span> <b>${l.name||l}</b> <span class="${st[l.status]!=null?st[l.status]:""}" style="float:right">${l.status||""}</span></div>`).join("")
-        : `<div class="ll">${w.n_leaves!=null?w.n_leaves:"—"} self-model leaves posed this cycle · ${w.n_done!=null?w.n_done:0} done · dense ${w.dense!=null?w.dense:"—"}</div>`;
-      if(cur&&cur.directive&&cur.n_gaps>0) rows += `<div class="ll" style="margin-top:6px">PARKED secondary: "${cur.directive}" — ${cur.n_gaps} gap(s) standing (in-band, hands-off)</div>`;
-      lv.innerHTML = rows + `<div class="ll" style="margin-top:4px">${pr.note||""}</div>`;
-    }
-    if(hi) hi.innerHTML = (dt.history&&dt.history.length)
-      ? dt.history.map(h=>`<div style="padding:4px 0;border-bottom:1px solid #1c2128"><b>"${h.directive}"</b> <span class="green" style="float:right">${h.n_gaps===0?"COMPLETE":(h.n_gaps+" gaps")}</span><div class="ll">${(h.leaves||[]).map(l=>l.name+(l.method?(" ("+l.method+")"):"")).join(" → ")}</div></div>`).join("")
-      : `<span class="muted">none completed yet</span>`;
-    return;
-  }
-  head.textContent = cur&&cur.directive ? `"${cur.directive}"` : "(no active directive)";
-  if(lv) lv.innerHTML = cur&&cur.leaves&&cur.leaves.length
-    ? cur.leaves.map((l,i)=>`<div style="padding:3px 0;border-bottom:1px solid #1c2128"><span class="muted">${i+1}.</span> <b>${l.name}</b> <span class="muted">${l.kind||""}</span> <span class="${st[l.status]!=null?st[l.status]:""}" style="float:right">${l.status}${l.method?(" · "+l.method):""}</span></div>`).join("")
-      + (cur.n_gaps!=null?`<div class="ll" style="margin-top:6px">${cur.n_gaps} gap(s) of ${cur.n_leaves} task(s)${cur.n_gaps>0?" — the loop has surfaced what it lacks (in-band)":" — complete"}</div>`:"")
-    : `<span class="muted">no decomposition yet</span>`;
-  if(hi) hi.innerHTML = (dt.history&&dt.history.length)
-    ? dt.history.map(h=>`<div style="padding:4px 0;border-bottom:1px solid #1c2128"><b>"${h.directive}"</b> <span class="green" style="float:right">${h.n_gaps===0?"COMPLETE":(h.n_gaps+" gaps")}</span><div class="ll">${(h.leaves||[]).map(l=>l.name+(l.method?(" ("+l.method+")"):"")).join(" → ")}</div></div>`).join("")
-    : `<span class="muted">none completed yet</span>`;
-}
-
-// RULE 2: the agent-net :99 DRIVER (computer-use loop) live state — episodes + full-task Phi climb + wins.
-// d.driver comes from publish_web._driver_block (reads driver_state.json + self_improve_eval.jsonl). Absent -> hide.
-function renderDriver(d){
-  const el=document.getElementById("driverstat"); if(!el) return;
-  const dr=d.driver;
-  if(!dr){ el.textContent=""; return; }
-  const phi=(dr.last_phi==null?null:+dr.last_phi), mx=(dr.max_phi==null?null:+dr.max_phi);
-  const M=[[0.8,"in-game"],[0.6,"game page"],[0.4,"itch.io"],[0.2,"browser open"],[0,"blank desktop"]];
-  const lab=p=>{ if(p==null) return "—"; for(const mm of M){ if(p>=mm[0]) return mm[1]; } return "blank desktop"; };
-  const parts=["agent-net driver (:99 computer-use)"];
-  if(phi!=null) parts.push("Φ "+phi.toFixed(2)+" · "+lab(phi));
-  if(mx!=null && mx>(phi||0)) parts.push("max "+mx.toFixed(2));
-  if(dr.episodes!=null) parts.push("ep "+dr.episodes);
-  if(dr.won) parts.push(dr.won+" won");
-  el.textContent=parts.join(" · ");
-}
-
-function renderCore(d){
-  const co=d.core, dt=d.directive_tab;
-  // LOOP VERSION chip (Gabriel 2026-07-03 semver eras: deploys bump minor, tweaks patch, architecture major)
-  const lvs=(d.loop_version&&d.loop_version.version)?("loop v"+d.loop_version.version):"";
-  const lv=document.getElementById("loopver"); if(lv) lv.textContent=lvs;
-  const lvf=document.getElementById("loopverfoot"); if(lvf) lvf.textContent=lvs;   // footer, beside the page version
-  // CURRENT TASK — priority: (1) the GPU daemon's LIVE activity (mint_status), (2) the driver's current leaf,
-  // (3) directive lines. Parked secondaries = one muted line; gap prose lives on the Directive tab, not here.
-  const nt=document.getElementById("nltask"), ns=document.getElementById("nltasksub");
-  const ms=d.mint_status;
-  let taskSet=false;
-  if(nt && ms && (ms.status==="training"||ms.status==="front-door"||ms.status==="resolving") && ms.label){
-    const fn=String(ms.label).replace(/^improve_/,"").replace(/__field_[a-z_]*fetched_[a-z0-9_]*?_/,' · fetched "').replace(/_(\d+)$/,'" #$1');
-    nt.textContent = ms.status==="training"
-      ? `training a new expert: ${fn}`
-      : `composing: ${fn}`;
-    // held-out is a CLIFF metric: ~0 for most of training, lifting only near the end (Gabriel 2026-07-03:
-    // a permanent 0.00 is noise). Show dense always (the training slope); show held-out ONLY once it lifts
-    // (the approach-to-gate moment — the one time it's informative live).
-    ns.textContent = (ms.step!=null?`step ${ms.step.toLocaleString()} · `:"")
-      + (ms.dense!=null?`dense ${ms.dense} `:"")
-      + (ms.exact>0?`· held-out ${ms.exact} closing on `:"· gate: held-out ≥ ")
-      + (ms.accept_gate!=null?`${ms.accept_gate} `:"")
-      + (ms.elapsed_s!=null?`· ${Math.round(ms.elapsed_s/60)}min`:"");
-    const cur0=dt&&dt.current;
-    if(cur0&&cur0.directive&&cur0.n_gaps>0) ns.textContent += ` · parked: "${cur0.directive}" (awaiting capability — see Directive)`;
-    taskSet=true;
-  }
-  if(nt && !taskSet){
-    const pretty=s=>String(s||"").replace(/[_:]/g," ").replace(/\s+/g," ").trim();
-    const cur=dt&&dt.current, pr=dt&&dt.primary;
-    // STALE-GATE (Gabriel 2026-07-04): directive files idle >30min are HISTORY, not "current" — a fossil goal
-    // ("make all 500 digits visible") must never headline as what the loop is doing NOW. Fall back to the live pose.
-    const dAge=d.directive_age_s, dirStale=(dAge!=null && dAge>1800);
-    // live pose = the loop's latest work-log row (the agent map owns current_hypernet now, so the pose
-    // comes from the iterations feed)
-    const _ir=(d.iterations&&d.iterations.rows)||[], _lp=_ir.length?_ir[_ir.length-1]:null;
-    const livePose = _lp ? `posing: ${pretty(_lp.family||_lp.kind)} · iter ${_lp.iter??"?"}${_lp.verified===true?" ✓":_lp.verified===false?" ✗":""}` : null;
-    if(dirStale){
-      nt.textContent = livePose || "loop running — no active directive";
-      const ageH=(dAge/3600).toFixed(1);
-      ns.textContent = cur&&cur.directive ? `last directive: "${cur.directive}" · idle ${ageH}h — stale, NOT current` : "";
-      taskSet=true;
-    }
-    else if(pr && pr.tier==="primary" && pr.worked && pr.worked.directive){
-      const w=pr.worked, cl=w.current_leaf;
-      if(cl && (cl.name||cl.detail)){
-        nt.textContent = cl.detail ? cl.detail : `improving: ${pretty(cl.name)}`;
-        ns.textContent = `advancing: "${w.directive}" · ${w.n_leaves!=null?w.n_leaves:"—"} tasks this cycle`
-          + (cur&&cur.directive&&cur.n_gaps>0?` · parked: "${cur.directive}"`:"");
-      } else {
-        nt.textContent = `"${w.directive}"`;
-        ns.textContent = `self-posed · ${w.n_leaves!=null?w.n_leaves:"—"} improvement tasks this cycle`
-          + (cur&&cur.directive&&cur.n_gaps>0?` · parked: "${cur.directive}" (waiting on a capability it has asked for)`:"");
-      }
-    } else if(cur && cur.directive){
-      // NO gap/detail PROSE here (Gabriel 2026-07-03) — Directive tab owns those strings. STATUS-HONEST
-      // (Gabriel 2026-07-04): "working on" ONLY for a genuinely in_progress leaf. A pending_upstream/deferred
-      // leaf was rendering as "working on: make all visible" while the faucet deferred it every cycle — when
-      // nothing is actually worked, the LIVE LOOP POSE headlines and the directive shows as deferred.
-      const cl2=cur.current_leaf, act=(cur.leaves||[]).find(l=>l.status==="in_progress");
-      if(act){
-        nt.textContent = `"${cur.directive}"`;
-        ns.textContent = cur.n_gaps>0
-          ? `parked — ${cur.n_gaps} capability gap(s) standing (details on the Directive tab)`
-          : `working on: ${pretty(act.name)}`;
-      } else {
-        nt.textContent = livePose || `"${cur.directive}"`;
-        ns.textContent = cur.n_gaps>0
-          ? `directive "${cur.directive}" parked — ${cur.n_gaps} gap(s) (Directive tab)`
-          : (cl2 ? `directive "${cur.directive}" deferred at ${pretty(cl2.name)} (${cl2.status||"?"}) — not actively worked`
-                 : (cur.n_gaps===0 ? `directive "${cur.directive}" complete` : ""));
-      }
-    } else { nt.textContent="idle"; ns.textContent=""; }
-  }
-  const cap=document.getElementById("capnow");
-  if(cap) cap.textContent = co&&co.core_score!=null ? co.core_score : "";
-  drawCoreChart(co&&co.series);          // canvas now lives on the Directive tab (Gabriel 2026-07-03)
-  feedTaskChart(d.mint_status, d.mint_trace);   // Task tab: server-side dense trace (reload-proof; wipes per task)
-  (function(){                                   // EVERYTHING RUNNING strip (Gabriel 2026-07-04)
-    const el=document.getElementById("activity"); if(!el) return;
-    const a=d.activity||[];
-    const ageF=s=>s==null?"":(s<90?`${s}s`:(s<5400?`${Math.round(s/60)}min`:`${(s/3600).toFixed(1)}h`));
-    el.innerHTML = a.length? a.map(r=>
-      `<div class="row wrap"><span class="a"><b>${esc(r.who||"?")}</b> <span class="muted" style="overflow-wrap:anywhere">${esc(r.what||"")}</span></span><span class="b muted">${ageF(r.age_s)}</span></div>`).join("")
-      : `<span class="muted">no activity data</span>`;
-  })();
-  renderHypermap(d.current_hypernet);           // Task tab: the in-flight composition map (zoom/pan/click)
-  const vm=document.getElementById("vmfeed"), lf=d.loop_feed;  // VM FEED (same source as the old Loop tab)
-  if(vm){
-    const av = lf&&lf.vm&&lf.vm.available;
-    if(av){
-      let img=vm.querySelector("img.vm");
-      if(!img){                                                  // build the element ONCE (first render / returning from idle)
-        vm.innerHTML = `<img class="vm"><div class="muted vmts" style="margin-top:4px"></div>`;
-        img=vm.querySelector("img.vm");
-      }
-      const _t=Date.now();
-      img.onerror=function(){ this.onerror=null; this.src=VM_RAW+"?t="+_t; };  // RE-ARM the relay->raw fallback EVERY poll (was a one-shot inline onerror -> after the 1st failure it stayed null -> every later poll showed a broken image)
-      img.src = VM_RELAY+"?t="+_t;                               // update src IN PLACE -> old frame stays until the new one decodes (no collapse / no scroll jump)
-      const ts=vm.querySelector(".vmts"); if(ts) ts.textContent = "updated "+when(lf.vm.ts);
-    } else if(!vm.querySelector(".vmidle")){                     // write the idle message only ONCE (don't rewrite the panel every poll)
-      vm.innerHTML = `<div class="muted vmidle">VM idle — most experts build on the cluster, not the desktop VM. (the feed appears when a computer-use task runs.)</div>`;
-    }
-  }
-}
-
-// ── HYPERNET MAP (Gabriel 2026-07-03): zoom/pan SVG of the in-flight composition; click a node -> expert panel ──
-let _hmView={x:0,y:0,w:540,h:170}, _hmLast=null;
-function renderHypermap(hn){
-  const svg=document.getElementById("hypermap"), src=document.getElementById("hmsrc"), tk=document.getElementById("hmtask");
-  if(!svg) return;
-  const key=hn?JSON.stringify([hn.task,hn.composition,hn.graph&&hn.graph.wires]):"none";
-  if(key===_hmLast) return;                                          // redraw only on structure change (keeps pan/zoom)
-  _hmLast=key;
-  if(src) src.textContent = hn?(hn.source==="the-agent"?"THE AGENT · 5-kind graph (assembled; live tick run pending)":hn.source==="live-mint"?(hn.remote?"LIVE · minting on cluster worker":"LIVE · minting"):(hn.source==="agent-loop"?("CURRENT TASK ("+esc(String(hn.task||"?"))+") · iter "+(hn.iter??"?")+(hn.verified===true?" · ✓":hn.verified===false?" · ✗":"")+" — not the agent; the agent graph publishes separately"):({"searching-live":"LIVE · search evolving (best so far"+(hn.structures_tried?", "+hn.structures_tried+" structures tried":"")+")","current-task-attempt":"current task · its latest attempt","searching":"current task · searching compositions"}[hn.source]||hn.source))):"";
-  // human task line: split the eid into family + drawn function (verbatim substrings, no authored prose)
-  const prettyTask=t=>{ t=String(t||""); const m=t.match(/^improve_([a-z_]+?)__field_[a-z_]+?_(.+)$/); return m?`${m[1]} family · function "${m[2]}"`:t; };
-  if(tk) tk.textContent = hn?(prettyTask(hn.task)+(hn.gen_acc!=null?` · gen_acc ${hn.gen_acc}`:"")+(hn.status?` · ${hn.status}`:"")
-    +((hn.examples&&hn.examples.length)?` · e.g. ${hn.examples.slice(0,2).join("  ·  ")}`:"")):"";
-  if(hn&&hn.source==="searching"){
-    svg.setAttribute("viewBox","0 0 540 170");
-    svg.innerHTML=`<text x="12" y="76" fill="#388bfd" font-size="13" font-family="monospace">searching compositions for this task…</text>`
-      +`<text x="12" y="98" fill="#8b949e" font-size="11" font-family="monospace">(structure appears when an attempt lands; live mid-search view is a pending upgrade)</text>`;
-    return;
-  }
-  // GRAPH-NATIVE RENDER (Gabriel 2026-07-04: inc4b's search object is {nodes, wires} — draw real wires,
-  // fan-out and all; the linear chain below stays for chain-era structures).
-  if(hn&&hn.graph&&hn.graph.nodes&&(hn.graph.wires||[]).length){
-    const g=hn.graph, ids=Object.keys(g.nodes);
-    // wire TYPE (Gabriel 2026-07-04: color wires by data type): array form carries it as a 3rd element
-    // [[s,sp],[d,dp],"image"], object form as w.type — absent (older serializations) renders untyped gray.
-    const W2=w=>Array.isArray(w)?{s:w[0][0],sp:w[0][1],d:w[1][0],dp:w[1][1],t:w[2]||null}:{s:w.src[0],sp:w.src[1],d:w.dst[0],dp:w.dst[1],t:w.type||null};
-    const wires=(g.wires||[]).map(W2);
-    const TYPECOL={image:"#388bfd",number:"#3fb950",string:"#d29922",bool:"#f78166"};
-    const wcol=t=>TYPECOL[String(t||"").toLowerCase()]||"#30363d";
-    const indeg={}; ids.forEach(i=>indeg[i]=0); wires.forEach(w=>{ if(indeg[w.d]!=null) indeg[w.d]++; });
-    const depth={}; ids.forEach(i=>{ if(!indeg[i]) depth[i]=0; });
-    for(let pass=0; pass<ids.length; pass++)                          // longest-path layering (small graphs)
-      wires.forEach(w=>{ if(depth[w.s]!=null){ const d=depth[w.s]+1; if(!(depth[w.d]>=d)) depth[w.d]=d; } });
-    ids.forEach(i=>{ if(depth[i]==null) depth[i]=0; });
-    const layers={}; ids.forEach(i=>{ (layers[depth[i]]=layers[depth[i]]||[]).push(i); });
-    const nL=Object.keys(layers).length, maxRows=Math.max(...Object.values(layers).map(a=>a.length));
-    const NW2=96, W=Math.max(540,(nL+1)*150), HG=Math.max(170,maxRows*62+50), H=HG+26;   // +26 = the type legend row
-    _hmView={x:0,y:0,w:W,h:H}; svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-    const pos={};
-    Object.keys(layers).forEach(d=>{ const col=layers[d];
-      col.forEach((id,r)=>{ pos[id]={x:90+d*150, y:HG/2+(r-(col.length-1)/2)*62}; }); });
-    // one arrowhead marker per data-type color, so heads match their wire
-    const usedCols=[...new Set(wires.map(w=>wcol(w.t)))];
-    let h=`<defs>`+usedCols.map((c,i)=>`<marker id="hmarrow${i}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="${c}"/></marker>`).join("")+`</defs>`;
-    wires.forEach(w=>{ const a=pos[w.s], b=pos[w.d]; if(!a||!b) return;
-      const c=wcol(w.t), mi=usedCols.indexOf(c);
-      h+=`<line x1="${a.x+NW2/2-6}" y1="${a.y}" x2="${b.x-NW2/2+6}" y2="${b.y}" stroke="${c}" stroke-width="2" marker-end="url(#hmarrow${mi})"><title>${esc((w.sp||"")+" : "+(w.t||"untyped"))}</title></line>`; });
-    // LEGEND (Gabriel 2026-07-04): wire color = data type; gray = type not yet serialized on this wire
-    (function(){
-      const items=[["image","#388bfd"],["number","#3fb950"],["string","#d29922"],["bool","#f78166"],["untyped","#30363d"]];
-      let x=14; const y=H-11;
-      items.forEach(([nm,c])=>{ h+=`<line x1="${x}" y1="${y}" x2="${x+18}" y2="${y}" stroke="${c}" stroke-width="3"/><text x="${x+22}" y="${y+4}" fill="#8b949e" font-size="10" font-family="monospace">${nm}</text>`; x+=22+nm.length*6.4+16; });
-    })();
-    ids.forEach(id=>{ const nd=g.nodes[id]||{}, p=pos[id];
-      const kind=String(nd.kind||""), lbl=String(nd.label||id);
-      const isMint=(hn.mint_slot!=null&&String(hn.mint_slot)===String(id))||kind==="mint"||lbl==="(minting)";
-      const isIO=kind==="io_source"||kind==="io_sink"||kind==="io"||kind==="input";
-      const isEff=kind==="effector";
-      const fill=isEff?"#2a1a1a":(isIO?"#161b22":(isMint?"#1f2a1f":(kind==="tool"?"#231a33":"#13233a")));
-      const stroke=isEff?"#f78166":(isIO?"#30363d":(isMint?"#3fb950":(kind==="tool"?"#a371f7":"#388bfd")));
-      h+=`<g style="cursor:pointer" onclick="hmExpertPanel(${JSON.stringify(lbl).replace(/"/g,"&quot;")})">`
-       +`<rect x="${p.x-NW2/2}" y="${p.y-22}" width="${NW2}" height="44" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
-       +`<text x="${p.x}" y="${p.y+4}" fill="#e6edf3" font-size="11" font-family="monospace" text-anchor="middle">${esc(lbl.length>13?lbl.slice(0,12)+"…":lbl)}</text></g>`; });
-    svg.innerHTML=h;
-    return;
-  }
-  if(!hn||!(hn.composition||[]).length){ svg.innerHTML=`<text x="10" y="24" fill="#8b949e" font-size="12" font-family="monospace">no task in flight</text>`; return; }
-  // WALL verdicts carry the UNTRAINED slot placeholder (identical argmax ops, e.g. [gt,gt,gt]) — NOT a dataflow.
-  // Drawing arrows there implies bools feeding binary ops (Gabriel caught it). Render the honest no-composition state.
-  const isWall=String(hn.status||"").startsWith("wall");
-  if(isWall){
-    svg.setAttribute("viewBox","0 0 540 170");
-    svg.innerHTML=`<text x="12" y="76" fill="#d29922" font-size="13" font-family="monospace">no working composition — this attempt WALLED</text>`
-      +`<text x="12" y="98" fill="#8b949e" font-size="11" font-family="monospace">(slot selector at its untrained default: ${esc((hn.composition||[]).join(", ")).slice(0,60)} — not a dataflow)</text>`;
-    return;
-  }
-  const comp=hn.composition, n=comp.length, W=Math.max(540,(n+2)*120), H=170, y=H/2;
-  _hmView={x:0,y:0,w:W,h:H};
-  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-  // boundary labels from REAL data (the typed-evidence kinds) when present; honest generic otherwise
-  const inLbl=hn.input_kind?String(hn.input_kind).replace(/_/g," "):"input", outLbl=hn.target_kind?String(hn.target_kind).replace(/_/g," "):"output";
-  const nodes=[{id:"input",label:inLbl,kind:"io",x:60}], NW=96;
-  // GREEN = the node a mint is actively filling (Gabriel: training always fills a hole in the current hypernet)
-  const mintSlot=(hn.source==="live-mint")?(hn.mint_slot!=null?hn.mint_slot:null):null;
-  comp.forEach((c,i)=>nodes.push({id:"n"+i,label:String(c),
-    kind:(mintSlot===i||(hn.source==="live-mint"&&mintSlot==null&&comp.length===1))?"mint":"expert",x:60+(i+1)*120}));
-  nodes.push({id:"output",label:outLbl,kind:"io",x:60+(n+1)*120});
-  let h="";
-  for(let i=0;i<nodes.length-1;i++) h+=`<line x1="${nodes[i].x+NW/2-8}" y1="${y}" x2="${nodes[i+1].x-NW/2+8}" y2="${y}" stroke="#30363d" stroke-width="2" marker-end="url(#hmarrow)"/>`;
-  h=`<defs><marker id="hmarrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="#30363d"/></marker></defs>`+h;
-  // PORT TRUTH on chains (Gabriel 2026-07-04): join composition names against the tool registry's typed
-  // ports (library payload) and show each node's REAL signature -- e.g. sub reads "a:num, b:num → num"
-  // even though the chain feeds it a packed pair (the shim unpacks). Experts without ports stay plain.
-  const shortT=t=>({"number":"num","list-of-number":"[num]","string":"str","bool":"bool","categorical":"cat","any":"any"}[t]||t);
-  const tp=((window._d||{}).tool_ports)||{};                          // realtime payload (Task tab); library as fallback
-  const toolPorts={}; (((window._libx||{}).tools)||[]).forEach(t=>{ toolPorts[t.id]=t; });
-  const sigOf=id=>{
-    const c=tp[id]; if(c) return (c.i||[]).map(shortT).join(",")+" → "+(c.o||[]).map(shortT).join(",");
-    const t=toolPorts[id]; if(!t) return null;
-    return (t.inputs||[]).map(p=>shortT(p[1])).join(",")+" → "+(t.outputs||[]).map(p=>shortT(p[1])).join(","); };
-  nodes.forEach(nd=>{
-    const fill=nd.kind==="io"?"#161b22":(nd.kind==="mint"?"#1f2a1f":"#13233a");
-    const stroke=nd.kind==="io"?"#30363d":(nd.kind==="mint"?"#3fb950":"#388bfd");
-    const sig=nd.kind==="io"?null:sigOf(nd.label);
-    h+=`<g style="cursor:pointer" onclick="hmExpertPanel(${JSON.stringify(nd.label).replace(/"/g,"&quot;")})">`
-      +`<rect x="${nd.x-NW/2}" y="${y-22}" width="${NW}" height="44" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
-      +`<text x="${nd.x}" y="${y+(sig?0:4)}" fill="#e6edf3" font-size="11" font-family="monospace" text-anchor="middle">${esc(nd.label.length>13?nd.label.slice(0,12)+"…":nd.label)}</text>`
-      +(sig?`<text x="${nd.x}" y="${y+14}" fill="#8b949e" font-size="8.5" font-family="monospace" text-anchor="middle">${esc(sig.length>20?sig.slice(0,19)+"…":sig)}</text>`:"")
-      +`</g>`;
-  });
-  svg.innerHTML=h;
-}
-(function hmInteractions(){
-  const svg=document.getElementById("hypermap"); if(!svg) return;
-  let drag=null;
-  const apply=()=>svg.setAttribute("viewBox",`${_hmView.x} ${_hmView.y} ${_hmView.w} ${_hmView.h}`);
-  svg.addEventListener("wheel",e=>{ e.preventDefault(); const f=e.deltaY>0?1.15:0.87;
-    const r=svg.getBoundingClientRect(), mx=_hmView.x+(e.clientX-r.left)/r.width*_hmView.w, my=_hmView.y+(e.clientY-r.top)/r.height*_hmView.h;
-    _hmView={x:mx-(mx-_hmView.x)*f, y:my-(my-_hmView.y)*f, w:_hmView.w*f, h:_hmView.h*f}; apply(); },{passive:false});
-  // BLOCK page scroll while panning the map (Gabriel 2026-07-03: panning up/down scrolled the page too).
-  // touchmove preventDefault must be NON-passive; move-only so node TAPS still synthesize clicks.
-  svg.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
-  svg.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,vx:_hmView.x,vy:_hmView.y}; svg.setPointerCapture(e.pointerId); svg.style.cursor="grabbing"; });
-  svg.addEventListener("pointermove",e=>{ if(!drag) return; e.preventDefault(); const r=svg.getBoundingClientRect();
-    _hmView.x=drag.vx-(e.clientX-drag.x)/r.width*_hmView.w; _hmView.y=drag.vy-(e.clientY-drag.y)/r.height*_hmView.h; apply(); });
-  svg.addEventListener("pointerup",()=>{ drag=null; svg.style.cursor="grab"; });
-  svg.addEventListener("pointercancel",()=>{ drag=null; svg.style.cursor="grab"; });
-})();
-function hmExpertPanel(label){
-  const x=_libx||{}, prims=(x.experts&&x.experts.primitives)||[], minted=(x.experts&&x.experts.minted)||[];
-  const op=String(label).replace(/\(.*$/,"").trim();                 // "gt" from "gt" / fold bodies keep raw
-  const p=prims.find(r=>r.op===op), m=minted.find(r=>(r.eid||"").indexOf(op)>=0);
-  let rows;
-  if(p) rows=[["kind","primitive expert (param-general atom net)"],["op",p.op],["held-out exact",p.heldout_exact],["uses",p.uses],["exact repair",p.exact_repair?"attached (limbed)":"none (byte-net)"],["output",p.is_bool?"bool":"value"]];
-  else if(m) rows=[["kind","machine-minted expert"],["eid",m.eid],["held-out exact",m.heldout_exact],["arity",m.arity],["created",m.created?when(m.created):null]];
-  else if(label==="input"||label==="output") rows=[["kind",label+" — the task boundary, not an expert"]];
-  else rows=[["kind","structure/body term (a lever or in-training node, not a library expert)"],["term",label]];
-  let mm=document.getElementById("libmodal");
-  if(!mm){ mm=document.createElement("div"); mm.id="libmodal"; document.body.appendChild(mm); mm.onclick=e=>{ if(e.target===mm) closeLibModal(); }; }
-  mm.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px";
-  mm.innerHTML=`<div style="background:var(--bg2,#161b22);border:1px solid var(--grid);border-radius:12px;max-width:460px;width:100%;padding:14px 16px">`
-    +`<div class="row" style="border:none;margin-bottom:6px"><span class="a"><b>${esc(label)}</b></span><span class="b" style="cursor:pointer;font-size:20px" onclick="closeLibModal()">&times;</span></div>`
-    +rows.filter(r=>r[1]!=null).map(r=>`<div class="row" style="padding:4px 0;border-bottom:1px solid var(--grid)"><span class="a muted">${esc(r[0])}</span><span class="b" style="text-align:right">${esc(r[1])}</span></div>`).join("")+`</div>`;
-}
-
-// ── LIBRARY DRILL-DOWNS (Gabriel 2026-07-03): hypernet -> expert map; expert -> parameter map ───────
-function _drillModal(title, bodyHtml){
-  let m=document.getElementById("libmodal");
-  if(!m){ m=document.createElement("div"); m.id="libmodal"; document.body.appendChild(m); m.onclick=e=>{ if(e.target===m) closeLibModal(); }; }
-  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px";
-  m.innerHTML=`<div style="background:var(--bg2,#161b22);border:1px solid var(--grid);border-radius:12px;max-width:560px;width:100%;max-height:82vh;overflow:auto;padding:14px 16px">`
-    +`<div class="row" style="border:none;margin-bottom:6px"><span class="a" style="overflow-wrap:anywhere"><b>${title}</b></span><span class="b" style="cursor:pointer;font-size:20px" onclick="closeLibModal()">&times;</span></div>`
-    +bodyHtml+`</div>`;
-}
-function hnMap(i){
-  const h=(window._hnList||[])[i]; if(!h) return;
-  const comp=h.composition||[], n=comp.length, W=Math.max(320,(n+2)*110), H=120, y=H/2, NW=88;
-  const nodes=[{label:"input",kind:"io",x:55}];
-  comp.forEach((c,j)=>nodes.push({label:String(c),kind:"expert",x:55+(j+1)*110}));
-  nodes.push({label:"output",kind:"io",x:55+(n+1)*110});
-  let svg=`<defs><marker id="hnarrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="none" stroke="#30363d"/></marker></defs>`;
-  for(let j=0;j<nodes.length-1;j++) svg+=`<line x1="${nodes[j].x+NW/2-8}" y1="${y}" x2="${nodes[j+1].x-NW/2+8}" y2="${y}" stroke="#30363d" stroke-width="2" marker-end="url(#hnarrow)"/>`;
-  nodes.forEach(nd=>{
-    const fill=nd.kind==="io"?"#161b22":"#13233a", stroke=nd.kind==="io"?"#30363d":"#388bfd";
-    svg+=`<g style="cursor:pointer" onclick="hmExpertPanel(${JSON.stringify(nd.label).replace(/"/g,"&quot;")})">`
-      +`<rect x="${nd.x-NW/2}" y="${y-20}" width="${NW}" height="40" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
-      +`<text x="${nd.x}" y="${y+4}" fill="#e6edf3" font-size="10" font-family="monospace" text-anchor="middle">${esc(nd.label.length>12?nd.label.slice(0,11)+"…":nd.label)}</text></g>`;
-  });
-  _drillModal(esc(h.task||"hypernet"),
-    `<div class="ll" style="margin-bottom:6px">mastered composition · gen_acc ${h.gen_acc!=null?h.gen_acc:"?"}${h.slots!=null?` · ${h.slots} slots`:""}${h.ts?` · ${when(h.ts)}`:""} — tap a node for its expert</div>`
-    +`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">${svg}</svg>`);
-}
-function paramMap(id){
-  const maps=(_libx&&_libx.param_maps)||{};
-  const m=maps[id]||maps[String(id).replace(/\.pt$/,"")];
-  if(!m||!m.layers){ _drillModal(esc(id), `<span class="muted">no parameter map yet — the export regenerates when checkpoints change (a few minutes)</span>`); return; }
-  const mx=Math.max(...m.layers.map(l=>l.params||0),1);
-  const rows=m.layers.map(l=>
-    `<div style="padding:4px 0;border-bottom:1px solid var(--grid)">`
-    +`<div class="row" style="border:none;padding:0"><span class="a small" style="overflow-wrap:anywhere">${esc(l.layer)}</span>`
-    +`<span class="b small muted">${l.shape?esc(l.shape.join("×")):"?"} · ${l.params!=null?l.params.toLocaleString():"?"}</span></div>`
-    +`<div class="gbar" style="height:4px;margin-top:2px"><span style="width:${Math.round(100*(l.params||0)/mx)}%;background:var(--green)"></span></div>`
-    +(l.w_mean_abs!=null?`<div class="small dim">|w| mean ${l.w_mean_abs} · max ${l.w_max_abs}</div>`:"")
-    +`</div>`).join("");
-  _drillModal(esc(id),
-    `<div class="ll" style="margin-bottom:6px">${esc(m.kind||"expert")} · <b>${(m.total_params||0).toLocaleString()}</b> parameters · ${m.layers.length} layers — bars scaled by layer size</div>`+rows);
-}
-
-// ── DEFINITIONS TAB (Gabriel 2026-07-03: explain the vocab for someone not on the project) ──────────
-const DEFS=[
-["the loop","The autonomous system this page watches. It gives itself tasks, tries to solve them, builds whatever ability it's missing, and repeats — without a person in the cycle."],
-["expert","A small trained neural network that does exactly one thing (compare two numbers, add, count vowels). The basic unit of capability. When used as a building block it's also called an atom."],
-["primitive","One of the base experts (greater-than, less-than, add, subtract…) — built once, reused by everything else. The starter brick set."],
-["minted expert","An expert the loop trained by itself, from real examples, because no combination of existing experts could do the job. It only enters the library if it passes the accept gate."],
-["mint / minting","Training a brand-new expert from a task's real input→output examples. Deliberately a last resort — composing existing experts is always tried first."],
-["composition","Solving a task by arranging existing experts together instead of training anything new. Cheaper and reuses what's already known."],
-["hypernet","A solved task saved as a reusable template: which experts were used, in what arrangement, with the learned routing between them. The library of these is the loop's memory of how to do things."],
-["structure ops (fold / param-fold / multi-fold)","Arrangement patterns, not experts. A fold repeats one expert down a list (sum = fold add). They multiply what the same experts can express — like ways of stacking bricks."],
-["held-out exact","The strict score. Train on half the examples, then grade exact correctness on the unseen half only. Proves an expert generalized instead of memorizing. The ONLY score that admits anything to the library."],
-["dense score","Partial credit for being close (right digits, right shape). Exists purely to give training a slope to climb — never used to accept anything."],
-["accept gate","The held-out threshold a minted expert must beat to be admitted. Below it, the mint is rejected and nothing enters the library."],
-["gen_acc","Held-out exactness for a composition. 1.0 = perfect on examples it never trained on."],
-["wall","An honest 'can't do this yet' verdict after genuinely trying. Walls are recorded, not hidden — they become the loop's to-build list."],
-["gap","A missing capability, discovered when a task walls. Gaps turn into build requests (compose first, mint if composing provably can't work)."],
-["directive","A goal given in plain language — e.g. 'write 500 digits of pi in the notepad'. The loop breaks it into small steps itself."],
-["leaf","One small actionable step a directive gets broken into (compute the digits; open the notepad; type; verify)."],
-["self-posed","Tasks the loop assigns itself — improving its weakest skills — whenever no outside directive is pending. Why it never idles."],
-["escalation","Any step where something more capable than the loop (a big AI model or a human) had to do the thinking. Fewer escalations = more genuinely autonomous."],
-["write gate","The safety rule: the loop may not modify its own code until it completes 35 consecutive directives with zero escalations, passes a deep adversarial review, and Gabriel personally approves. The streak is on the Directive tab."],
-["scaffold","Temporary human-built support the loop still leans on (pre-written plans, helper logic). Meant to be outgrown and removed; anything scaffold-assisted counts as escalated."],
-["judge / checker","Whatever scores an attempt. Always grounded in actually running the result (execute the code, read the screen) — never an opinion."],
-["mint daemon / front door","The GPU service that receives capability requests. It first tries composing existing experts; only if that provably can't work does it train (mint) something new."],
-["VM / the desktop","A sandboxed virtual computer the loop can see (screenshots) and operate (mouse + keyboard). Its only body — it cannot touch the real machine."],
-["trajectory","The recorded step-by-step story of a completed directive. These become training data for the loop's own planner, so it can eventually plan without the scaffold."],
-["legacy library","Experts from an earlier architecture (~8,700). Kept as history, a few still in service; nothing new is built there."],
-["loop vX.Y","The loop's software version. Fix deployments bump the middle number, small tweaks the last, architecture changes the first — standard versioning."]
-];
-const OPDEFS=[
-["gt / lt","Greater-than / less-than. Each takes two numbers and answers true or false. The most-reused experts in the library — every filter, boundary check, and comparison runs through them."],
-["ge / le","Greater-or-equal / less-or-equal. Same as gt/lt but inclusive of the equal case."],
-["eq / ne","Equal / not-equal. True if the two numbers are (or aren't) the same."],
-["add / sub","Addition / subtraction of two numbers."],
-["mul","Multiplication of two numbers."],
-["mod","Remainder after division (12 mod 5 = 2). By convention returns 0 when dividing by zero."],
-["id","Pass-through: returns its input unchanged. Useful as a do-nothing slot while the search shapes a composition."],
-["*3, +1, -2 … (chips on the map)","A pipeline step applying one operation with a fixed number: *3 = times three, +1 = plus one. Chained slots build functions like 'multiply by 6 then add 1'."],
-["fold","Run ONE expert repeatedly down a list, carrying a running value (the accumulator): fold of add starting at 0 = sum; fold of a gt-select = max; adding 1 per element = count. One loop lever turns scalar experts into list capabilities with zero new experts."],
-["fold+0 / fold*1 / fold~first","The same fold with different starting accumulators: start at 0 (sums, counts), start at 1 (products), start at the list's first element (max/min style)."],
-["acc / cur / t (in fold bodies)","The notation inside a fold: acc = the running value, cur = the current list element, t = a threshold parameter taken from the input. So 'acc=add(acc,cur)' reads: keep adding each element into the running total."],
-["param-fold (pfold)","A fold whose body also uses a threshold from the input: 'acc += cur if lt(cur,t)' = sum only the elements below t. Covers filter-then-reduce tasks."],
-["multi-fold","Several folds running over the same list in parallel, combined arithmetically at the end — e.g. (sum of positives) − 2×(count of positives). Found by recursive decomposition: solve a piece, subtract it out, recurse on the remainder."]
-];
-function renderDefs(){
-  const el=document.getElementById("defrows"); if(!el) return;
-  const q=((document.getElementById("defsearch")||{}).value||"").toLowerCase();
-  const row=d=>`<div style="padding:7px 0;border-bottom:1px solid var(--grid)"><b>${esc(d[0])}</b><div class="small dim" style="margin-top:2px;line-height:1.55">${esc(d[1])}</div></div>`;
-  const f=arr=>arr.filter(d=>!q||d[0].toLowerCase().includes(q)||d[1].toLowerCase().includes(q));
-  const a=f(DEFS), b=f(OPDEFS);
-  el.innerHTML = (a.map(row).join("")
-    + (b.length?`<div class="l" style="margin-top:14px">THE OPS <span class="muted">· what each primitive and structure op actually does — these are the chips on the map and in the library</span></div>`+b.map(row).join(""):""))
-    || "<span class='muted'>no match</span>";
-}
-function filterDefs(){ renderDefs(); }
-
-// ── LIBRARY TAB (MODERN structure, Gabriel 2026-07-03: hypernets + individual experts; legacy demoted) ──
-let _libx=null;   // the full modern export {era, hypernets, experts:{primitives,minted,digit_tables}, legacy:{rows}}
-const LIB_RELAY = "https://gabeslaptop.tail46cb76.ts.net/library";   // realtime (same funnel as /status); raw = stale fallback
-async function fetchLib(){
-  let j=null;
-  try{ const r=await fetch(LIB_RELAY+"?t="+Date.now(),{cache:"no-store"}); if(r.ok) j=await r.json(); }catch(e){}
-  if(!j){ try{ const r=await fetch(LIB_RAW+"?t="+Date.now(),{cache:"no-store"}); if(r.ok) j=await r.json(); }catch(e){} }
-  if(!j) return;
-  if(Array.isArray(j)||j.rows){ _libx={hypernets:[],experts:{primitives:[],minted:[]},legacy:{rows:(Array.isArray(j)?j:j.rows)||[]}}; }
-  else _libx=j;
-  _lib=(_libx.legacy&&_libx.legacy.rows)||[];          // legacy rows keep feeding _libName/filters/detail unchanged
-}
-function renderLib(){
-  const x=_libx||{}, hyp=x.hypernets||[], ex=x.experts||{}, prims=ex.primitives||[], minted=ex.minted||[];
-  const rows=_lib||[]; const done=rows.filter(r=>r.status==="done").length;
-  const lbu=x.loop_built;
-  document.getElementById("libcounts").innerHTML =
-    (lbu?`<div><div class="v green">${lbu.n_total}</div><div class="ll">LOOP-BUILT <span class="muted">(live store · +${lbu.new_24h} in 24h)</span></div></div>`:"")
-   +`<div><div class="v green">${hyp.length}</div><div class="ll">HYPERNETS <span class="muted">(mastered compositions)</span></div></div>`
-   +`<div><div class="v green">${minted.length}</div><div class="ll">MINTED EXPERTS <span class="muted">(machine-built)</span></div></div>`
-   +`<div><div class="v">${prims.length}</div><div class="ll">PRIMITIVES <span class="muted">(+${ex.digit_tables!=null?ex.digit_tables:"?"} digit tables)</span></div></div>`
-   +`<div><div class="v">${(x.tools||[]).length}</div><div class="ll">TOOLS <span class="muted">(pure python ops)</span></div></div>`
-   +`<div><div class="v dim">${done}</div><div class="ll">LEGACY <span class="muted">(retired era)</span></div></div>`;
-  const q=(document.getElementById("libsearch").value||"").toLowerCase();
-  const sec=_libFilter||"hypernets";
-  const sortRow=document.getElementById("libsortrow"); if(sortRow) sortRow.style.display = sec==="legacy"?"":"none";
-  const el=document.getElementById("librows");
-  if(sec==="hypernets"){
-    document.getElementById("libfilters").innerHTML="";
-    let f=hyp.slice().reverse();                       // newest mastered first
-    if(q) f=f.filter(h=>((h.task||"")+" "+(h.composition||[]).join(" ")).toLowerCase().includes(q));
-    const N=100, shown=f.slice(0,N);
-    window._hnList=shown;                                            // click -> composition map (Gabriel 2026-07-03)
-    // TWO writers share this library (compositions + the [3.60] PLANNER's plan-templates); plan rows carry no
-    // ts/gen_acc (plan-quality scored separately). Label each kind honestly until the row contract unifies.
-    el.innerHTML = shown.map((h,i)=>{
-      const isPlan = h.gen_acc==null && !h.ts;
-      return `<div class="row wrap" style="cursor:pointer" onclick="hnMap(${i})"><span class="a">${esc(h.task||"?")} `
-      + (isPlan?'<span class="chip" style="border-color:#d29922;color:#d29922">plan template</span>':"")
-      + (h.composition||[]).map(c=>`<span class="chip">${esc(c)}</span>`).join("")
-      + `</span><span class="b">`
-      + (isPlan ? `${(h.composition||[]).length} step${(h.composition||[]).length===1?"":"s"} <span class="muted">· planner-mastered</span>`
-                : `<span class="${h.gen_acc>=1?"green":""}">gen ${h.gen_acc!=null?h.gen_acc:"?"}</span>`
-                  + (h.slots!=null?` · ${h.slots} slots`:"") + (h.ts?` · ${when(h.ts)}`:""))
-      + `</span></div>`;}).join("")
-      || "<span class='muted'>no mastered compositions yet</span>";
-    if(f.length>N) el.innerHTML += `<div class="muted" style="margin-top:6px">+${f.length-N} more (refine search)</div>`;
-    if(x.structures_observed&&x.structures_observed.length)
-      el.innerHTML += `<div class="ll" style="margin-top:10px">structure shapes observed in masters: ${x.structures_observed.slice(0,12).map(s=>`<span class="chip">${esc(s)}</span>`).join(" ")}</div>`;
-    return;
-  }
-  if(sec==="experts"){
-    document.getElementById("libfilters").innerHTML="";
-    let p=prims, m=minted;
-    if(q){ p=p.filter(r=>(r.op||"").toLowerCase().includes(q)); m=m.filter(r=>(r.eid||"").toLowerCase().includes(q)); }
-    const lb2=x.loop_built;
-    const ageF2=s=>s==null?"":(s<90?`${s}s`:(s<5400?`${Math.round(s/60)}min`:`${(s/3600).toFixed(1)}h`));
-    el.innerHTML =
-      (lb2?`<div class="l">LOOP-BUILT <span class="muted">· the LIVE store the loop grows every iteration — ${lb2.n_frozen} frozen + ${lb2.n_composed} composed = ${lb2.n_total} (+${lb2.new_24h} in 24h)</span></div>`
-        + (lb2.recent||[]).filter(r=>!q||(r.name||"").toLowerCase().includes(q)).slice(0,20).map(r=>
-            `<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(r.name)}</span><span class="b muted">${ageF2(r.age_s)} ago</span></div>`).join("")
-        + `<div class="l" style="margin-top:12px"></div>`:"")
-      + `<div class="l">PRIMITIVES <span class="muted">· param-general atom experts, built once, reused everywhere — click one for its parameter map</span></div>`
-      + p.map(r=>`<div class="row wrap" style="cursor:pointer" onclick="paramMap(${JSON.stringify(String(r.op)).replace(/"/g,"&quot;")})"><span class="a"><b>${esc(r.op)}</b>${r.exact_repair?' <span class="chip green">exact</span>':""}</span>`
-        + `<span class="b">held-out ${r.heldout_exact!=null?r.heldout_exact:"?"} · ${r.uses!=null?r.uses:0} uses${r.is_bool?" · bool":""}</span></div>`).join("")
-      + `<div class="l" style="margin-top:12px">MINTED <span class="muted">· experts the loop trained itself when composition provably couldn't reach (typed-evidence gate)</span></div>`
-      + (m.length? m.map(r=>`<div class="row wrap" style="cursor:pointer" onclick="paramMap(${JSON.stringify(String(r.eid||"")).replace(/"/g,"&quot;")})"><span class="a">${esc((r.eid||"").replace(/^improve_/,"").replace(/__field_.*$/,m0=>" · "+m0.replace(/^__field_/,"")))}</span>`
-        + `<span class="b"><span class="green">held-out ${r.heldout_exact!=null?r.heldout_exact:"?"}</span>${r.created?` · ${when(r.created)}`:""}</span></div>`).join("")
-        : "<span class='muted'>none yet — mints register here as the gate accepts them</span>");
-    return;
-  }
-  if(sec==="tools"){
-    // TOOLS (Gabriel 2026-07-04): the pure-python tool nodes — typed ports, real execution, composable like any
-    // node. Seeded by hand now; the python-coder hypernet mints new entries here later.
-    document.getElementById("libfilters").innerHTML="";
-    let t=(x.tools||[]);
-    if(q) t=t.filter(r=>(r.id||"").toLowerCase().includes(q));
-    const sig=r=>{
-      const ins=(r.inputs||[]).map(p=>p[1]||"?").join(", "), outs=(r.outputs||[]).map(p=>p[1]||"?").join(", ");
-      return `${ins||"—"} → ${outs||"—"}`;
-    };
-    const groups={};
-    t.forEach(r=>{ const k=(r.inputs&&r.inputs[0]&&r.inputs[0][1])||"other"; (groups[k]=groups[k]||[]).push(r); });
-    el.innerHTML =
-      `<div class="ll" style="margin-bottom:6px">pure python ops as nodes — "never train or mint what a one-liner does"; hand-seeded now, minted by the python-coder hypernet later</div>`
-      + (t.length? Object.keys(groups).sort().map(k=>
-          `<div class="l" style="margin-top:10px">${esc(k.toUpperCase())} IN</div>`
-          + groups[k].map(r=>`<div class="row wrap"><span class="a"><b>${esc((r.id||"").replace(/^tool:/,""))}</b></span>`
-            + `<span class="b">${esc(sig(r))}</span></div>`).join("")).join("")
-        : "<span class='muted'>tool registry not exported yet (rides the next publisher poll)</span>");
-    return;
-  }
-  if(sec==="queue"){
-    // QUEUE (Gabriel 2026-07-03): pending gaps + in-flight cluster jobs, from the 5s-fresh status payload.
-    document.getElementById("libfilters").innerHTML="";
-    const mq=(window._d&&window._d.mint_queue)||{requests:[],cluster:[]};
-    const ageF=s=>s==null?"":(s<90?`${s}s`:(s<5400?`${Math.round(s/60)}min`:`${(s/3600).toFixed(1)}h`));
-    const pretty=e=>String(e||"").replace(/^improve_/,"").replace(/__field_/," · ");
-    let inflight=(mq.cluster||[]), waiting=(mq.requests||[]);
-    waiting=waiting.filter(r=>!inflight.some(c=>c.eid===r.eid));   // request files persist while a job runs (crash-safety) — show each task once
-    if(q){ inflight=inflight.filter(r=>(r.eid||"").toLowerCase().includes(q)); waiting=waiting.filter(r=>(r.eid||"").toLowerCase().includes(q)); }
-    el.innerHTML =
-      (mq.composing?`<div class="l">COMPOSING <span class="muted">· the daemon is searching existing experts for this gap right now (the step before any training)</span></div>`
-        +`<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(pretty(mq.composing.eid))}</span><span class="b"><span class="green">composing</span> · on the daemon</span></div>`:"")
-      + `<div class="l"${mq.composing?' style="margin-top:12px"':""}>IN FLIGHT <span class="muted">· dispatched to a cluster GPU, training now</span></div>`
-      + (inflight.length? inflight.map(r=>`<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(pretty(r.eid))}</span>`
-        + `<span class="b">${r.worker?`<span class="green">on ${esc(r.worker)}</span>`:`<span class="muted">awaiting a worker</span>`}${r.job?` · ${esc(String(r.job).replace(/^job-\d+-/,"job "))}`:""}${r.age_s!=null?` · ${ageF(r.age_s)}`:""}</span></div>`).join("")
-        : "<span class='muted'>nothing on the cluster right now</span>")
-      + `<div class="l" style="margin-top:12px">QUEUED <span class="muted">· gaps waiting for the front door (oldest first)</span></div>`
-      + (waiting.length? waiting.map(r=>`<div class="row wrap"><span class="a" style="overflow-wrap:anywhere">${esc(pretty(r.eid))}</span>`
-        + `<span class="b muted">waiting ${ageF(r.age_s)}</span></div>`).join("")
-        : "<span class='muted'>queue empty — the faucet poses as the daemon drains</span>");
-    return;
-  }
-  // LEGACY section — the retired pre-hypernet manifest, rendered by the original pipeline (search/sort/filters/detail).
-  renderLibFilters();
-  let f=rows;
-  if(q) f=f.filter(r=>((r.skill||"")+" "+(r.purpose||"")+" "+(r.field||"")+" "+(r.topology||"")).toLowerCase().includes(q));
-  const F=window._libF||{};
-  Object.keys(F).forEach(k=>{ if(F[k]&&F[k].size) f=f.filter(r=>F[k].has(String(r[k]))); });
-  const sk=(document.getElementById("libsort")||{}).value||"created";
-  const desc=(window._libDir!=="asc");
-  const kf={created:r=>r.created||0, uses:r=>r.uses||0, window:r=>r.window||0, val:r=>(r.val==null?Infinity:r.val),
-            name:r=>(r.purpose||r.skill||"").toLowerCase()}[sk]||(r=>r.created||0);
-  f = f.slice().sort((a,b)=>{ const av=kf(a),bv=kf(b); return av<bv?(desc?1:-1):av>bv?(desc?-1:1):0; });
-  const N=80, shown=f.slice(0,N);
-  el.innerHTML = `<div class="ll" style="margin-bottom:6px">${esc((x.legacy&&x.legacy.note)||"retired era")}</div>`
-    + (shown.map(r=>
-    `<div class="row wrap" style="cursor:pointer" onclick='libDetail(${JSON.stringify(String(r.id||r.skill||""))})'><span class="a">${esc(_libName(r))} `
-    + `<span class="chip">${esc(r.field)}</span>`
-    + (r.topology?`<span class="chip">${esc(r.topology)}</span>`:"")
-    + `</span><span class="b">`
-    + (r.status==="done"?`<span class="green">built</span>`:`<span class="dim">retired</span>`)
-    + ` · ${r.uses!=null?(r.uses+" uses"):"uses n/a"}`
-    + (r.created?` · ${when(r.created)}`:"")
-    + `</span></div>`).join("") || "<span class='muted'>no experts match</span>");
-  if(f.length>N) el.innerHTML += `<div class="muted" style="margin-top:6px">+${f.length-N} more (refine search)</div>`;
-}
-// [2.42] NET-DETAIL PANEL (Gabriel-directed): click any library row -> modal showing every tracked field for that
-// net. Reads the row already in _lib (no extra fetch). r.detail.* (corpus/tier/router-uses/provenance/verified)
-// renders when the publisher enriches the payload (follow-up). RULE 5 #7: only REAL fields, never fabricated.
-function libDetail(id){
-  const r=(_lib||[]).find(x=>String(x.id||x.skill||"")===String(id)); if(!r) return;
-  const d=r.detail||{};
-  const fields=[
-    ["id",r.id],["skill",r.skill],["purpose",r.purpose],["field",r.field],["origin",r.origin],
-    ["topology",r.topology],["atoms",r.atoms],["param count",(r.param_count!=null?Number(r.param_count).toLocaleString():null)],
-    ["status",r.status],["uses",r.uses],["metric val",r.val],["window",r.window],
-    ["created",r.created?when(r.created):null],
-    ["corpus",d.corpus],["tier",d.tier],["router uses",d.router_uses],["provenance",d.provenance],
-    ["verified",d.verified==null?null:(d.verified?"yes":"no")]
-  ];
-  const body=fields.filter(kv=>kv[1]!=null&&kv[1]!=="").map(kv=>
-    `<div class="row" style="padding:4px 0;border-bottom:1px solid var(--grid)"><span class="a muted">${kv[0]}</span>`
-    +`<span class="b" style="word-break:break-all;text-align:right">${esc(kv[1])}</span></div>`).join("");
-  let m=document.getElementById("libmodal");
-  if(!m){ m=document.createElement("div"); m.id="libmodal"; document.body.appendChild(m);
-    m.onclick=e=>{ if(e.target===m) closeLibModal(); }; }
-  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px";
-  m.innerHTML=`<div style="background:var(--bg2,#161b22);border:1px solid var(--grid);border-radius:12px;max-width:520px;width:100%;max-height:80vh;overflow:auto;padding:14px 16px">`
-    +`<div class="row" style="border:none;margin-bottom:6px;align-items:center"><span class="a"><b>${esc(_libName(r))}</b></span>`
-    +`<span class="b" style="cursor:pointer;font-size:20px;line-height:1" onclick="closeLibModal()">&times;</span></div>`
-    +body+`</div>`;
-}
-function closeLibModal(){ const m=document.getElementById("libmodal"); if(m) m.remove(); }
-
-// ── LOOP TAB ───────────────────────────────────────────────────────────────
-function renderLoop(lf){
-  const vm=document.getElementById("vmfeed");
-  const av = lf && lf.vm && lf.vm.available;
-  vm.innerHTML = av
-    ? `<img class="vm" src="${VM_RELAY}?t=${Date.now()}" onerror="this.onerror=null;this.src='${VM_RAW}?t=${Date.now()}'"><div class="muted" style="margin-top:4px">updated ${when(lf.vm.ts)}</div>`
-    : `<div class="muted">VM idle — the comprehension loop builds experts on the cluster, not the desktop VM. (feed appears when the VM is in use.)</div>`;
-  const sv = lf&&lf.serving;
-  const ae = (lf&&lf.active_experts)||[];
-  const aeEl = document.getElementById("activeexperts");
-  if(sv){                                   // a serving loop is LIVE — show the real VRAM need-set
-    aeEl.innerHTML =
-      `<div class="small" style="color:var(--green);margin-bottom:4px">● LIVE in VRAM · serving <b>${esc(sv.task||"task")}</b></div>`
-      + (sv.experts||[]).map(e=>`<div class="row"><span class="a">${esc(e.id)}</span><span class="b">${esc(e.topology||"")}${e.mb!=null?(" · "+e.mb+" MB"):""}</span></div>`).join("")
-      + `<div class="muted" style="margin-top:6px">${sv.n} experts live in VRAM · ${sv.resident_mb??"?"}${sv.budget_mb?(" / "+sv.budget_mb):""} MB${sv.device?(" · "+esc(sv.device)):""}</div>`;
-  } else {                                  // no serving loop — show the BUILT library (honestly labelled)
-    aeEl.innerHTML = ae.length
-      ? `<div class="small muted" style="margin-bottom:4px">built library (per family) — no task being served right now</div>`
-        + ae.map(e=>`<div class="row"><span class="a">${esc(e.family)} <span class="chip">D${e.difficulty}</span></span><span class="b">${esc(e.topology||"")}</span></div>`).join("")
-        + `<div class="muted" style="margin-top:6px">${ae.length} experts built</div>`
-      : "<span class='muted'>no experts plugged in yet — the loop is building them…</span>";
-  }
-}
-
-// ── WORKERS TAB (read-only stats) ──────────────────────────────────────────
-function renderWorkers(cl){
-  const ws=(cl&&cl.workers)||[];   // publish_web flattens: w.util / w.temp / w.mem_used / w.job / w.activity (NOT nested gpus)
-  // [2.10] ETA derived PAGE-SIDE from the raw (step,steps,sps) the payload ships — nothing eta/phase is pre-computed
-  // (publish_web.py:1208 by design). round/phase are search-mode concepts (null in agent-loop mode), so we surface
-  // the one applicable straggler signal: time-to-finish of the slowest in-flight eval (mirrors draw_cluster's head eta).
-  const _etaSec=w=>(w&&w.step!=null&&w.steps&&w.sps>0&&w.steps>w.step)?((w.steps-w.step)/w.sps):null;
-  const _fEtas=ws.map(_etaSec).filter(x=>x!=null); const _fEta=_fEtas.length?Math.max(..._fEtas):null;
-  // FLEET SUMMARY (match the app's draw_cluster head line): queued / running / done + slowest-eta + staleness.
-  const fleet = cl ? (`<div class="row" style="border:none;padding:2px 0;margin-bottom:4px"><span class="a muted">`
-      + `cluster · queued ${cl.queued!=null?cl.queued:0} · running ${cl.running!=null?cl.running:0} · done ${cl.done!=null?cl.done:0}`
-      + (_fEta!=null?` · eta ~${ago(_fEta)}`:"")
-      + (cl.status_age>30?` · <span class="amber">STALE ${Math.round(cl.status_age)}s — coordinator down?</span>`:"")
-      + `</span></div>`) : "";
-  document.getElementById("workerrows").innerHTML = ws.length ? (fleet + ws.map(w=>{
-    const st=w.status||"", util=w.util, cpu=w.cpu, temp=w.temp, mem=w.mem_used, memt=w.mem_total;
-    const busy = !!(w.activity || w.job) || /running/.test(st);
-    const stColor = /running/.test(st)?'green':(/owner active/.test(st)?'amber':'dim');
-    const right = busy ? (esc(w.activity||"working") + (w.job?(" · "+esc(String(w.job).slice(-8))):"")) : "idle";
-    const ub = util!=null ? util : (busy?100:0);
-    // NET TRAINING PROGRESS (the app shows the eval's net + step/steps + sps; the payload ships them — render here).
-    const _we=_etaSec(w);
-    const prog = (w.net && w.step!=null && w.steps)
-      ? `<div class="muted" style="font-size:10px">${esc(w.net)} · step ${w.step}/${w.steps}${w.sps?(" · "+w.sps+"/s"):""}${_we!=null?(" · eta ~"+ago(_we)):""}</div>` : "";
-    return `<div style="padding:8px 0;border-bottom:1px solid var(--grid)">`
-      + `<div class="row" style="border:none;padding:2px 0"><span class="a"><b>${esc(w.id)}</b>${w.host?` <span class="muted">(${esc(w.host)})</span>`:""}</span>`
-      + `<span class="b ${stColor}">${esc(st)}</span></div>`
-      + `<div class="gbar"><span style="width:${ub}%;background:${ub>80?'var(--amber)':'var(--green)'}"></span></div>`
-      + `<div class="row" style="border:none;padding:2px 0"><span class="a muted">${cpu!=null?"CPU "+cpu+"% · ":""}GPU ${util!=null?util+"%":"—"} · ${temp!=null?temp+"&deg;C":"—"} · ${mem!=null?mem+"/"+memt+"MB":""}</span>`
-      + `<span class="b muted">${right}</span></div>`
-      + prog
-      + ((w.caps&&w.caps.length)?`<div class="muted" style="font-size:10px">${w.caps.map(esc).join(" · ")}</div>`:"")
-      + `</div>`;
-  }).join("")) : "<span class='muted'>no workers reporting</span>";
-}
-
-// ── SUBSTRATE SEARCH TAB (the brain — read-only mirror of d.search) ──────────
-function renderSearch(s){
-  const el=document.getElementById("searchbody"); if(!el) return;
-  if(!s){ el.innerHTML="<span class='muted'>no substrate-search state yet (brain paused or starting)</span>"; return; }
-  const fx=(v)=> v!=null ? (+v).toFixed(4) : "—";
-  const champ=fx(s.champion), bar=fx(s.bar), gate=fx(s.ratchet_gate), phase=esc(s.phase||"—");
-  const plateau = s.plateau ? `<div class="small amber" style="margin-top:2px">architecture plateau · champion ${esc((s.plateau&&s.plateau.champion)||"")}</div>` : "";
-  const wins=(s.winners||[]).slice(0,8).map(w=>
-    `<div class="row" style="border:none;padding:1px 0"><span class="a">${esc(w.name)}</span><span class="b muted">${fx(w.val_mean)}</span></div>`).join("");
-  const lv=s.live;
-  const live = lv ? (
-      `<div style="padding:6px 0;border-bottom:1px solid var(--grid);margin-bottom:6px">`
-    + `<div class="row" style="border:none;padding:1px 0"><span class="a">`
-    + (lv.active?`<span style="color:var(--green)">●</span> <b>ACTIVE</b> search`:`<span class="muted">○ idle (last eval ${lv.age!=null?Math.round(lv.age)+"s ago":"—"})</span>`)
-    + ` · ${esc(lv.phase||"—")}</span><span class="b muted">${lv.eta_min!=null?("ETA ~"+Math.round(lv.eta_min)+"m"):""}</span></div>`
-    + (lv.frac!=null?`<div class="gbar"><span style="width:${Math.round(100*lv.frac)}%;background:var(--blue)"></span></div>`:"")
-    + `<div class="small dim" style="margin-top:2px">${lv.step!=null?("eval step "+lv.step+"/"+lv.steps):""}${lv.st_per_s!=null?(" · "+(+lv.st_per_s).toFixed(2)+" st/s"):""}</div>`
-    + `</div>` ) : "";
-  const cap=(s.capability_history||[]);
-  const capHtml = cap.length ? `<div class="l" style="margin-top:8px">CORE CAPABILITY OVER BUILDS <span class="muted">· operator-readiness per champion-core build (0→1, seat at 1)</span></div><canvas id="capchart" width="540" height="120"></canvas>` : "";
-  el.innerHTML = live +
-    `<div class="bignums"><b>${champ}</b> champion val <span class="muted">· ${phase}</span></div>`
-    + `<div class="small dim">ratchet bar ${bar} · gate ${gate}</div>`
-    + plateau
-    + capHtml
-    + (wins ? `<div class="l" style="margin-top:8px">RECENT WINNERS <span class="muted">· crowned topologies (val_mean)</span></div>`+wins
-            : `<div class="muted" style="margin-top:6px">no crowned winners yet this run</div>`);
-  if(cap.length) drawCapChart(cap);
-}
-// [0.64] core-capability trajectory (worst-case skill per champion-core build), 0..1 absolute scale.
-function drawCapChart(hist){
-  const c=document.getElementById("capchart"); if(!c) return; const x=c.getContext("2d");
-  x.clearRect(0,0,c.width,c.height);
-  const H=(hist||[]).filter(p=>p&&p.cap!=null&&p.ts);
-  if(H.length<1){ x.fillStyle="#8b949e"; x.font="12px monospace"; x.fillText("collecting…",8,20); return; }
-  const t0=H[0].ts, t1=Math.max(H[H.length-1].ts,t0+1);
-  const X=t=>8+((t-t0)/(t1-t0))*(c.width-16), Y=v=>c.height-14-Math.max(0,Math.min(1,v))*(c.height-26);
-  x.strokeStyle="#21262d"; x.lineWidth=1;
-  for(let g=0;g<=4;g++){ const yy=12+g*(c.height-26)/4; x.beginPath(); x.moveTo(8,yy); x.lineTo(c.width-8,yy); x.stroke(); }
-  x.strokeStyle="#58a6ff"; x.lineWidth=2; x.beginPath();
-  H.forEach((p,i)=>{ const px=X(p.ts),py=Y(p.cap); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
-  const last=H[H.length-1]; x.fillStyle="#58a6ff"; x.beginPath(); x.arc(X(last.ts),Y(last.cap),3,0,7); x.fill();
-  x.fillStyle="#8b949e"; x.font="11px monospace"; x.fillText("now "+(+last.cap).toFixed(3),10,14); x.fillText("1.0",c.width-26,14);
-}
-
-// ── ROADMAP TAB (stage tracker + open jobs; owner/status overlay from #02's data when present) ──────
-function renderRoadmap(p, claims, rs, cov, dec){
-  const el=document.getElementById("roadmapbody"); if(!el) return;
-  p = p || {};
-  claims = claims || {};   // {id:{item,status,...}}  -- worker current-work markers
-  // [0.61] LIVE WORK — who's on what, NOW (from worker_claims); shown regardless of roadmap data.
-  const _wcids = Object.keys(claims).sort();
-  let liveWork = "";
-  if(_wcids.length){
-    liveWork = `<div class="card" style="margin-bottom:8px"><div class="l">LIVE WORK <span class="muted">· who's on what, now</span></div>`;
-    _wcids.forEach(id=>{ const c=claims[id]||{};
-      liveWork += `<div class="row" style="border:none;padding:2px 0"><span class="a">#${esc(id)} <span style="color:var(--fg)">${esc((c.item||"—").slice(0,72))}</span></span><span class="b small dim">${esc((c.status||"").slice(0,42))}</span></div>`; });
-    liveWork += `</div>`;
-  }
-  if(!(p.roadmap||p.open||(rs&&rs.stages))){ el.innerHTML = liveWork + "<span class='muted'>no roadmap data yet</span>"; return; }
-  const ownerOf = (title)=>{ if(!title) return null;
-    for(const id in claims){ const it=((claims[id]||{}).item)||""; if(it && (it.toLowerCase().includes(title.slice(0,18).toLowerCase())||title.toLowerCase().includes(it.slice(0,18).toLowerCase()))) return id; }
-    return null; };
-  // Gabriel's R/Y/G: done=green / in_progress=yellow / planned=red (color_map from #02's roadmap_status).
-  const CM = (rs&&rs.color_map) || {done:"green", in_progress:"yellow", planned:"red"};
-  const COL = {green:"var(--green)", yellow:"var(--amber)", red:"#f78166", dim:"var(--dim,#888)"};
-  const dot = (st)=>`<span style="color:${COL[CM[st]]||COL.dim}">●</span>`;
-  const here = (rs&&rs.we_are_here) || "";
-  let html = liveWork + `<div class="l">ROADMAP <span class="muted">· we are here: ${esc(here||"?")} · ●done ●wip ●planned</span></div>`;
-  if(rs && rs.we_are_here_note){ html += `<div class="small dim" style="margin:1px 0 4px">${esc(rs.we_are_here_note)}</div>`; }
-  // STAGE 1->2 GATE GAUGE — the north-star number: held-out coverage of arbitrary code (gen_acc>=0.8), honest.
-  if(cov && cov.distinct){
-    const pct = Math.round(100*(cov.coverage||0));
-    html += `<div style="padding:6px 0;border-bottom:1px solid var(--grid)">`
-      + `<div class="row" style="border:none;padding:1px 0"><span class="a"><b>Stage 1→2 gate</b> · arbitrary-code coverage</span><span class="b green">${pct}%</span></div>`
-      + `<div class="gbar"><span style="width:${pct}%;background:var(--green)"></span></div>`
-      + `<div class="small dim" style="margin-top:2px">${cov.covered}/${cov.distinct} fns at held-out gen_acc≥0.8 (exact-writer ceiling; climbs as the loop cracks novel-write)</div>`
-      + `</div>`;
-  }
-  // OPERATOR readiness (decision-2, Gabriel-confirmed): execution-grounded coverage×accuracy — NEVER wrong where
-  // covered, ABSTAINS on execution-equivalent mutants (a genuine ceiling). Distinct from the write-coverage gate above.
-  if(dec && dec.coverage_accuracy!=null){
-    const opct = Math.round(100*(dec.coverage_accuracy||0)), acc = Math.round(100*(dec.accuracy||0));
-    html += `<div style="padding:6px 0;border-bottom:1px solid var(--grid)">`
-      + `<div class="row" style="border:none;padding:1px 0"><span class="a"><b>Operator</b> · execution coverage×accuracy</span><span class="b green">${opct}%</span></div>`
-      + `<div class="gbar"><span style="width:${opct}%;background:var(--green)"></span></div>`
-      + `<div class="small dim" style="margin-top:2px">${dec.covered}/${dec.n} real fns × ${acc}% acc — never wrong, abstains on equivalent mutants (vs legacy NLL ~chance)</div>`
-      + `</div>`;
-  }
-  // STAGE TRACKER — authoritative from rs.stages (per-stage progress bar + per-task R/Y/G + owner); else d.plan fallback.
-  if(rs && rs.stages && rs.stages.length){
-    rs.stages.forEach(s=>{
-      const tasks=s.tasks||[], tot=tasks.length||1;
-      const done=tasks.filter(t=>t.status==="done").length, wip=tasks.filter(t=>t.status==="in_progress").length;
-      const isHere = here && s.id===here;
-      html += `<div style="padding:6px 0;border-bottom:1px solid var(--grid)">`
-        + `<div class="row" style="border:none;padding:1px 0"><span class="a">${dot(s.status)} <b>${esc(s.id)}</b> ${esc(s.name||"")}${isHere?' <span style="color:var(--green)">◀ HERE</span>':""}</span>`
-        + `<span class="b muted">${done}/${tasks.length} done${wip?(" · "+wip+" wip"):""}</span></div>`
-        + (s.what?`<div class="small dim" style="margin:1px 0 3px">${esc(s.what)}</div>`:"")
-        + `<div class="gbar"><span style="width:${Math.round(100*done/tot)}%;background:var(--green)"></span></div>`;
-      // CONDITIONS = the stage's definition-of-done (gate criteria), R/Y/G — distinct from the work tasks.
-      if(s.conditions && s.conditions.length){
-        html += `<div class="small muted" style="margin-top:4px">done when:</div>`;
-        s.conditions.forEach(c=>{ html += `<div class="row wrap" style="border:none;padding:1px 0;font-size:11px"><span class="a">${dot(c.status)} ${esc(c.title)}</span></div>`; });
-      }
-      if(tasks.length){ html += `<div class="small muted" style="margin-top:4px">work:</div>`; }
-      tasks.forEach(t=>{
-        const ow = t.owner ? ` <span class="green">#${esc(t.owner)}</span>` : "";
-        html += `<div class="row wrap" style="border:none;padding:1px 0;font-size:11px"><span class="a">${dot(t.status)} ${esc(t.title)}${ow}</span></div>`;
-      });
-      html += `</div>`;
+/* ---------- feed display switcher (Gabe 2026-07-26: the display of MY choice). Edit-history
+   note: this block was first injected INSIDE the pause-toggle closure (a replace anchored on the
+   FIRST 'startFeed();', which lives in that handler), so the tabs only existed after a
+   pause/resume click. Top level now. ---------- */
+async function loadDisplays(){
+  try{
+    const d=await jget('/api/displays');
+    if(feedDisplay===null) feedDisplay=d.default;
+    $('feedtabs').innerHTML=(d.displays||[]).map(x=>
+      `<button class="tabbtn${x===feedDisplay?' on':''}" data-d="${esc(x)}">${esc(x)}</button>`).join("");
+    [...$('feedtabs').querySelectorAll('.tabbtn')].forEach(b=>b.onclick=()=>{
+      feedDisplay=b.dataset.d; $('feeddisp').textContent=feedDisplay; loadDisplays(); tickFeed();
     });
-  } else {
-    (p.roadmap||[]).forEach(s=>{
-      const nm=esc((s.name||"").split("—")[0].trim());
-      html += `<div style="padding:5px 0;border-bottom:1px solid var(--grid)"><div class="row" style="border:none;padding:1px 0"><span class="a"><b>${nm}</b>${s.here?' <span class="green">◀ WE ARE HERE</span>':""}</span></div><div class="small dim">${esc((s.status||"").slice(0,170))}</div></div>`;
-    });
+    $('feeddisp').textContent=feedDisplay;
+  }catch(e){}
+}
+loadDisplays(); setInterval(loadDisplays,15000);
+
+/* ---------- state polling ---------- */
+function fmtAgo(t){ if(!t) return ""; const s=Math.max(0,(Date.now()/1000-t)); if(s<60)return Math.round(s)+"s ago"; if(s<3600)return Math.round(s/60)+"m ago"; return Math.round(s/3600)+"h ago"; }
+async function poll(){
+  let st; try{ st=await jget('/api/state'); }catch(e){ $('s-alive').textContent="unreachable"; return; }
+  $('dot').className = "dot"+(st.alive?" live":"");
+  $('s-alive').textContent = st.alive? "alive" : "offline";
+  $('s-alive').style.color = st.alive? "var(--ok)":"var(--faint)";
+  $('s-cycle').textContent = st.cycle==null?"–":st.cycle;
+  const ws = {ready:"ready", loading:"indexing…", cold:"–", error:"error"}[st.world_state]||st.world_state;
+  $('s-world').textContent = ws;
+  $('s-world').style.color = st.world_state==="ready"?"var(--ok)":(st.world_state==="error"?"var(--accent)":"var(--muted)");
+  // current
+  const c = st.current||{};
+  if(c.mode==="directive"){
+    $('cur-mode').textContent="PURSUING DIRECTIVE";
+    $('cur-main').textContent=c.directive||"(directive)"; $('cur-main').className="cur-main accent";
+  }else{
+    $('cur-mode').textContent="STANDING LOOP";
+    $('cur-main').textContent=(c.action==="dive"?"Diving — growing the world model":(c.standing||"improve your capabilities"));
+    $('cur-main').className="cur-main";
   }
-  // OPEN JOBS backlog — FLAT ranked list (Gabriel de-stratified to 2-decimal `[1.10]` priorities; _plan sorts
-  // ascending = highest first). Light separators by integer tier; each item shows its [pri] + owner.
-  const open = p.open||[];
-  if(open.length){
-    html += `<div class="l" style="margin-top:10px">OPEN JOBS <span class="muted">· ${open.length} open (ranked)</span></div>`;
-    let lastTier=null;
-    open.forEach(o=>{
-      const pf=parseFloat(o.pri); const tier=isNaN(pf)?9:Math.floor(pf);
-      if(tier!==lastTier){ lastTier=tier; html += `<div class="small ${tier<=1?"amber":"muted"}" style="margin-top:5px">~${tier}.xx</div>`; }
-      const ow = ownerOf(o.title); const badge = ow ? ` <span class="green">#${esc(ow)}</span>` : "";
-      html += `<div class="row wrap" style="border:none;padding:1px 0"><span class="a"><span class="muted" style="font-size:10px">[${esc(o.pri)}]</span> ${esc(o.title)}${badge}</span></div>`;
-    });
-  }
-  el.innerHTML = html;
+  $('cur-task').textContent = c.action? (c.action+(c.concept?(" · "+c.concept):(c.detail?(" · "+c.detail):""))) : "";
+  // stats from latest dive entry
+  const j=st.journal||[]; const last=[...j].reverse().find(e=>e.memories!=null)||{};
+  $('cur-stats').innerHTML = `<span><b>${last.memories??"–"}</b> memories</span><span><b>${last.docs??"–"}</b> docs read</span><span>phase <b>${esc((st.phase||"").split(":")[0]||"–")}</b></span><span class="mono">${fmtAgo(st.updated_at)}</span>`;
+  // WORKER CARDS -- one per lane, keyed "kind:lane", mirroring ouro_app.CurrentPage.refresh.
+  const workers = st.workers||[];
+  $('w-count').textContent = workers.length? (workers.length+" lanes") : "";
+  $('workers').innerHTML = workers.length? workers.map(w=>{
+    // A status file OUTLIVES ITS PROCESS, so a dead lane must not read as a working one.
+    const alive = !!w.alive;
+    const age = w.age_s!=null? (w.age_s+"s") : "-";
+    // hole/hop are the dive lanes' own progress and are absent on cpu lanes.
+    const extra = w.hole!=null? ("   hole "+w.hole+" hop "+(w.hops??"-")) : "";
+    const g = w.grow;
+    // THE GROW IN ITS OWN LANE'S CARD (Gabe: "The grows should be shown in the per worker
+    // panels"). A lane IS a cpu worker, so its search belongs to that worker -- and the directive
+    // NAME alone says nothing about whether the search is getting anywhere, which is why the
+    // metric line carries best/scored/nodes and the ops line carries the actual candidate.
+    const metric = g? `<div class="w-metric">best <b>${esc(String(g.best??"–")).slice(0,10)}</b> · scored ${g.scored??"–"} · nodes ${g.nodes??"–"} · ${g.elapsed_s??"–"}s <span class="w-dir">${esc(g.directive||"")}</span></div>` : "";
+    const ops = (g && g.ops && g.ops.length)? `<div class="w-ops">${esc(g.ops.join(" ")).slice(0,140)}</div>` : "";
+    return `<div class="wcard${alive?"":" dead"}">`+
+      `<div class="w-head">${alive?"●":"○"} ${esc(String(w.kind||"?").toUpperCase())} lane ${esc(String(w.lane))}`+
+      `${alive?"":'<span class="w-off">   (not running)</span>'}</div>`+
+      `<div class="w-state">${esc(String(w.state||"?"))}   ${esc(age)}${esc(extra)}</div>`+
+      (w.detail? `<div class="w-detail">${esc(String(w.detail))}</div>` : "")+
+      metric+ops+
+    `</div>`;
+  }).join("") : '<div class="empty">(no workers reporting)</div>';
+  // Queued: waiting work first, then parked work with the reason it is parked.
+  const jobs = st.jobs||[];
+  const parts = jobs.filter(x=>x.status==="waiting").slice(0,8)
+      .map(x=>`${x.name} (${x.kind}, p${x.priority})`)
+    .concat(jobs.filter(x=>x.status==="parked").slice(0,4)
+      .map(x=>`${x.name} (parked: ${String(x.reason||"").slice(0,60)}…)`));
+  $('cur-jobs').textContent = "Queued:  " + (parts.length? parts.join("     ") : "nothing waiting");
+  // system panel
+  $('sysstats').innerHTML=`<span>daemon <b>${st.alive?"alive":"offline"}</b></span>`+
+    `<span>memories <b>${st.world_size??"–"}</b></span>`+
+    `<span>lived episodes <b>${st.episodes??0}</b></span>`+
+    `<span>perceiving <b>${st.percept_age!=null?(st.percept_age+"s ago"):"–"}</b></span>`+
+    `<span>phase stamp <b>${st.heartbeat_age!=null?(st.heartbeat_age+"s"):"–"}</b></span>`;
+  $('sysprimary').textContent = st.active_primary? ("primary: "+st.active_primary.slice(0,150)) : "";
+  // queue
+  const q=st.queue||[]; $('q-count').textContent=q.length;
+  $('queuebody').innerHTML = q.length? q.map((e,i)=>`<div class="qitem"><span class="qnum">${i+1}</span><span class="qtext">${esc(e.directive)}</span><span class="qmeta">${e.attempts?("try "+e.attempts):"queued"}</span></div>`).join("") : '<div class="empty">Queue is empty — the daemon is diving.</div>';
+}
+setInterval(poll,2000); poll();
+
+// WORK QUEUES -- the systems that had no display at all. Gabe, 2026-08-20: "Repurpose obsolete
+// displays to be wired into systems that aren't represented". Chat, current, feed, grows, memory
+// and nodes were all wired; the queues the work flows through were invisible.
+// Polled at 10s against a 30s server-side cache, because judge_buffer's load costs ~1s.
+function bufPill(label, n, warn){
+  const c = warn && n > 0 ? '#e0a030' : (n > 0 ? '#8ab4f8' : '#6a6a6a');
+  return `<span style="display:inline-block;margin:0 10px 4px 0"><b style="color:${c}">${n}</b> <span style="opacity:.7">${label}</span></span>`;
+}
+async function pollBuffers(){
+  try{
+    const r = await jget('/api/buffers');
+    const j = r.judge || {}, op = r.oracle_pending || {}, oa = r.oracle_answered || {};
+    document.getElementById('buf-rows').innerHTML =
+      bufPill('judge rows', j.rows||0, false) +
+      bufPill('judge UNSCORED', j.unscored||0, true) +
+      bufPill('oracle reward pending', op.reward||0, true) +
+      bufPill('oracle decomp pending', op.decomposition||0, true) +
+      bufPill('reward answered', oa.reward||0, false) +
+      bufPill('decomp answered', oa.decomposition||0, false);
+    const q = (r.queue||{}).by_kind_status || {};
+    document.getElementById('buf-queue').innerHTML =
+      Object.keys(q).sort().map(k => bufPill(k, q[k], k.indexOf('parked')>=0)).join('') ||
+      '<span style="opacity:.6">queue empty</span>';
+    if (r.at) {
+      const age = Math.max(0, Math.round(Date.now()/1000 - r.at));
+      document.getElementById('buf-age').textContent = age + 's ago';
+    }
+  }catch(e){}
+}
+setInterval(pollBuffers,10000); pollBuffers();
+
+
+// live grows: one block per composing lane (metric, produced turns, op chain)
+// NO SECOND `esc` HERE. A `function esc(){}` sat on this line and `const esc = ...` is declared at
+// the top of this same (single) script block, so the whole script died at PARSE time with
+// "Identifier 'esc' has already been declared" -- and a script that does not parse defines
+// nothing, polls nothing and renders nothing. Every panel on this page was a static shell: the
+// markup shipped, the placeholders ("–", "connecting…") never got replaced, and the page looked
+// like a server problem rather than a syntax one. Measured 2026-08-19: 0 of 8 panels populated,
+// `typeof $` === "undefined" in the live page. The two definitions were equivalent escapers, so
+// the first one wins and this one is gone.
+async function pollGrows(){
+  let r; try{ r=await jget('/api/grows'); }catch(e){ return; }
+  const lanes=(r.lanes||[]).filter(l=>(l.age_s||0)<600);
+  window._growLanes=lanes;   // so a slider can post the full knob set, not just the one moved
+  $('growcount').textContent=lanes.length?lanes.length+" lane"+(lanes.length>1?"s":""):"";
+  if(!lanes.length){ $('growbody').innerHTML='<div class="empty">No compose lane is searching.</div>'; return; }
+  $('growbody').innerHTML=lanes.map(l=>{
+    const outs=(l.sample_outputs||[]).slice(0,3).map(o=>'<div style="color:var(--muted)">out: '+esc(String(o).slice(0,90))+'</div>').join('');
+    const ops=(l.ops||[]).slice(0,10).join(' &gt; ')+((l.ops||[]).length>10?' ...':'');
+    return '<div style="margin-bottom:10px"><b>'+esc(String(l.directive).slice(0,80))+'</b>'
+      +(l.age_s>120?' <span style="color:var(--muted)">(stale '+Math.round(l.age_s)+'s)</span>':'')
+      +'<div>best '+Number(l.best).toFixed(4)+' &middot; '+l.scored+' cands &middot; '
+      +l.elapsed_s+'s &middot; '+l.nodes+' nodes</div>'
+      +'<div style="color:var(--muted);font-size:11px">'+ops+'</div>'+outs
+      +growSliders(l)+'</div>';
+  }).join('');
 }
 
-// ── fetch loop ─────────────────────────────────────────────────────────────
-async function fetchStatus(){
-  try { const r=await fetch(RELAY+"?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); if(d&&d.ts) return d; } } catch(e){}
-  return await (await fetch(RAW+"?t="+Date.now(),{cache:"no-store"})).json();
+// SEARCH CONTROLS, LIVE (Gabe 2026-08-10: "have the training variables exposed as sliders below
+// each grow in the interface so I can tune them aswell"). Each slider POSTs to /api/grow_control,
+// which writes that worker's sidecar; the search re-reads it every 25 candidates, so a drag takes
+// effect in about a second WITHOUT restarting the run or losing candidates already found.
+// elite_p is the diversity pressure: the chance a restart resumes from a random archive cell
+// (a stepping stone) rather than from the champion.
+const GROW_KNOBS=[
+  ['elite_p','diversity (restart from archive)',0,1,0.05],
+  ['best_p','exploit (restart from best)',0,1,0.05],
+  ['mut_min','min mutations',1,12,1],
+  ['mut_max','max mutations',1,12,1]];
+
+function growSliders(l){
+  if(!l.control||!l.pid) return '';
+  const d=l.control_defaults||{};
+  return '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line)">'
+    +GROW_KNOBS.map(function(k){
+      const name=k[0], val=l.control[name];
+      const changed=(d[name]!==undefined && Number(d[name])!==Number(val));
+      return '<div style="display:flex;align-items:center;gap:8px;font-size:11px">'
+        +'<span style="color:var(--muted);min-width:170px">'+k[1]+'</span>'
+        +'<input type="range" min="'+k[2]+'" max="'+k[3]+'" step="'+k[4]+'" value="'+val+'" '
+        +'style="flex:1" oninput="this.nextElementSibling.textContent=this.value" '
+        +'onchange="setGrowControl('+l.pid+',&quot;'+name+'&quot;,this.value)">'
+        +'<b style="min-width:34px;text-align:right'+(changed?';color:var(--accent)':'')+'">'
+        +val+'</b></div>';
+    }).join('')+'</div>';
 }
-// ── AGENT LOOP (library-growth operator) — read-only mirror of the operator_* state ──────────
-function renderAgent(a){
-  const el=document.getElementById("agentbody"); if(!el) return;
-  if(!a){ el.innerHTML="<span class='muted'>agent loop idle / no library state yet</span>"; return; }
-  const head = a.paused ? "<span class='amber'>⏸ paused</span>"
-             : (a.live ? "<span class='green'>▶ growing</span>" : "<span class='muted'>■ idle</span>");
-  const deg = (a.degraded&&a.degraded.length) ? " · <span class='amber'>degraded "+esc(a.degraded.join(","))+"</span>" : "";
-  el.innerHTML =
-    "<div class='bignums'><b>"+(a.library_count==null?"?":a.library_count)+"</b> experts <span class='muted'>· difficulty d"+esc(a.difficulty)+"</span></div>"
-    + "<div class='small'>"+head+" · pass@k "+esc(a.last_pass_k)+deg+"</div>"
-    + "<div class='small dim'>last expert built: "+esc(a.last_compounded||"—")+" · "+when(a.compound_ts)+"</div>";
+
+// Send ALL four knobs, not only the one moved: the endpoint clamps them as a SET (best_p may not
+// sit below elite_p, since they are cumulative thresholds on one roll), so a partial update could
+// be silently corrected against stale values.
+async function setGrowControl(pid,name,value){
+  const lane=(window._growLanes||[]).filter(function(x){return x.pid===pid;})[0];
+  const body=Object.assign({},(lane&&lane.control)||{},{pid:pid});
+  body[name]=Number(value);
+  try{ await jpost('/api/grow_control',body); }catch(e){}
+  pollGrows();
 }
-// WRITE PROPOSALS (shared-seat sign-off surface, [1.20]) — read-only mirror of shared_seat_queue.json ACTIONABLE.
-function renderProposals(p){
-  const el=document.getElementById("proposalbody"); if(!el) return;
-  const items=(p&&p.items)||[];
-  if(!items.length){ el.innerHTML="<span class='muted'>no write proposals pending sign-off</span>"; return; }
-  el.innerHTML = items.map(it=>
-    `<div style="padding:5px 0;border-bottom:1px solid var(--grid)">`
-    + `<div class="row wrap" style="border:none;padding:1px 0"><span class="a"><b>#${esc(it.rank)}</b> ${esc(it.kind||"")}</span></div>`
-    + (it.where?`<div class="small dim">${esc(it.where)}</div>`:"")
-    + (it.what?`<div class="small wrap" style="margin-top:1px">${esc(String(it.what).slice(0,200))}</div>`:"")
-    + `</div>`).join("");
+setInterval(pollGrows,3000); pollGrows();
+
+/* ---------- system panel (config + diagnostics) ---------- */
+async function daemonCtl(action){
+  $('dstart').disabled=$('dstop').disabled=true;
+  try{ const r=await jpost('/api/daemon',{action}); $('sysnote').textContent=r.note||r.error||""; }
+  catch(e){ $('sysnote').textContent=String(e); }
+  $('dstart').disabled=$('dstop').disabled=false; poll();
 }
-// LOOP LOG ([1.10] redesign) — read-only mirror of the app Main's live agent-loop iter log.
-function renderLoopLog(lines){
-  const el=document.getElementById("looplog"); if(!el) return;
-  const ls=lines||[];
-  if(!ls.length){ el.innerHTML="<span class='muted'>no loop log yet</span>"; return; }
-  el.innerHTML = ls.map(l=>{
-    const cls = /verified=True/.test(l) ? "green" : (/verified=False/.test(l) ? "dim" : "");
-    return `<div class="${cls}">${esc(l)}</div>`;
-  }).join("");
-  el.scrollTop = el.scrollHeight;   // newest at the bottom, auto-scroll
+$('dstart').onclick=()=>daemonCtl('start');
+$('dstop').onclick=()=>daemonCtl('stop');
+
+/* ---------- send directive ---------- */
+async function sendDirective(){
+  const v=$('sendinput').value.trim(); if(!v) return;
+  $('sendbtn').disabled=true;
+  await jpost('/api/send',{directive:v}); $('sendinput').value=""; $('sendbtn').disabled=false; poll();
 }
-async function load(){
-  let d;
-  try { d=await fetchStatus(); } catch(e){ document.getElementById("upd").textContent="fetch failed"; return; }
-  const age=Date.now()/1000-(d.ts||0), upd=document.getElementById("upd");
-  upd.textContent="data "+ago(age)+" old"; upd.className="pill"+(age>900?" stale":"");
-  window._d=d;
-  renderCore(d);                 // [2.05] the single Core tab: core_score graph + current task (loop log) + VM feed
-  renderDriver(d);               // RULE 2: agent-net :99 driver live state (episodes + full-task Phi climb + wins)
-  renderDirective(d);            // DIRECTIVE tab: NL directive -> leaf sequence + history (verbatim from the loop)
-  renderGate(d);                 // WRITE GATE card: strict streak + progress-toward-gate (Gabriel 2026-07-03 ruling)
-  renderSelfModel(d.self_model); // [1.03] GATE-1 self-model coverage (per-family, struggling = gaps)
-  renderHumanTask(d.operator_human_task); // [4.05] shared-seat operator->human task (hidden when none)
-  renderWorkers(d.cluster);
-  if(curV==="library"&&_libFilter==="queue") renderLib();   // the queue section rides the 5s status polls
-  // roadmap tab REMOVED (Gabriel 2026-07-03: "stale and not really necessary anymore as we are so close");
-  // renderRoadmap left as dead code (no-ops on the missing div) — delete wholesale on the next page overhaul.
-  if(!_lib) await fetchLib();
-  if(curV==="library") renderLib();
+$('sendbtn').onclick=sendDirective;
+$('sendinput').addEventListener('keydown',e=>{if(e.key==="Enter")sendDirective();});
+
+/* ---------- chat (post to the bus; the daemon's responder answers; poll log) ---------- */
+let chatSig="";
+function renderChat(messages){
+  const last=messages.length?messages[messages.length-1]:null;
+  const sig=messages.length+"|"+(last?last.role+last.text:"");
+  if(sig===chatSig) return; chatSig=sig;
+  const log=$('chatlog'); log.innerHTML="";
+  if(!messages.length){
+    const d=document.createElement('div'); d.className="msg bot";
+    d.textContent="Say hi. I answer from what I've read — slow and literal, matching your message to the closest thing I know. Not fluent, but it's me.";
+    log.appendChild(d);
+  }
+  for(const m of messages){
+    const d=document.createElement('div'); d.className="msg "+(m.role==="user"?"me":"bot");
+    d.textContent=m.text;
+    if(m.role==="ouroboros" && m.meta && (m.meta.basis||m.meta.matched)){
+      const s=document.createElement('span'); s.className="lf";
+      s.textContent = m.meta.basis ? ("· "+m.meta.basis)
+        : ("~ \""+m.meta.matched+"\" ("+Math.round((m.meta.sim||0)*100)+"% match)");
+      d.appendChild(s);
+    }
+    log.appendChild(d);
+  }
+  if(last && last.role==="user"){
+    const p=document.createElement('div'); p.className="msg bot"; p.textContent="…"; p.style.opacity=".5"; log.appendChild(p);
+  }
+  log.scrollTop=log.scrollHeight;
 }
-load(); renderDefs(); setInterval(load, 7000); setInterval(()=>{ fetchLib().then(()=>{ if(curV==="library") renderLib(); }); }, 60000);
+async function pollChat(){ try{ const r=await jget('/api/chat_log'); renderChat(r.messages||[]); }catch(e){} }
+async function chat(){
+  const v=$('chatinput').value.trim(); if(!v) return;
+  $('chatinput').value=""; $('chatsend').disabled=true;
+  try{ await jpost('/api/chat',{text:v}); }catch(e){}
+  $('chatsend').disabled=false; $('chatinput').focus(); setTimeout(pollChat,150);
+}
+$('chatsend').onclick=chat;
+$('chatinput').addEventListener('keydown',e=>{if(e.key==="Enter")chat();});
+setInterval(pollChat,1500); pollChat();
+
+/* ---------- memory browser ---------- */
+let memOffset=0, memQuery="", memSel=null, memTimer=null;
+async function loadMemories(){
+  const d=await jget(`/api/memories?q=${encodeURIComponent(memQuery)}&offset=${memOffset}&limit=30`);
+  if(d.loading){ $('memlist').innerHTML=`<div class="empty">Indexing memory library (${d.loading})…</div>`; setTimeout(loadMemories,3000); return; }
+  $('mem-count').textContent=`${d.world_memories} memories · ${d.docs} docs`;
+  $('memlist').innerHTML = (d.items||[]).map(m=>{
+    const chips=[m.frozen?'<span class="chip frozen">frozen</span>':'',m.grounded?'<span class="chip ground">grounded</span>':''].join('');
+    return `<div class="row${m.name===memSel?' sel':''}" data-n="${esc(m.name)}"><span class="name mono">${esc(m.name)}</span>${chips}<span class="conf">${(m.confidence*100).toFixed(0)}%</span></div>`;
+  }).join("")||'<div class="empty">No matches.</div>';
+  [...$('memlist').querySelectorAll('.row')].forEach(r=>r.onclick=()=>openMemory(r.dataset.n));
+  const pages=Math.ceil(d.total/d.limit)||1, cur=Math.floor(memOffset/d.limit)+1;
+  $('mempager').innerHTML=`<button class="btn ghost" ${memOffset<=0?'disabled':''} id="mprev">‹</button><span>${cur} / ${pages} · ${d.total}</span><button class="btn ghost" ${memOffset+30>=d.total?'disabled':''} id="mnext">›</button>`;
+  const mp=$('mprev'),mn=$('mnext'); if(mp)mp.onclick=()=>{memOffset=Math.max(0,memOffset-30);loadMemories();}; if(mn)mn.onclick=()=>{memOffset+=30;loadMemories();};
+}
+async function openMemory(name){
+  memSel=name; [...$('memlist').querySelectorAll('.row')].forEach(r=>r.classList.toggle('sel',r.dataset.n===name));
+  const d=await jget('/api/memory?name='+encodeURIComponent(name));
+  if(d.error){ $('memdetail').innerHTML=`<div class="empty">${esc(d.error)}</div>`; return; }
+  const maxv=Math.max(0.001,...(d.relations||[]).map(r=>r.value));
+  const rels=(d.relations||[]).map(r=>`<div class="relbar"><span class="rk">${esc(r.key)}</span><span class="rt"><i style="width:${Math.round(100*r.value/maxv)}%"></i></span><span class="rv">${r.value.toFixed(2)}</span></div>`).join("");
+  const ids=(d.identifiers||[]).map(x=>`<div class="idrow">◆ ${esc(x.key)}: ${esc(x.value)}</div>`).join("");
+  $('memdetail').innerHTML=`<h3 class="mono">${esc(d.name)}</h3>
+    <div class="kv"><span>confidence <b>${(d.confidence*100).toFixed(0)}%</b></span><span>revisions <b>${d.revisions}</b></span><span>relations <b>${d.relation_count}</b></span></div>
+    <div class="kv">${d.frozen?'<span class="chip frozen">frozen</span>':''} ${d.grounded?'<span class="chip ground">grounded</span>':''}</div>
+    ${ids?('<div class="bar"></div>'+ids):''}
+    <div class="bar"></div>${rels||'<div class="empty">No graded relations.</div>'}`;
+}
+$('memsearch').addEventListener('input',e=>{ clearTimeout(memTimer); memTimer=setTimeout(()=>{memQuery=e.target.value.trim();memOffset=0;loadMemories();},250); });
+loadMemories();
+
+/* ---------- node browser ---------- */
+let nodeSel=null;
+async function loadNodes(){
+  const d=await jget('/api/nodes');
+  if(d.error){ $('nodelist').innerHTML=`<div class="empty">${esc(d.error)}</div>`; return; }
+  let total=0, html="";
+  for(const cat of d.categories||[]){
+    total+=cat.count;
+    html+=`<div class="muted" style="margin:8px 2px 3px;font-size:11px;letter-spacing:.4px">${esc(cat.category)} · ${cat.count}</div>`;
+    html+=cat.nodes.map(n=>`<div class="row" data-id="${esc(n.id)}"><span class="name">${esc(n.id)}</span>${n.nodes!=null?`<span class="conf">${n.nodes}n</span>`:''}${n.version?`<span class="chip">v${n.version}</span>`:''}</div>`).join("");
+  }
+  $('node-count').textContent=`${total} nodes`;
+  $('nodelist').innerHTML=html||'<div class="empty">No nodes.</div>';
+  [...$('nodelist').querySelectorAll('.row')].forEach(r=>r.onclick=()=>openNode(r.dataset.id));
+}
+async function openNode(id){
+  nodeSel=id; [...$('nodelist').querySelectorAll('.row')].forEach(r=>r.classList.toggle('sel',r.dataset.id===id));
+  const d=await jget('/api/node?id='+encodeURIComponent(id));
+  if(d.error){ $('nodedetail').innerHTML=`<div class="empty">${esc(d.error)}</div>`; return; }
+  const dir=d.directive&&d.directive.description?`<div class="kv"><span class="muted">grows:</span> <b style="font-family:var(--sans);color:var(--text)">${esc(d.directive.description)}</b></div>`:"";
+  const cases=d.directive&&d.directive.cases?`<div class="kv"><span>cases <b>${d.directive.cases.length}</b></span></div>`:"";
+  const stats=d.stats?`<div class="kv"><span>runs <b>${d.stats.runs??d.stats.calls??"–"}</b></span><span>totalMs <b>${d.stats.totalMs!=null?Math.round(d.stats.totalMs):"–"}</b></span></div>`:"";
+  const head=(d.graph_head||[]).map(n=>`<div class="mono" style="font-size:11px;color:var(--muted);padding:1px 0">${esc(n.id)}${n.inputs&&n.inputs.length?` <span class="faint">(${n.inputs.length} in)</span>`:''}</div>`).join("");
+  $('nodedetail').innerHTML=`<h3 class="mono">${esc(d.id)}</h3>
+    <div class="kv"><span>kind <b>${esc(d.kind)}</b></span>${d.graph_size!=null?`<span>size <b>${d.graph_size}</b> nodes</span>`:''}${d.version?`<span>version <b>${d.version}</b></span>`:''}</div>
+    ${dir}${cases}${stats}
+    ${head?('<div class="bar"></div><div class="muted" style="font-size:11px;margin-bottom:3px">graph head:</div>'+head+(d.graph_size>24?`<div class="faint mono" style="font-size:11px">… +${d.graph_size-24} more</div>`:'')):''}`;
+}
+loadNodes();
 </script>
 </body>
 </html>
