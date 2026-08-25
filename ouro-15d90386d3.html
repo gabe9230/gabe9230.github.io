@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ouroboros</title>
+<style>
+  :root{
+    --bg:#000; --panel:#0c0c0d; --panel2:#111113; --line:rgba(255,255,255,.10);
+    --text:#fff; --muted:rgba(255,255,255,.55); --faint:rgba(255,255,255,.32);
+    --accent:#ff6b6b; --accent-dim:rgba(255,107,107,.14); --accent-line:rgba(255,107,107,.45);
+    --ok:#7ee081; --warn:#ffcf6b;
+    --sans:"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    font-size:14px; line-height:1.5; display:flex; flex-direction:column;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  /* header */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 22px; border-bottom:1px solid var(--line);
+    background:radial-gradient(120% 200% at 0% 0%, rgba(255,107,107,.10), transparent 60%);
+  }
+  .brand{display:flex; align-items:center; gap:12px}
+  .brand h1{font-size:20px; font-weight:700; margin:0; letter-spacing:.2px}
+  .brand .sub{color:var(--muted); font-size:12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+  .dot.live{background:var(--accent); box-shadow:0 0 0 0 rgba(255,107,107,.6);
+    animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,107,.5)}
+    70%{box-shadow:0 0 0 7px rgba(255,107,107,0)}100%{box-shadow:0 0 0 0 rgba(255,107,107,0)}}
+  .status{display:flex; align-items:center; gap:18px; font-size:12.5px; color:var(--muted)}
+  .status b{color:var(--text); font-weight:700}
+  .status .k{color:var(--faint); margin-right:5px}
+  /* grid */
+  .grid{
+    flex:1; display:grid; gap:13px; padding:13px; overflow:auto;
+    grid-template-columns:1.32fr 1fr 1.18fr;
+    grid-template-rows:minmax(300px,40vh) minmax(158px,auto) auto minmax(300px,auto);
+    grid-template-areas:
+      "feed feed chat"
+      "current queue chat"
+      "send system chat"
+      "memory memory nodes";
+  }
+  #system{grid-area:system}
+  .sysrow{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:8px}
+  .sysrow b{color:var(--text); font-family:var(--mono)}
+  .tabbtn{font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:3px; cursor:pointer;
+    border:1px solid var(--line); color:var(--muted); background:transparent}
+  .tabbtn.on{border-color:var(--accent-line); color:var(--accent); background:var(--accent-dim)}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    display:flex; flex-direction:column; min-height:0; min-width:0; overflow:hidden;
+  }
+  .panel > .head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 13px; border-bottom:1px solid var(--line); flex:0 0 auto;
+  }
+  .panel > .head .title{font-weight:700; font-size:12.5px; letter-spacing:.35px}
+  .panel > .head .title .accent{color:var(--accent)}
+  .panel > .head .meta{color:var(--faint); font-size:11.5px; font-family:var(--mono)}
+  .panel > .body{padding:13px; overflow:auto; min-height:0}
+  .panel > .body.flush{padding:0}
+  /* areas */
+  #feed{grid-area:feed} #chat{grid-area:chat} #current{grid-area:current}
+  #queue{grid-area:queue} #send{grid-area:send} #memory{grid-area:memory}
+  #nodes{grid-area:nodes}
+  /* feed */
+  #feed .body{padding:0; background:#000; flex:1; min-height:0}
+  .feedbox{position:relative; width:100%; height:100%; overflow:hidden; background:#000}
+  #feedimg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; background:#000}
+  #feed:fullscreen{background:#000; border:none; border-radius:0}
+  #feed:fullscreen .head{position:absolute; top:0; left:0; right:0; z-index:3; background:rgba(0,0,0,.35); border:none}
+  #feed:fullscreen .feedbox{padding-bottom:0; height:100vh; width:100vw}
+  .badge{font-family:var(--mono); font-size:10.5px; padding:2px 7px; border-radius:3px;
+    border:1px solid var(--accent-line); color:var(--accent); background:var(--accent-dim)}
+  .btn{
+    font-family:var(--sans); font-size:13px; font-weight:500; color:#fff; cursor:pointer;
+    background:var(--accent); border:none; border-radius:4px; padding:8px 15px;
+    transition:filter .15s;
+  }
+  .btn:hover{filter:brightness(1.08)} .btn:active{filter:brightness(.94)}
+  .btn.ghost{background:transparent; border:1px solid var(--line); color:var(--muted); padding:5px 11px; font-size:12px}
+  .btn.ghost:hover{border-color:var(--accent-line); color:var(--text)}
+  /* current directive */
+  .cur-mode{font-size:11px; color:var(--faint); letter-spacing:.4px; text-transform:uppercase}
+  .cur-main{font-size:16px; font-weight:700; margin:5px 0 3px; word-break:break-word}
+  .cur-main.accent{color:var(--accent)}
+  .cur-task{color:var(--muted); font-size:13px; font-family:var(--mono); word-break:break-word}
+  .bar{height:1px;background:var(--line);margin:11px 0}
+  .feedrow{display:flex; gap:16px; font-size:12px; color:var(--muted); flex-wrap:wrap}
+  .feedrow b{color:var(--text)}
+  /* worker cards -- one panel per lane (Gabe 08-12), replacing the old journal-tail activity list */
+  .wsect{font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px}
+  .wsect .meta{text-transform:none; letter-spacing:0; margin-left:6px}
+  #workers{max-height:340px; overflow:auto}
+  .wcard{border:1px solid var(--line); border-radius:7px; padding:7px 9px; margin-bottom:7px;
+         font-family:var(--mono); font-size:11.5px; background:rgba(255,255,255,.015)}
+  .wcard.dead{opacity:.5}
+  .w-head{color:var(--text); font-weight:600}
+  .w-off{color:var(--faint); font-weight:400}
+  .w-state{color:var(--faint)}
+  .w-detail{color:var(--muted); word-break:break-word; margin-top:2px}
+  .w-metric{color:var(--faint); margin-top:3px}
+  .w-metric b{color:var(--ok)}
+  .w-dir{color:var(--muted); margin-left:6px}
+  .w-ops{color:var(--faint); opacity:.75; margin-top:2px; word-break:break-all}
+  /* queue */
+  .qitem{display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid var(--line)}
+  .qitem:last-child{border-bottom:none}
+  .qnum{font-family:var(--mono); color:var(--accent); font-size:12px; flex:0 0 auto}
+  .qtext{flex:1; font-size:13px; word-break:break-word}
+  .qmeta{color:var(--faint); font-size:11px; font-family:var(--mono)}
+  .empty{color:var(--faint); font-size:12.5px; font-style:italic; padding:6px 0}
+  /* send */
+  #send .body{display:flex; gap:9px; align-items:center}
+  .input{
+    flex:1; background:var(--panel2); border:1px solid var(--line); border-radius:5px;
+    color:var(--text); font-family:var(--sans); font-size:13.5px; padding:10px 12px; outline:none;
+  }
+  .input:focus{border-color:var(--accent-line)}
+  .input::placeholder{color:var(--faint)}
+  .hint{color:var(--faint); font-size:11px; font-family:var(--mono); margin-left:2px}
+  /* chat */
+  #chat .body{display:flex; flex-direction:column; gap:0; padding:0}
+  .chatlog{flex:1; overflow:auto; padding:13px; display:flex; flex-direction:column; gap:10px}
+  .msg{max-width:88%; padding:9px 12px; border-radius:9px; font-size:13px; white-space:pre-wrap; word-break:break-word}
+  .msg.me{align-self:flex-end; background:var(--accent-dim); border:1px solid var(--accent-line)}
+  .msg.bot{align-self:flex-start; background:var(--panel2); border:1px solid var(--line)}
+  .msg .lf{display:block; margin-top:6px; font-family:var(--mono); font-size:11px; color:var(--faint)}
+  .chatin{display:flex; gap:8px; padding:11px 13px; border-top:1px solid var(--line)}
+  /* libraries */
+  .libhead{display:flex; gap:6px}
+  .tab{font-size:12px; color:var(--muted); cursor:pointer; padding:3px 4px; border-bottom:2px solid transparent}
+  .searchbar{display:flex; gap:8px; margin-bottom:10px}
+  .list{display:flex; flex-direction:column}
+  .row{display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:5px; cursor:pointer; border:1px solid transparent}
+  .row:hover{background:var(--panel2)}
+  .row.sel{background:var(--accent-dim); border-color:var(--accent-line)}
+  .row .name{flex:1; font-size:13px; word-break:break-word}
+  .row .name.mono{font-family:var(--mono); font-size:12px}
+  .conf{font-family:var(--mono); font-size:11px; color:var(--muted); flex:0 0 auto}
+  .chip{font-family:var(--mono); font-size:9.5px; padding:1px 5px; border-radius:3px; border:1px solid var(--line); color:var(--faint)}
+  .chip.frozen{color:var(--accent); border-color:var(--accent-line)}
+  .chip.ground{color:var(--ok); border-color:rgba(126,224,129,.4)}
+  .split{display:grid; grid-template-columns:1fr 1fr; gap:12px; height:100%; min-height:0}
+  .col{display:flex; flex-direction:column; min-height:0; overflow:auto}
+  .detail h3{margin:0 0 3px; font-size:15px; font-weight:700; word-break:break-word}
+  .detail .mono{font-family:var(--mono)}
+  .relbar{display:flex; align-items:center; gap:8px; margin:4px 0; font-size:12px}
+  .relbar .rk{width:38%; color:var(--muted); font-family:var(--mono); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .relbar .rt{flex:1; height:6px; background:var(--panel2); border-radius:3px; overflow:hidden}
+  .relbar .rt i{display:block; height:100%; background:var(--accent)}
+  .relbar .rv{width:42px; text-align:right; font-family:var(--mono); font-size:10.5px; color:var(--faint)}
+  .kv{display:flex; gap:10px; font-size:12px; color:var(--muted); margin:3px 0; flex-wrap:wrap}
+  .kv b{color:var(--text); font-family:var(--mono)}
+  .idrow{font-family:var(--mono); font-size:12px; color:var(--accent); margin:3px 0}
+  .muted{color:var(--muted)} .mono{font-family:var(--mono)}
+  .pager{display:flex; align-items:center; gap:10px; margin-top:9px; font-size:12px; color:var(--muted)}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.13); border-radius:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* PAGES (Gabe, 2026-08-20: "Make the webpage mobile friendly. Have different pages, like the
+     tkinter interface so you don't need to squeeze everything onto one screen").
+     The grid's named areas are retired: one page shows at a time and its panels stack. */
+  nav#pages{
+    display:flex; gap:6px; padding:8px 13px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--bg); z-index:40; overflow-x:auto;
+  }
+  nav#pages button{
+    background:var(--panel2); color:var(--muted); border:1px solid var(--line);
+    border-radius:8px; padding:9px 14px; font:inherit; cursor:pointer; white-space:nowrap;
+  }
+  nav#pages button.on{ color:var(--text); border-color:var(--accent-line); background:var(--accent-dim); }
+  .grid{ display:block; overflow:auto; padding:10px; }
+  .grid>.panel{ margin:0 0 12px 0; }
+  .page-hidden{ display:none !important; }
+  @media (max-width:720px){
+    body{ font-size:15px; }
+    nav#pages{ position:fixed; bottom:0; top:auto; left:0; right:0; border-top:1px solid var(--line);
+               border-bottom:none; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
+    nav#pages button{ flex:1; padding:12px 8px; }
+    .grid{ padding:8px 8px 74px 8px; }
+    input,textarea,button{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span id="dot" class="dot"></span>
+    <h1>Ouroboros</h1>
+    <span class="sub">control panel</span>
+  </div>
+  <div class="status" id="hdrstatus">
+    <span><span class="k">daemon</span><b id="s-alive">…</b></span>
+    <span><span class="k">cycle</span><b id="s-cycle">–</b></span>
+    <span><span class="k">memory</span><b id="s-world">–</b></span>
+  </div>
+</header>
+<nav id="pages">
+  <button data-page="current">Current</button>
+  <button data-page="feed">Feed</button>
+  <button data-page="chat">Chat</button>
+  <button data-page="queues">Queues</button>
+  <button data-page="memory">Memory</button>
+</nav>
+
+<div class="grid">
+  <!-- feed -->
+  <section class="panel" id="feed">
+    <div class="head">
+      <span class="title">Live desktop <span class="accent" id="feeddisp">:99</span></span>
+      <span class="libhead" id="feedtabs"></span>
+      <span style="display:flex;gap:9px;align-items:center">
+        <span class="badge" id="feedbadge">LIVE</span>
+        <button class="btn ghost" id="feedfull">⛶ Fullscreen</button>
+        <button class="btn ghost" id="feedtoggle">Pause</button>
+      </span>
+    </div>
+    <div class="body"><div class="feedbox"><img id="feedimg" alt="vm desktop feed"></div></div>
+  </section>
+
+  <!-- chat -->
+  <section class="panel" id="chat">
+    <div class="head">
+      <span class="title">Chat with <span class="accent">Ouroboros</span></span>
+      <span class="meta">reasoner</span>
+    </div>
+    <div class="body">
+      <div class="chatlog" id="chatlog"></div>
+      <div class="chatin">
+        <input class="input" id="chatinput" placeholder="Message Ouroboros…">
+        <button class="btn" id="chatsend">Send</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- current -->
+  <section class="panel" id="buffers">
+    <div class="head"><span class="title">Work queues</span><span class="title" id="buf-age" style="opacity:.55"></span></div>
+    <div class="body">
+      <div class="feedrow" id="buf-rows">–</div>
+      <div class="bar"></div>
+      <div class="feedrow" id="buf-queue"></div>
+    </div>
+  </section>
+  <section class="panel" id="current">
+    <div class="head"><span class="title">Current directive &amp; task</span></div>
+    <div class="body">
+      <div class="cur-mode" id="cur-mode">–</div>
+      <div class="cur-main" id="cur-main">–</div>
+      <div class="cur-task" id="cur-task"></div>
+      <div class="bar"></div>
+      <div class="feedrow" id="cur-stats"></div>
+      <div class="bar"></div>
+      <!-- WORKERS, NOT RECENT ACTIVITY (Gabe, 2026-08-12: "drop recent activity and add a panel
+           for each worker that shows what it's doing, for both dives and cpu workers", and then
+           "that isn't a panel for each worker, that is one panel with all workers"). This page
+           answered "what happened" with a journal tail while the question in front of it is "what
+           is happening" -- and the tail could not answer that at all, because it never named which
+           lane was doing what. `ouro_app.py` was fixed on 08-12; THIS renderer was not, and
+           /api/state has been serving the `workers` list to it unread ever since. -->
+      <div class="wsect">Workers <span class="meta" id="w-count"></span></div>
+      <div id="workers"><div class="empty">(no workers reporting)</div></div>
+      <!-- JOBS BELONG HERE TOO (Gabe, 2026-08-12: "no jobs are showing in current"). Running work
+           is a card; WAITING work is this line, and it is the half no worker card can ever show
+           because no worker holds it yet. -->
+      <div class="cur-task" id="cur-jobs" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- queue -->
+  <section class="panel" id="queue">
+    <div class="head">
+      <span class="title">Directive queue</span>
+      <span class="meta" id="q-count">0</span>
+    </div>
+    <div class="body" id="queuebody"><div class="empty">Queue is empty.</div></div>
+  </section>
+
+  <!-- grows: live compose search per lane -- metric, produced turns, structure -->
+  <section class="panel" id="grows">
+    <div class="head">
+      <span class="title">Live grows</span>
+      <span class="meta" id="growcount"></span>
+    </div>
+    <div class="body" id="growbody"><div class="empty">No compose lane is searching.</div></div>
+  </section>
+
+  <!-- send -->
+  <section class="panel" id="send">
+    <div class="head"><span class="title">Send a directive</span>
+      <span class="hint">prefix with <b>compose:</b> to grow a subgraph</span></div>
+    <div class="body">
+      <input class="input" id="sendinput" placeholder="e.g. open a text editor and write a haiku">
+      <button class="btn" id="sendbtn">Queue</button>
+    </div>
+  </section>
+
+  <!-- system: config + diagnostics -->
+  <section class="panel" id="system">
+    <div class="head"><span class="title">System</span>
+      <span style="display:flex;gap:8px">
+        <button class="btn ghost" id="dstart">Start daemon</button>
+        <button class="btn ghost" id="dstop">Stop daemon</button>
+      </span></div>
+    <div class="body">
+      <div class="sysrow" id="sysstats">–</div>
+      <div class="cur-task" id="sysprimary"></div>
+      <div class="hint" id="sysnote"></div>
+    </div>
+  </section>
+
+  <!-- memory -->
+  <section class="panel" id="memory">
+    <div class="head"><span class="title">Memory library <span class="accent">·</span> world model</span>
+      <span class="meta" id="mem-count">–</span></div>
+    <div class="body">
+      <div class="split">
+        <div class="col">
+          <div class="searchbar">
+            <input class="input" id="memsearch" placeholder="search concepts…">
+          </div>
+          <div class="list" id="memlist"><div class="empty">Indexing…</div></div>
+          <div class="pager" id="mempager"></div>
+        </div>
+        <div class="col detail" id="memdetail"><div class="empty">Select a concept to inspect its relations.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- nodes -->
+  <section class="panel" id="nodes">
+    <div class="head"><span class="title">Node library <span class="accent">·</span> subgraphs</span>
+      <span class="meta" id="node-count">–</span></div>
+    <div class="body">
+      <div class="split">
+        <div class="col" id="nodelist"><div class="empty">Loading…</div></div>
+        <div class="col detail" id="nodedetail"><div class="empty">Select a node to inspect it.</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => (s==null?"":String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const API_BASE="https://gabeslaptop.tail46cb76.ts.net";
+async function jget(u){const r=await fetch(API_BASE+u);return r.json();}
+async function jpost(u,b){const r=await fetch(API_BASE+u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return r.json();}
+
+/* ---------- live feed (poll frames ~5fps, swap on load = no flicker) ---------- */
+let feedOn=true, feedTimer=null, feedFps=5, feedDisplay=null;   // feedDisplay declared HERE:
+// tickFeed reads it and startFeed() runs at load -- a later `let` left it in the temporal dead
+// zone and the whole script died on a ReferenceError (caught live in the console, 2026-07-26)
+function tickFeed(){
+  if(!feedOn) return;
+  const nx=new Image();
+  nx.onload=()=>{ $('feedimg').src=nx.src; };
+  nx.src=API_BASE+"/api/frame.jpg?t="+Date.now()+(feedDisplay?("&display="+encodeURIComponent(feedDisplay)):"");
+}
+function startFeed(){ if(feedTimer)clearInterval(feedTimer); tickFeed(); feedTimer=setInterval(tickFeed,Math.round(1000/feedFps)); }
+function stopFeed(){ if(feedTimer)clearInterval(feedTimer); feedTimer=null; }
+$('feedtoggle').onclick=()=>{
+  feedOn=!feedOn;
+  if(feedOn){ startFeed(); $('feedtoggle').textContent="Pause"; $('feedbadge').textContent="LIVE"; $('feedbadge').style.opacity=1; }
+  else{ stopFeed(); $('feedtoggle').textContent="Resume"; $('feedbadge').textContent="PAUSED"; $('feedbadge').style.opacity=.5; }
+};
+$('feedfull').onclick=()=>{
+  const el=$('feed');
+  if(!document.fullscreenElement){ (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }
+  else if(document.exitFullscreen){ document.exitFullscreen(); }
+};
+startFeed();
+
+/* ---------- feed display switcher (Gabe 2026-07-26: the display of MY choice). Edit-history
+   note: this block was first injected INSIDE the pause-toggle closure (a replace anchored on the
+   FIRST 'startFeed();', which lives in that handler), so the tabs only existed after a
+   pause/resume click. Top level now. ---------- */
+async function loadDisplays(){
+  try{
+    const d=await jget('/api/displays');
+    if(feedDisplay===null) feedDisplay=d.default;
+    $('feedtabs').innerHTML=(d.displays||[]).map(x=>
+      `<button class="tabbtn${x===feedDisplay?' on':''}" data-d="${esc(x)}">${esc(x)}</button>`).join("");
+    [...$('feedtabs').querySelectorAll('.tabbtn')].forEach(b=>b.onclick=()=>{
+      feedDisplay=b.dataset.d; $('feeddisp').textContent=feedDisplay; loadDisplays(); tickFeed();
+    });
+    $('feeddisp').textContent=feedDisplay;
+  }catch(e){}
+}
+loadDisplays(); setInterval(loadDisplays,15000);
+
+/* ---------- state polling ---------- */
+function fmtAgo(t){ if(!t) return ""; const s=Math.max(0,(Date.now()/1000-t)); if(s<60)return Math.round(s)+"s ago"; if(s<3600)return Math.round(s/60)+"m ago"; return Math.round(s/3600)+"h ago"; }
+async function poll(){
+  let st; try{ st=await jget('/api/state'); }catch(e){ $('s-alive').textContent="unreachable"; return; }
+  $('dot').className = "dot"+(st.alive?" live":"");
+  $('s-alive').textContent = st.alive? "alive" : "offline";
+  $('s-alive').style.color = st.alive? "var(--ok)":"var(--faint)";
+  $('s-cycle').textContent = st.cycle==null?"–":st.cycle;
+  const ws = {ready:"ready", loading:"indexing…", cold:"–", error:"error"}[st.world_state]||st.world_state;
+  $('s-world').textContent = ws;
+  $('s-world').style.color = st.world_state==="ready"?"var(--ok)":(st.world_state==="error"?"var(--accent)":"var(--muted)");
+  // current
+  const c = st.current||{};
+  if(c.mode==="directive"){
+    $('cur-mode').textContent="PURSUING DIRECTIVE";
+    $('cur-main').textContent=c.directive||"(directive)"; $('cur-main').className="cur-main accent";
+  }else{
+    $('cur-mode').textContent="STANDING LOOP";
+    $('cur-main').textContent=(c.action==="dive"?"Diving — growing the world model":(c.standing||"improve your capabilities"));
+    $('cur-main').className="cur-main";
+  }
+  $('cur-task').textContent = c.action? (c.action+(c.concept?(" · "+c.concept):(c.detail?(" · "+c.detail):""))) : "";
+  // stats from latest dive entry
+  const j=st.journal||[]; const last=[...j].reverse().find(e=>e.memories!=null)||{};
+  $('cur-stats').innerHTML = `<span><b>${last.memories??"–"}</b> memories</span><span><b>${last.docs??"–"}</b> docs read</span><span>phase <b>${esc((st.phase||"").split(":")[0]||"–")}</b></span><span class="mono">${fmtAgo(st.updated_at)}</span>`;
+  // WORKER CARDS -- one per lane, keyed "kind:lane", mirroring ouro_app.CurrentPage.refresh.
+  const workers = st.workers||[];
+  $('w-count').textContent = workers.length? (workers.length+" lanes") : "";
+  $('workers').innerHTML = workers.length? workers.map(w=>{
+    // A status file OUTLIVES ITS PROCESS, so a dead lane must not read as a working one.
+    const alive = !!w.alive;
+    const age = w.age_s!=null? (w.age_s+"s") : "-";
+    // hole/hop are the dive lanes' own progress and are absent on cpu lanes.
+    const extra = w.hole!=null? ("   hole "+w.hole+" hop "+(w.hops??"-")) : "";
+    const g = w.grow;
+    // THE GROW IN ITS OWN LANE'S CARD (Gabe: "The grows should be shown in the per worker
+    // panels"). A lane IS a cpu worker, so its search belongs to that worker -- and the directive
+    // NAME alone says nothing about whether the search is getting anywhere, which is why the
+    // metric line carries best/scored/nodes and the ops line carries the actual candidate.
+    const metric = g? `<div class="w-metric">best <b>${esc(String(g.best??"–")).slice(0,10)}</b> · scored ${g.scored??"–"} · nodes ${g.nodes??"–"} · ${g.elapsed_s??"–"}s <span class="w-dir">${esc(g.directive||"")}</span></div>` : "";
+    const ops = (g && g.ops && g.ops.length)? `<div class="w-ops">${esc(g.ops.join(" ")).slice(0,140)}</div>` : "";
+    return `<div class="wcard${alive?"":" dead"}">`+
+      `<div class="w-head">${alive?"●":"○"} ${esc(String(w.kind||"?").toUpperCase())} lane ${esc(String(w.lane))}`+
+      `${alive?"":'<span class="w-off">   (not running)</span>'}</div>`+
+      `<div class="w-state">${esc(String(w.state||"?"))}   ${esc(age)}${esc(extra)}</div>`+
+      (w.detail? `<div class="w-detail">${esc(String(w.detail))}</div>` : "")+
+      metric+ops+
+    `</div>`;
+  }).join("") : '<div class="empty">(no workers reporting)</div>';
+  // Queued: waiting work first, then parked work with the reason it is parked.
+  const jobs = st.jobs||[];
+  const parts = jobs.filter(x=>x.status==="waiting").slice(0,8)
+      .map(x=>`${x.name} (${x.kind}, p${x.priority})`)
+    .concat(jobs.filter(x=>x.status==="parked").slice(0,4)
+      .map(x=>`${x.name} (parked: ${String(x.reason||"").slice(0,60)}…)`));
+  $('cur-jobs').textContent = "Queued:  " + (parts.length? parts.join("     ") : "nothing waiting");
+  // system panel
+  $('sysstats').innerHTML=`<span>daemon <b>${st.alive?"alive":"offline"}</b></span>`+
+    `<span>memories <b>${st.world_size??"–"}</b></span>`+
+    `<span>lived episodes <b>${st.episodes??0}</b></span>`+
+    `<span>perceiving <b>${st.percept_age!=null?(st.percept_age+"s ago"):"–"}</b></span>`+
+    `<span>phase stamp <b>${st.heartbeat_age!=null?(st.heartbeat_age+"s"):"–"}</b></span>`;
+  $('sysprimary').textContent = st.active_primary? ("primary: "+st.active_primary.slice(0,150)) : "";
+  // queue
+  const q=st.queue||[]; $('q-count').textContent=q.length;
+  $('queuebody').innerHTML = q.length? q.map((e,i)=>`<div class="qitem"><span class="qnum">${i+1}</span><span class="qtext">${esc(e.directive)}</span><span class="qmeta">${e.attempts?("try "+e.attempts):"queued"}</span></div>`).join("") : '<div class="empty">Queue is empty — the daemon is diving.</div>';
+}
+setInterval(poll,2000); poll();
+
+// WORK QUEUES -- the systems that had no display at all. Gabe, 2026-08-20: "Repurpose obsolete
+// displays to be wired into systems that aren't represented". Chat, current, feed, grows, memory
+// and nodes were all wired; the queues the work flows through were invisible.
+// Polled at 10s against a 30s server-side cache, because judge_buffer's load costs ~1s.
+function bufPill(label, n, warn){
+  const c = warn && n > 0 ? '#e0a030' : (n > 0 ? '#8ab4f8' : '#6a6a6a');
+  return `<span style="display:inline-block;margin:0 10px 4px 0"><b style="color:${c}">${n}</b> <span style="opacity:.7">${label}</span></span>`;
+}
+async function pollBuffers(){
+  try{
+    const r = await jget('/api/buffers');
+    const j = r.judge || {}, op = r.oracle_pending || {}, oa = r.oracle_answered || {};
+    document.getElementById('buf-rows').innerHTML =
+      bufPill('judge rows', j.rows||0, false) +
+      bufPill('judge UNSCORED', j.unscored||0, true) +
+      bufPill('oracle reward pending', op.reward||0, true) +
+      bufPill('oracle decomp pending', op.decomposition||0, true) +
+      bufPill('reward answered', oa.reward||0, false) +
+      bufPill('decomp answered', oa.decomposition||0, false);
+    const q = (r.queue||{}).by_kind_status || {};
+    document.getElementById('buf-queue').innerHTML =
+      Object.keys(q).sort().map(k => bufPill(k, q[k], k.indexOf('parked')>=0)).join('') ||
+      '<span style="opacity:.6">queue empty</span>';
+    if (r.at) {
+      const age = Math.max(0, Math.round(Date.now()/1000 - r.at));
+      document.getElementById('buf-age').textContent = age + 's ago';
+    }
+  }catch(e){}
+}
+setInterval(pollBuffers,10000); pollBuffers();
+
+
+// live grows: one block per composing lane (metric, produced turns, op chain)
+// NO SECOND `esc` HERE. A `function esc(){}` sat on this line and `const esc = ...` is declared at
+// the top of this same (single) script block, so the whole script died at PARSE time with
+// "Identifier 'esc' has already been declared" -- and a script that does not parse defines
+// nothing, polls nothing and renders nothing. Every panel on this page was a static shell: the
+// markup shipped, the placeholders ("–", "connecting…") never got replaced, and the page looked
+// like a server problem rather than a syntax one. Measured 2026-08-19: 0 of 8 panels populated,
+// `typeof $` === "undefined" in the live page. The two definitions were equivalent escapers, so
+// the first one wins and this one is gone.
+async function pollGrows(){
+  let r; try{ r=await jget('/api/grows'); }catch(e){ return; }
+  const lanes=(r.lanes||[]).filter(l=>(l.age_s||0)<600);
+  window._growLanes=lanes;   // so a slider can post the full knob set, not just the one moved
+  $('growcount').textContent=lanes.length?lanes.length+" lane"+(lanes.length>1?"s":""):"";
+  if(!lanes.length){ $('growbody').innerHTML='<div class="empty">No compose lane is searching.</div>'; return; }
+  $('growbody').innerHTML=lanes.map(l=>{
+    const outs=(l.sample_outputs||[]).slice(0,3).map(o=>'<div style="color:var(--muted)">out: '+esc(String(o).slice(0,90))+'</div>').join('');
+    const ops=(l.ops||[]).slice(0,10).join(' &gt; ')+((l.ops||[]).length>10?' ...':'');
+    return '<div style="margin-bottom:10px"><b>'+esc(String(l.directive).slice(0,80))+'</b>'
+      +(l.age_s>120?' <span style="color:var(--muted)">(stale '+Math.round(l.age_s)+'s)</span>':'')
+      +'<div>best '+Number(l.best).toFixed(4)+' &middot; '+l.scored+' cands &middot; '
+      +l.elapsed_s+'s &middot; '+l.nodes+' nodes</div>'
+      +'<div style="color:var(--muted);font-size:11px">'+ops+'</div>'+outs
+      +growSliders(l)+'</div>';
+  }).join('');
+}
+
+// SEARCH CONTROLS, LIVE (Gabe 2026-08-10: "have the training variables exposed as sliders below
+// each grow in the interface so I can tune them aswell"). Each slider POSTs to /api/grow_control,
+// which writes that worker's sidecar; the search re-reads it every 25 candidates, so a drag takes
+// effect in about a second WITHOUT restarting the run or losing candidates already found.
+// elite_p is the diversity pressure: the chance a restart resumes from a random archive cell
+// (a stepping stone) rather than from the champion.
+const GROW_KNOBS=[
+  ['elite_p','diversity (restart from archive)',0,1,0.05],
+  ['best_p','exploit (restart from best)',0,1,0.05],
+  ['mut_min','min mutations',1,12,1],
+  ['mut_max','max mutations',1,12,1]];
+
+function growSliders(l){
+  if(!l.control||!l.pid) return '';
+  const d=l.control_defaults||{};
+  return '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line)">'
+    +GROW_KNOBS.map(function(k){
+      const name=k[0], val=l.control[name];
+      const changed=(d[name]!==undefined && Number(d[name])!==Number(val));
+      return '<div style="display:flex;align-items:center;gap:8px;font-size:11px">'
+        +'<span style="color:var(--muted);min-width:170px">'+k[1]+'</span>'
+        +'<input type="range" min="'+k[2]+'" max="'+k[3]+'" step="'+k[4]+'" value="'+val+'" '
+        +'style="flex:1" oninput="this.nextElementSibling.textContent=this.value" '
+        +'onchange="setGrowControl('+l.pid+',&quot;'+name+'&quot;,this.value)">'
+        +'<b style="min-width:34px;text-align:right'+(changed?';color:var(--accent)':'')+'">'
+        +val+'</b></div>';
+    }).join('')+'</div>';
+}
+
+// Send ALL four knobs, not only the one moved: the endpoint clamps them as a SET (best_p may not
+// sit below elite_p, since they are cumulative thresholds on one roll), so a partial update could
+// be silently corrected against stale values.
+async function setGrowControl(pid,name,value){
+  const lane=(window._growLanes||[]).filter(function(x){return x.pid===pid;})[0];
+  const body=Object.assign({},(lane&&lane.control)||{},{pid:pid});
+  body[name]=Number(value);
+  try{ await jpost('/api/grow_control',body); }catch(e){}
+  pollGrows();
+}
+setInterval(pollGrows,3000); pollGrows();
+
+/* ---------- system panel (config + diagnostics) ---------- */
+async function daemonCtl(action){
+  $('dstart').disabled=$('dstop').disabled=true;
+  try{ const r=await jpost('/api/daemon',{action}); $('sysnote').textContent=r.note||r.error||""; }
+  catch(e){ $('sysnote').textContent=String(e); }
+  $('dstart').disabled=$('dstop').disabled=false; poll();
+}
+$('dstart').onclick=()=>daemonCtl('start');
+$('dstop').onclick=()=>daemonCtl('stop');
+
+/* ---------- send directive ---------- */
+async function sendDirective(){
+  const v=$('sendinput').value.trim(); if(!v) return;
+  $('sendbtn').disabled=true;
+  await jpost('/api/send',{directive:v}); $('sendinput').value=""; $('sendbtn').disabled=false; poll();
+}
+$('sendbtn').onclick=sendDirective;
+$('sendinput').addEventListener('keydown',e=>{if(e.key==="Enter")sendDirective();});
+
+/* ---------- chat (post to the bus; the daemon's responder answers; poll log) ---------- */
+let chatSig="";
+function renderChat(messages){
+  const last=messages.length?messages[messages.length-1]:null;
+  const sig=messages.length+"|"+(last?last.role+last.text:"");
+  if(sig===chatSig) return; chatSig=sig;
+  const log=$('chatlog'); log.innerHTML="";
+  if(!messages.length){
+    const d=document.createElement('div'); d.className="msg bot";
+    d.textContent="Say hi. I answer from what I've read — slow and literal, matching your message to the closest thing I know. Not fluent, but it's me.";
+    log.appendChild(d);
+  }
+  for(const m of messages){
+    const d=document.createElement('div'); d.className="msg "+(m.role==="user"?"me":"bot");
+    d.textContent=m.text;
+    if(m.role==="ouroboros" && m.meta && (m.meta.basis||m.meta.matched)){
+      const s=document.createElement('span'); s.className="lf";
+      s.textContent = m.meta.basis ? ("· "+m.meta.basis)
+        : ("~ \""+m.meta.matched+"\" ("+Math.round((m.meta.sim||0)*100)+"% match)");
+      d.appendChild(s);
+    }
+    log.appendChild(d);
+  }
+  if(last && last.role==="user"){
+    const p=document.createElement('div'); p.className="msg bot"; p.textContent="…"; p.style.opacity=".5"; log.appendChild(p);
+  }
+  log.scrollTop=log.scrollHeight;
+}
+async function pollChat(){ try{ const r=await jget('/api/chat_log'); renderChat(r.messages||[]); }catch(e){} }
+async function chat(){
+  const v=$('chatinput').value.trim(); if(!v) return;
+  $('chatinput').value=""; $('chatsend').disabled=true;
+  try{ await jpost('/api/chat',{text:v}); }catch(e){}
+  $('chatsend').disabled=false; $('chatinput').focus(); setTimeout(pollChat,150);
+}
+$('chatsend').onclick=chat;
+$('chatinput').addEventListener('keydown',e=>{if(e.key==="Enter")chat();});
+setInterval(pollChat,1500); pollChat();
+
+/* ---------- memory browser ---------- */
+let memOffset=0, memQuery="", memSel=null, memTimer=null;
+async function loadMemories(){
+  const d=await jget(`/api/memories?q=${encodeURIComponent(memQuery)}&offset=${memOffset}&limit=30`);
+  if(d.loading){ $('memlist').innerHTML=`<div class="empty">Indexing memory library (${d.loading})…</div>`; setTimeout(loadMemories,3000); return; }
+  $('mem-count').textContent=`${d.world_memories} memories · ${d.docs} docs`;
+  $('memlist').innerHTML = (d.items||[]).map(m=>{
+    const chips=[m.frozen?'<span class="chip frozen">frozen</span>':'',m.grounded?'<span class="chip ground">grounded</span>':''].join('');
+    return `<div class="row${m.name===memSel?' sel':''}" data-n="${esc(m.name)}"><span class="name mono">${esc(m.name)}</span>${chips}<span class="conf">${(m.confidence*100).toFixed(0)}%</span></div>`;
+  }).join("")||'<div class="empty">No matches.</div>';
+  [...$('memlist').querySelectorAll('.row')].forEach(r=>r.onclick=()=>openMemory(r.dataset.n));
+  const pages=Math.ceil(d.total/d.limit)||1, cur=Math.floor(memOffset/d.limit)+1;
+  $('mempager').innerHTML=`<button class="btn ghost" ${memOffset<=0?'disabled':''} id="mprev">‹</button><span>${cur} / ${pages} · ${d.total}</span><button class="btn ghost" ${memOffset+30>=d.total?'disabled':''} id="mnext">›</button>`;
+  const mp=$('mprev'),mn=$('mnext'); if(mp)mp.onclick=()=>{memOffset=Math.max(0,memOffset-30);loadMemories();}; if(mn)mn.onclick=()=>{memOffset+=30;loadMemories();};
+}
+async function openMemory(name){
+  memSel=name; [...$('memlist').querySelectorAll('.row')].forEach(r=>r.classList.toggle('sel',r.dataset.n===name));
+  const d=await jget('/api/memory?name='+encodeURIComponent(name));
+  if(d.error){ $('memdetail').innerHTML=`<div class="empty">${esc(d.error)}</div>`; return; }
+  const maxv=Math.max(0.001,...(d.relations||[]).map(r=>r.value));
+  const rels=(d.relations||[]).map(r=>`<div class="relbar"><span class="rk">${esc(r.key)}</span><span class="rt"><i style="width:${Math.round(100*r.value/maxv)}%"></i></span><span class="rv">${r.value.toFixed(2)}</span></div>`).join("");
+  const ids=(d.identifiers||[]).map(x=>`<div class="idrow">◆ ${esc(x.key)}: ${esc(x.value)}</div>`).join("");
+  $('memdetail').innerHTML=`<h3 class="mono">${esc(d.name)}</h3>
+    <div class="kv"><span>confidence <b>${(d.confidence*100).toFixed(0)}%</b></span><span>revisions <b>${d.revisions}</b></span><span>relations <b>${d.relation_count}</b></span></div>
+    <div class="kv">${d.frozen?'<span class="chip frozen">frozen</span>':''} ${d.grounded?'<span class="chip ground">grounded</span>':''}</div>
+    ${ids?('<div class="bar"></div>'+ids):''}
+    <div class="bar"></div>${rels||'<div class="empty">No graded relations.</div>'}`;
+}
+$('memsearch').addEventListener('input',e=>{ clearTimeout(memTimer); memTimer=setTimeout(()=>{memQuery=e.target.value.trim();memOffset=0;loadMemories();},250); });
+loadMemories();
+
+/* ---------- node browser ---------- */
+let nodeSel=null;
+async function loadNodes(){
+  const d=await jget('/api/nodes');
+  if(d.error){ $('nodelist').innerHTML=`<div class="empty">${esc(d.error)}</div>`; return; }
+  let total=0, html="";
+  for(const cat of d.categories||[]){
+    total+=cat.count;
+    html+=`<div class="muted" style="margin:8px 2px 3px;font-size:11px;letter-spacing:.4px">${esc(cat.category)} · ${cat.count}</div>`;
+    html+=cat.nodes.map(n=>`<div class="row" data-id="${esc(n.id)}"><span class="name">${esc(n.id)}</span>${n.nodes!=null?`<span class="conf">${n.nodes}n</span>`:''}${n.version?`<span class="chip">v${n.version}</span>`:''}</div>`).join("");
+  }
+  $('node-count').textContent=`${total} nodes`;
+  $('nodelist').innerHTML=html||'<div class="empty">No nodes.</div>';
+  [...$('nodelist').querySelectorAll('.row')].forEach(r=>r.onclick=()=>openNode(r.dataset.id));
+}
+async function openNode(id){
+  nodeSel=id; [...$('nodelist').querySelectorAll('.row')].forEach(r=>r.classList.toggle('sel',r.dataset.id===id));
+  const d=await jget('/api/node?id='+encodeURIComponent(id));
+  if(d.error){ $('nodedetail').innerHTML=`<div class="empty">${esc(d.error)}</div>`; return; }
+  const dir=d.directive&&d.directive.description?`<div class="kv"><span class="muted">grows:</span> <b style="font-family:var(--sans);color:var(--text)">${esc(d.directive.description)}</b></div>`:"";
+  const cases=d.directive&&d.directive.cases?`<div class="kv"><span>cases <b>${d.directive.cases.length}</b></span></div>`:"";
+  const stats=d.stats?`<div class="kv"><span>runs <b>${d.stats.runs??d.stats.calls??"–"}</b></span><span>totalMs <b>${d.stats.totalMs!=null?Math.round(d.stats.totalMs):"–"}</b></span></div>`:"";
+  const head=(d.graph_head||[]).map(n=>`<div class="mono" style="font-size:11px;color:var(--muted);padding:1px 0">${esc(n.id)}${n.inputs&&n.inputs.length?` <span class="faint">(${n.inputs.length} in)</span>`:''}</div>`).join("");
+  $('nodedetail').innerHTML=`<h3 class="mono">${esc(d.id)}</h3>
+    <div class="kv"><span>kind <b>${esc(d.kind)}</b></span>${d.graph_size!=null?`<span>size <b>${d.graph_size}</b> nodes</span>`:''}${d.version?`<span>version <b>${d.version}</b></span>`:''}</div>
+    ${dir}${cases}${stats}
+    ${head?('<div class="bar"></div><div class="muted" style="font-size:11px;margin-bottom:3px">graph head:</div>'+head+(d.graph_size>24?`<div class="faint mono" style="font-size:11px">… +${d.graph_size-24} more</div>`:'')):''}`;
+}
+loadNodes();
+
+// PAGES: one visible at a time, like the tkinter tabs. Section -> page mapping keeps every
+// existing panel and its polling untouched; hidden panels keep polling (cheap, all JSON).
+const PAGE_OF = {current:'current', queue:'current', send:'current', system:'current',
+                 feed:'feed', chat:'chat', buffers:'queues', grows:'queues',
+                 memory:'memory', nodes:'memory'};
+function showPage(name){
+  document.querySelectorAll('.grid > .panel').forEach(s => {
+    s.classList.toggle('page-hidden', PAGE_OF[s.id] !== name);
+  });
+  document.querySelectorAll('nav#pages button').forEach(b => {
+    b.classList.toggle('on', b.dataset.page === name);
+  });
+  try{ localStorage.setItem('ouroPage', name); }catch(e){}
+}
+document.querySelectorAll('nav#pages button').forEach(b => {
+  b.addEventListener('click', () => showPage(b.dataset.page));
+});
+showPage((()=>{ try{ return localStorage.getItem('ouroPage') || 'current'; }catch(e){ return 'current'; } })());
+</script>
+</body>
+</html>
