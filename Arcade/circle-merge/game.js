@@ -10,8 +10,10 @@
     const DROP_COOLDOWN = 520;
     const FIXED_STEP = 1000 / 120;
     const GRAVITY_SCALE = 0.005;
-    const STORAGE_KEY = "gabriel-suika-clone-best";
-    const POINTS_STORAGE_KEY = "gabriel-suika-clone-points";
+    const STORAGE_KEY = "gabriel-circle-merge-best";
+    const POINTS_STORAGE_KEY = "gabriel-circle-merge-points";
+    const LEGACY_BEST_STORAGE_KEY = "gabriel-suika-clone-best";
+    const LEGACY_POINTS_STORAGE_KEY = "gabriel-suika-clone-points";
     const LEGACY_META_STORAGE_KEY = "gabriel-suika-clone-meta";
     const SCORE_TO_POINTS_RATE = 10;
     const JIGGLE_COST = 100;
@@ -146,7 +148,20 @@
 
     function readBestScore() {
         try {
-            return Number(localStorage.getItem(STORAGE_KEY)) || 0;
+            const currentValue = localStorage.getItem(STORAGE_KEY);
+            if (currentValue !== null) {
+                return Number(currentValue) || 0;
+            }
+
+            const legacyValue = localStorage.getItem(LEGACY_BEST_STORAGE_KEY);
+            if (legacyValue !== null) {
+                const migratedValue = Number(legacyValue) || 0;
+                localStorage.setItem(STORAGE_KEY, String(migratedValue));
+                localStorage.removeItem(LEGACY_BEST_STORAGE_KEY);
+                return migratedValue;
+            }
+
+            return 0;
         } catch (error) {
             return 0;
         }
@@ -404,6 +419,14 @@
             const currentValue = localStorage.getItem(POINTS_STORAGE_KEY);
             if (currentValue !== null) {
                 return Math.max(0, Number(currentValue) || 0);
+            }
+
+            const legacyPointsValue = localStorage.getItem(LEGACY_POINTS_STORAGE_KEY);
+            if (legacyPointsValue !== null) {
+                const migratedPoints = Math.max(0, Number(legacyPointsValue) || 0);
+                localStorage.setItem(POINTS_STORAGE_KEY, String(migratedPoints));
+                localStorage.removeItem(LEGACY_POINTS_STORAGE_KEY);
+                return migratedPoints;
             }
 
             const legacyValue = localStorage.getItem(LEGACY_META_STORAGE_KEY);
