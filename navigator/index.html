@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Navigator Prototype</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="panel">
+        <header>
+          <h1>Navigator</h1>
+          <p class="subtitle">
+            Prototype: choose how much a short trip and free-moving roads
+            matter to you.
+          </p>
+        </header>
+
+        <section class="card">
+          <label for="from">From</label>
+          <div class="place">
+            <input id="from" type="text" placeholder="Address, or click the map" />
+          </div>
+          <label for="to">To</label>
+          <div class="place">
+            <input id="to" type="text" placeholder="Address, or click the map" />
+          </div>
+          <div class="row">
+            <button id="swap" type="button" class="secondary">Swap</button>
+            <button id="clear" type="button" class="secondary">Clear</button>
+          </div>
+
+          <label for="limit">Routes to compare: <output id="limit-value">5</output></label>
+          <input id="limit" type="range" min="2" max="8" step="1" value="5" />
+
+          <details id="key-box">
+            <summary>Live traffic <span id="key-state"></span></summary>
+            <label for="provider">Source</label>
+            <select id="provider">
+              <option value="tomtom">TomTom (free, no card)</option>
+              <option value="here">HERE</option>
+            </select>
+            <p class="hint">
+              <span id="provider-note"></span>
+              Keys you enter are kept only in this browser; get one at
+              <a id="provider-link" href="#" target="_blank" rel="noopener"></a>.
+              Without any key, routes are compared by their normal,
+              traffic-free road speeds.
+            </p>
+            <input id="key" type="password" autocomplete="off" placeholder="API key" />
+          </details>
+
+          <button id="go" type="button" class="primary">Find routes</button>
+          <p id="status" class="status" role="status"></p>
+        </section>
+
+        <section class="card">
+          <h2>Your knobs</h2>
+          <p class="formula">score = q&middot;x + k&middot;y</p>
+          <label for="x">
+            x &mdash; how much a short trip matters
+            <output id="x-value">0.50</output>
+          </label>
+          <input id="x" type="range" min="0" max="1" step="0.05" value="0.5" />
+          <label for="y">
+            y &mdash; how much free-moving roads matter
+            <output id="y-value">0.50</output>
+          </label>
+          <input id="y" type="range" min="0" max="1" step="0.05" value="0.5" />
+          <p class="hint">
+            q = shortest route's length &divide; this route's length.
+            k = this route's average road speed &divide; the best average road
+            speed. Both are 1 for the best route; the highest score wins.
+          </p>
+        </section>
+
+        <section>
+          <ol id="results" class="results"></ol>
+        </section>
+
+        <footer class="credits">
+          Routes: <a href="https://valhalla1.openstreetmap.de/" target="_blank" rel="noopener">FOSSGIS Valhalla</a>
+          and <a href="https://routing.openstreetmap.de/" target="_blank" rel="noopener">FOSSGIS OSRM</a>.
+          Search: <a href="https://nominatim.org/" target="_blank" rel="noopener">Nominatim</a>.
+          Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
+          Traffic &copy; TomTom or HERE. <a href="../index.html">Back to my site</a>
+        </footer>
+      </aside>
+
+      <main class="map-wrap">
+        <div id="map" aria-label="Map"></div>
+        <div class="legend" aria-hidden="true">
+          <span><i style="background: var(--free)"></i>moving</span>
+          <span><i style="background: var(--slow)"></i>slow</span>
+          <span><i style="background: var(--jam)"></i>jammed</span>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

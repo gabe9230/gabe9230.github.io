@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "name": "navigator-prototype",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}
